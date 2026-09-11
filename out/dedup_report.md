@@ -2,27 +2,28 @@
 
 Generated 2026-09-11
 
-- Input rows: **7,312**
-- Facilities after clustering: **7,082**
-- Rows absorbed into a multi-source facility: **230**
-- Flagged for review, not merged: **199 pairs**
+- Input rows: **17,101**
+- Facilities after clustering: **16,642**
+- Rows absorbed into a multi-source facility: **459**
+- Flagged for review, not merged: **216 pairs**
 
 ## Rows per source
 
+- EU third-country list: 9,789
 - USDA FSIS: 7,241
 - China CIFER: 71
 
 ## What joined the merges
 
-- `addr`: 122 clusters
+- `addr`: 163 clusters
 - `geo`: 92 clusters
-- `id`: 5 clusters
+- `id`: 63 clusters
 
 ## Cluster sizes
 
-- 1 source record: 6,863 facilities
-- 2 source records: 211 facilities
-- 3 source records: 6 facilities
+- 1 source record: 16,328 facilities
+- 2 source records: 298 facilities
+- 3 source records: 14 facilities
 - 4 source records: 1 facilities
 - 5 source records: 1 facilities
 
