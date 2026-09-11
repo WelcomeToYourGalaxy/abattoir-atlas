@@ -1,0 +1,39 @@
+name: 2 · Fetch registries
+
+# Downloads the sources a runner can pull on its own and commits them to raw/.
+# Weekly, because FSIS republishes weekly.
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: 'Which sources'
+        type: choice
+        default: all
+        options: [all, fsis, osm]
+  schedule:
+    - cron: '20 6 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Download
+        run: python fetch.py ${{ inputs.what || 'all' }}
+
+      - name: Commit raw files
+        run: |
+          git config user.name  "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          git add -f raw/
+          git diff --staged --quiet && echo "no change" && exit 0
+          git commit -m "raw: registry snapshot $(date -u +%Y-%m-%d)"
+          git push

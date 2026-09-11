@@ -1,0 +1,47 @@
+name: 3 · Parse and deduplicate
+
+# Reads everything in raw/, clusters it, writes the review queue and the report.
+# Cheap — run it as often as you like.
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['raw/**']
+
+permissions:
+  contents: write
+
+jobs:
+  build-dataset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Parse every source present in raw/
+        run: bash parse_all.sh
+
+      - name: Cluster
+        run: python run.py dedup
+
+      - run: python run.py status
+
+      - name: Commit dataset
+        run: |
+          git config user.name  "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          git add -f out/facilities.json.gz out/review_queue.csv out/dedup_report.md
+          git diff --staged --quiet && echo "no change" && exit 0
+          git commit -m "dataset: rebuild $(date -u +%Y-%m-%d)"
+          git push
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dataset
+          path: |
+            out/facilities.json.gz
+            out/review_queue.csv
+            out/dedup_report.md
+          retention-days: 90

@@ -1,0 +1,71 @@
+name: 5 · Build and publish
+
+# Re-clusters with the geocode cache live (which is what turns on the proximity
+# match tier), builds the map, and publishes it to GitHub Pages.
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Map title'
+        default: 'Where animals are killed'
+  workflow_run:
+    workflows: ['4 · Geocode']
+    types: [completed]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - run: bash parse_all.sh
+
+      - name: Cluster with coordinates live
+        run: python run.py dedup
+
+      - name: Build the map
+        run: |
+          python run.py build \
+            --out atlas.html \
+            --title "${{ inputs.title || 'Where animals are killed' }}"
+          mkdir -p docs
+          cp out/atlas.html docs/index.html
+          cp out/dedup_report.md docs/dedup_report.md
+          ls -lh docs/
+
+      - run: python run.py status
+
+      - name: Commit outputs
+        run: |
+          git config user.name  "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          git add -f docs/ out/facilities.json.gz out/review_queue.csv out/dedup_report.md
+          git diff --staged --quiet && echo "no change" && exit 0
+          git commit -m "atlas: build $(date -u +%Y-%m-%d)"
+          git push
+
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: docs}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,61 @@
+name: 4 · Geocode
+
+# The long pole. Nominatim's usage policy is one request a second, so ~60,000
+# addresses is around seventeen hours of wall clock. A GitHub job is capped at
+# six, so this runs in chunks: each run does a slice, commits the cache, and the
+# next run picks up where it stopped. The cache is the whole point — those
+# seventeen hours happen once, not once per rebuild.
+#
+# Set the CONTACT secret to a real email or URL. Nominatim expects one, and
+# they will block a User-Agent without it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Fresh lookups this run'
+        default: '10000'
+  schedule:
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  geocode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 320
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Rebuild records from raw/
+        run: bash parse_all.sh
+
+      - name: Stop early if nothing is outstanding
+        id: check
+        run: |
+          python run.py status | tee status.txt
+          if grep -qE 'geocode cache: .*, 0 outstanding' status.txt; then
+            echo "done=true" >> $GITHUB_OUTPUT
+            echo "Nothing left to geocode."
+          fi
+
+      - name: Geocode a slice
+        if: steps.check.outputs.done != 'true'
+        run: |
+          python run.py geocode \
+            --contact "${{ secrets.CONTACT }}" \
+            --limit ${{ inputs.limit || 10000 }}
+
+      - name: Commit the cache
+        if: steps.check.outputs.done != 'true'
+        run: |
+          git config user.name  "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          git add -f work/geocache.json.gz
+          git diff --staged --quiet && echo "no change" && exit 0
+          n=$(python -c "import gzip,json;print(len(json.load(gzip.open('work/geocache.json.gz','rt'))))")
+          git commit -m "geocode: $n addresses cached"
+          git push

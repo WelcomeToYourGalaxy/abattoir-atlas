@@ -1,0 +1,45 @@
+name: 6 · Harvest CIFER
+
+# Only useful after you have run `python cifer.py discover` locally once and
+# committed the edited ENDPOINT block. Until then this will fail on the first
+# request, which is the correct behaviour.
+
+on:
+  workflow_dispatch:
+    inputs:
+      categories:
+        type: choice
+        default: meat
+        options: [meat, all_animal]
+
+permissions:
+  contents: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 320
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Harvest
+        run: |
+          python cifer.py harvest \
+            --categories ${{ inputs.categories || 'meat' }} \
+            --out raw/cifer.jsonl --resume
+
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name  "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          # Runs even when the harvest died partway: a partial file plus its
+          # checkpoint is exactly what --resume needs next time.
+          [ -f raw/cifer.jsonl ] || { echo "nothing harvested"; exit 0; }
+          git add -f raw/cifer.jsonl
+          [ -f work/cifer_checkpoint.json ] && git add -f work/cifer_checkpoint.json
+          git diff --staged --quiet && echo "no change" && exit 0
+          git commit -m "cifer: $(wc -l < raw/cifer.jsonl) rows"
+          git push
