@@ -207,41 +207,62 @@ def set_page_size(page, want: int = 50) -> None:
 
 
 def read_page(page) -> list[dict]:
-    """Read the rendered table. Column order varies by locale, so columns are
-    identified from the header text and the raw cells are kept alongside."""
-    rows = _rows(page)
-    if rows is None or rows.count() == 0:
+    """Read the results table.
+
+    The page stacks several tables -- results, import-suspension history, HS
+    codes -- and an unscoped header scan concatenates all of their headers, so
+    column indices land in the wrong table. Each table is scored on how many of
+    the expected result headers it carries and only the winner is read.
+    """
+    tables = page.locator("table")
+    best, best_score, best_headers = None, 0, []
+
+    for i in range(min(tables.count(), 12)):
+        tbl = tables.nth(i)
+        try:
+            hdrs = [h.strip() for h in tbl.locator("thead th, tr:first-child th")
+                    .all_inner_texts()]
+        except Exception:
+            continue
+        if not hdrs:
+            continue
+        joined = " ".join(hdrs).lower()
+        score = sum(k in joined for k in
+                    ("企业名称", "name", "在华注册编号", "china reg",
+                     "所在国家", "country", "生产场所地址", "address"))
+        if score > best_score:
+            best, best_score, best_headers = tbl, score, hdrs
+
+    if best is None or best_score < 3:
         return []
 
-    headers = [h.strip() for h in
-               page.locator("table thead th, .el-table__header th").all_inner_texts()]
+    rows = best.locator("tbody tr")
+    if rows.count() == 0:
+        rows = best.locator("tr")
 
     def col(*needles):
-        for i, h in enumerate(headers):
+        for i, h in enumerate(best_headers):
             low = h.lower()
             if any(n in low or n in h for n in needles):
                 return i
         return None
 
-    # Header wording taken from the page's own labels:
-    #   产品类别 CATEGORY | 所在国家（地区）COUNTRY(REGION)
-    #   所在国家（地区）注册编号 OVERSEAS REG. NO. | 在华注册编号 CHINA REG. NO.
-    #   状态 STATE | 企业名称 ENTERPRISE NAME
+    # Header cells carry the Chinese label, a newline, then the English one.
     i_cn = col("china reg", "在华注册编号")
     i_fo = col("overseas reg", "所在国家（地区）注册编号")
-    i_nm = col("enterprise name", "企业名称")
-    i_ct = col("country(region)", "country", "所在国家")
-    i_ad = col("address", "地址")
-    i_pd = col("category", "产品类别", "product")
-    i_vd = col("valid", "有效期", "state", "状态")
+    i_nm = col("企业名称", "name")
+    i_ct = col("country(region)", "国家（地区）")
+    i_ad = col("生产场所地址", "address")
+    i_pd = col("产品类别", "category")
+    i_vd = col("exp. date", "注册有效期", "state", "状态")
 
     out = []
     for r in range(rows.count()):
         cells = [c.strip() for c in rows.nth(r).locator("td").all_inner_texts()]
         if not any(cells):
             continue
-        pick = lambda i: cells[i] if i is not None and i < len(cells) else None
-        out.append({
+        pick = lambda i: (cells[i] if i is not None and i < len(cells) else None) or None
+        rec = {
             "registerNo": pick(i_cn),
             "foreignRegisterNo": pick(i_fo),
             "enName": pick(i_nm),
@@ -249,9 +270,12 @@ def read_page(page) -> list[dict]:
             "address": pick(i_ad),
             "productCategory": [pick(i_pd)] if pick(i_pd) else [],
             "validDate": pick(i_vd),
-            "_headers": headers,
+            "_headers": best_headers,
             "_cells": cells,
-        })
+        }
+        # A row with no identifier at all means the column scan is still wrong;
+        # keep it, but the caller can count them and notice.
+        out.append(rec)
     return out
 
 
@@ -314,9 +338,14 @@ def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
                     try:
                         page.goto(URL, wait_until="domcontentloaded", timeout=90_000)
                         page.wait_for_timeout(1200)
-                        run_query(page,
-                                  COUNTRY_CODES.get(country, country) if country else None,
-                                  cat)
+                        applied = run_query(
+                            page,
+                            COUNTRY_CODES.get(country, country) if country else None,
+                            cat)
+                        if not applied:
+                            print(f"  !! category {cat} did not apply -- these "
+                                  f"rows are NOT species-tagged and may not be "
+                                  f"meat at all", file=sys.stderr)
                     except Exception as exc:
                         print(f"  query failed: {exc}", file=sys.stderr)
                         continue
@@ -334,13 +363,19 @@ def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
                             r["_country_iso3"] = country or iso3_from_name(
                                 r.get("countryCode"))
                             r["_category_code"] = cat
-                            r["_species"] = CATEGORY_SPECIES.get(cat, [])
+                            r["_species"] = CATEGORY_SPECIES.get(cat, []) if applied else []
+                            r["_category_applied"] = applied
                             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
                             got += 1
                             state["rows"] += 1
                         fh.flush()
                         pages += 1
-                        print(f"  page {pages}: +{len(rows)} (slice {got:,})", flush=True)
+                        noid = sum(1 for r in rows if not r.get("registerNo")
+                                   and not r.get("foreignRegisterNo"))
+                        print(f"  page {pages}: +{len(rows)} (slice {got:,})"
+                              + (f"  [{noid} rows with no registration number -- "
+                                 f"column scan may be off]" if noid else ""),
+                              flush=True)
                         if not next_page(page):
                             break
                         time.sleep(pause * random.uniform(0.7, 1.3))
