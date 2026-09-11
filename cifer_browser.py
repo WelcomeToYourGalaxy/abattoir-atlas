@@ -119,13 +119,22 @@ def run_query(page, country_code: str | None, category_code: str | None):
         page.keyboard.press("ArrowDown"); page.keyboard.press("Enter")
 
     if category_code:
-        box = _first(page, "category")
-        box.click(); box.fill(""); box.type(category_code, delay=90)
-        page.wait_for_timeout(900)
-        page.keyboard.press("ArrowDown"); page.keyboard.press("Enter")
+        try:
+            box = _first(page, "category", timeout=5000)
+            box.click(); box.fill(""); box.type(category_code, delay=90)
+            page.wait_for_timeout(900)
+            page.keyboard.press("ArrowDown"); page.keyboard.press("Enter")
+        except RuntimeError as exc:
+            # Better to harvest the country unfiltered than to abort. The cost
+            # is species: without the category filter the rows carry no species
+            # at all, so the caller is told rather than left to assume.
+            print(f"  category field not found, querying country only "
+                  f"({exc.__class__.__name__})", file=sys.stderr)
+            return False
 
     _first(page, "search").click()
     page.wait_for_timeout(2200)
+    return True
 
 
 def read_page(page) -> list[dict]:
@@ -266,13 +275,94 @@ def harvest(out_path: Path, countries: list[str], categories: list[str],
     print(f"next: python run.py parse --source cifer_china --file {out_path.name}")
 
 
+FORM_JS = """() => {
+  const out = {inputs: [], selects: [], buttons: [], labels: []};
+  const near = el => {
+    let n = el.closest('.el-form-item, .form-item, label, td, div');
+    return n ? (n.innerText || '').trim().slice(0, 80) : '';
+  };
+  document.querySelectorAll('input, [role=combobox], [contenteditable=true]')
+    .forEach(el => out.inputs.push({
+      tag: el.tagName, type: el.type || '', id: el.id || '',
+      name: el.name || '', cls: (el.className || '').toString().slice(0, 90),
+      placeholder: el.placeholder || '',
+      aria: el.getAttribute('aria-label') || '',
+      visible: !!(el.offsetWidth || el.offsetHeight),
+      context: near(el)
+    }));
+  document.querySelectorAll('select').forEach(el => out.selects.push({
+    id: el.id, name: el.name, cls: (el.className||'').toString().slice(0,90),
+    options: [...el.options].slice(0, 12).map(o => o.value + '|' + o.text)
+  }));
+  document.querySelectorAll('button, .el-button, [role=button]').forEach(el => {
+    const txt = (el.innerText || '').trim();
+    if (txt) out.buttons.push({text: txt.slice(0, 40),
+                               cls: (el.className||'').toString().slice(0, 70)});
+  });
+  document.querySelectorAll('label, .el-form-item__label').forEach(el => {
+    const txt = (el.innerText || '').trim();
+    if (txt) out.labels.push(txt.slice(0, 60));
+  });
+  return out;
+}"""
+
+
+def dump_form(headed: bool = False):
+    """Print every form control on the page.
+
+    This exists because guessing selectors against a portal you cannot open in
+    devtools is a waste of runs. One of these tells you the real answer.
+    """
+    from playwright.sync_api import sync_playwright
+    Path("work").mkdir(exist_ok=True)
+    with sync_playwright() as pw:
+        browser, ctx, page = open_site(pw, headed)
+        try:
+            page.wait_for_timeout(3000)
+            info = page.evaluate(FORM_JS)
+
+            print("=== visible inputs ===")
+            for i in info["inputs"]:
+                if not i["visible"]:
+                    continue
+                print(f"  <{i['tag']} type={i['type']!r} id={i['id']!r} "
+                      f"name={i['name']!r}")
+                print(f"     placeholder={i['placeholder']!r} aria={i['aria']!r}")
+                print(f"     class={i['cls']!r}")
+                print(f"     context={i['context']!r}")
+            hidden = sum(1 for i in info["inputs"] if not i["visible"])
+            print(f"\n({hidden} hidden inputs not shown)")
+
+            print("\n=== selects ===")
+            for s in info["selects"]:
+                print(f"  {s}")
+
+            print("\n=== buttons ===")
+            for b in info["buttons"][:25]:
+                print(f"  {b['text']!r}  class={b['cls']!r}")
+
+            print("\n=== labels ===")
+            print("  " + " | ".join(dict.fromkeys(info["labels"]))[:1200])
+
+            page.screenshot(path="work/cifer_form.png", full_page=True)
+            Path("work/cifer_form.json").write_text(
+                json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
+            print("\nwrote work/cifer_form.png and work/cifer_form.json")
+        finally:
+            ctx.close(); browser.close()
+
+
 def probe(country: str, category: str, headed: bool):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as pw:
         browser, ctx, page = open_site(pw, headed)
+        Path("work").mkdir(exist_ok=True)
         try:
-            run_query(page, COUNTRY_CODES.get(country, country), category)
+            filtered = run_query(page, COUNTRY_CODES.get(country, country), category)
+            if not filtered:
+                print("note: category filter was not applied")
             rows = read_page(page)
+            page.screenshot(path="work/cifer_probe.png", full_page=True)
             print(f"{len(rows)} rows on page 1\n")
             if rows:
                 print("headers:", rows[0]["_headers"])
@@ -294,6 +384,9 @@ def main():
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
+    fd = sub.add_parser("form", help="dump every form control on the page")
+    fd.add_argument("--headed", action="store_true")
+
     pr = sub.add_parser("probe")
     pr.add_argument("--country", default="USA")
     pr.add_argument("--category", default="0102")
@@ -309,7 +402,9 @@ def main():
     h.add_argument("--headed", action="store_true")
 
     a = p.parse_args()
-    if a.cmd == "probe":
+    if a.cmd == "form":
+        dump_form(a.headed)
+    elif a.cmd == "probe":
         probe(a.country, a.category, a.headed)
     else:
         countries = (a.countries.split(",") if a.countries
