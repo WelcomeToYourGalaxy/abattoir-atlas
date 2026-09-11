@@ -53,24 +53,8 @@ jobs:
 
       - name: Commit dataset
         run: |
-          git config user.name  "atlas-bot"
-          git config user.email "atlas-bot@users.noreply.github.com"
-          git add -f out/facilities.json.gz out/review_queue.csv out/dedup_report.md
-          git diff --staged --quiet && echo "no change" && exit 0
-          git commit -m "dataset: rebuild $(date -u +%Y-%m-%d)"
-          # Another workflow may have pushed while this one ran. Rebase onto
-          # whatever landed and retry rather than failing the whole build.
-          push() {
-            for i in 1 2 3; do
-              if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push; then
-                return 0
-              fi
-              echo "push race; retry $i"
-              sleep $((i * 5))
-            done
-            return 1
-          }
-          push
+          bash .github/commit_outputs.sh "dataset: rebuild $(date -u +%Y-%m-%d)" \
+            out/facilities.json.gz out/review_queue.csv out/dedup_report.md
 
       - uses: actions/upload-artifact@v4
         with:
