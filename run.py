@@ -320,10 +320,7 @@ def main():
     d = sub.add_parser("build"); d.set_defaults(fn=cmd_build)
     d.add_argument("--out")
     d.add_argument("--title", default="Where animals are killed")
-    d.add_argument("--subtitle",
-                   default="Industrial slaughter facilities compiled from national "
-                           "inspection registries and the EU and Chinese export "
-                           "approval lists.")
+    d.add_argument("--subtitle", default="")
 
     e = sub.add_parser("selftest"); e.set_defaults(fn=cmd_selftest)
     s = sub.add_parser("status"); s.set_defaults(fn=cmd_status)

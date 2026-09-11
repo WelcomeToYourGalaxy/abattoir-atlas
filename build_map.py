@@ -70,6 +70,19 @@ def _dot_colour(species: list[str]) -> str:
     return SPECIES_COLOUR.get(primary[0], SPECIES_COLOUR["other"])
 
 
+def load_outlines() -> list:
+    """Simplified country outlines, embedded rather than fetched.
+
+    This replaces the tile layer outright. Hosted basemaps keep moving behind
+    API keys -- CARTO now stamps "API key required" across the tiles -- and a
+    map that depends on somebody else's key is a map that breaks without
+    warning. 61 KB of Natural Earth outlines is the whole background, and the
+    file has no network dependency left except Leaflet itself.
+    """
+    f = Path(__file__).parent / "world_outlines.json"
+    return json.loads(f.read_text()) if f.exists() else []
+
+
 def encode(facilities, sources_meta: dict) -> dict:
     """Compact payload. Only mappable facilities get geometry; the rest are
     carried in `unlocated` so they stay visible as a count and a list."""
@@ -124,6 +137,7 @@ def encode(facilities, sources_meta: dict) -> dict:
                        "sources": sorted({m["source"] for m in f.members})}
                       for f in unlocated],
         "sources_meta": sources_meta,
+        "outlines": load_outlines(),
     }
 
 
@@ -225,7 +239,7 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 
 <aside id="rail">
   <h1>__TITLE__</h1>
-  <p class="sub">__SUBTITLE__</p>
+  __SUBTITLE_BLOCK__
   <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span></div>
   <div id="filters"></div>
   <div class="note" id="unlocatedNote"></div>
@@ -288,13 +302,72 @@ function rebuildVis(){
   updateTallies();
 }
 
-const map = L.map('map',{worldCopyJump:true,zoomControl:true}).setView([26,8],3);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
-  maxZoom:18, subdomains:'abcd',
-  attribution:'Facility records from national and EU/China export registries &middot; '+
-    'Basemap &copy; <a href="https://carto.com/attributions">CARTO</a>, '+
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+const map = L.map('map',{worldCopyJump:true,zoomControl:true,
+  attributionControl:true}).setView([26,8],3);
+map.attributionControl.addAttribution(
+  'Facility records from national and EU/China export registries &middot; '+
+  'outlines from <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
+
+/* Country outlines, drawn from embedded geometry. No tile server, so no key
+   to expire and nothing to rate-limit. */
+const OUT = (D.outlines||[]).map(country =>
+  country.map(ring => {
+    const wx = new Float64Array(ring.length), wy = new Float64Array(ring.length);
+    for(let i=0;i<ring.length;i++){
+      wx[i] = (ring[i][0]+180)/360;
+      const s = Math.sin(ring[i][1]*Math.PI/180);
+      wy[i] = 0.5 - Math.log((1+s)/(1-s))/(4*Math.PI);
+    }
+    return {wx, wy};
+  }));
+
+const Base = L.Layer.extend({
+  onAdd(m){
+    this._c = L.DomUtil.create('canvas','leaflet-zoom-animated');
+    this._ctx = this._c.getContext('2d');
+    m.getPanes().tilePane.appendChild(this._c);
+    m.on('moveend zoomend resize',this.draw,this);
+    if(m.options.zoomAnimation) m.on('zoomanim',this._anim,this);
+    this.draw();
+  },
+  _anim(e){
+    const s=this._map.getZoomScale(e.zoom), o=this._map._latLngToNewLayerPoint(
+      this._map.getBounds().getNorthWest(), e.zoom, e.center);
+    L.DomUtil.setTransform(this._c,o,s);
+  },
+  draw(){
+    const m=this._map, size=m.getSize(), dpr=window.devicePixelRatio||1;
+    const tl=m.containerPointToLayerPoint([0,0]);
+    L.DomUtil.setPosition(this._c,tl);
+    this._c.width=size.x*dpr; this._c.height=size.y*dpr;
+    this._c.style.width=size.x+'px'; this._c.style.height=size.y+'px';
+    const ctx=this._ctx; ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,size.x,size.y);
+
+    const z=m.getZoom(), S=256*Math.pow(2,z), o=m.getPixelOrigin();
+    const offX=o.x+tl.x, offY=o.y+tl.y, w=size.x, h=size.y;
+
+    ctx.fillStyle='#202825';               /* land */
+    ctx.strokeStyle='rgba(214,211,200,.17)';
+    ctx.lineWidth = z < 4 ? 0.6 : 0.9;
+    ctx.beginPath();
+    for(const country of OUT){
+      for(const ring of country){
+        const {wx,wy} = ring;
+        let started=false, any=false;
+        for(let i=0;i<wx.length;i++){
+          const x=wx[i]*S-offX, y=wy[i]*S-offY;
+          if(x>-2000 && x<w+2000 && y>-2000 && y<h+2000) any=true;
+          if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
+        }
+        if(any) ctx.closePath();
+      }
+    }
+    ctx.fill('evenodd');
+    ctx.stroke();
+  }
+});
+new Base().addTo(map);
 
 /* ---- one canvas, one point per facility ------------------------------ */
 let geom = {S:0, offX:0, offY:0, w:0, h:0};
@@ -566,7 +639,8 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
     payload = encode(facilities, sources_meta or {})
     html = (TEMPLATE
             .replace("__TITLE__", title)
-            .replace("__SUBTITLE__", subtitle)
+            .replace("__SUBTITLE_BLOCK__",
+                     f'<p class="sub">{subtitle}</p>' if subtitle.strip() else "")
             .replace("__DATA__", json.dumps(payload, separators=(",", ":"),
                                             ensure_ascii=False)))
     Path(out_path).write_text(html, encoding="utf-8")
