@@ -1,0 +1,181 @@
+# Source registry for the global abattoir atlas.
+#
+# `url_status` is deliberate. Sources marked `verified` had their landing page
+# or dataset URL confirmed directly. Sources marked `needs_check` are real
+# registries whose current download URL was not confirmed -- resolve them before
+# the first run rather than trusting the string below. Nothing here is a guess
+# dressed up as a fact.
+#
+# `coverage_bias` is carried into the build report so the caveat travels with
+# the data instead of living in someone's head.
+
+sources:
+
+  # ---------------------------------------------------------------- global-ish
+
+  eu_traces_third_country:
+    name: EU authorised establishments in non-EU countries (TRACES-NT)
+    authority: European Commission, DG SANTE
+    url: https://food.ec.europa.eu/food-safety/biological-safety/food-hygiene/non-eu-countries-authorised-establishments_en
+    url_status: verified
+    format: html_index -> per-country XLSX/PDF
+    legal_basis: Art. 127 Commission Delegated Regulation (EU) 2022/2292
+    id_scheme: EU-THIRDCOUNTRY
+    section_field: true          # Annex III to Reg. (EC) 853/2004, Sections I-IV
+    coverage_bias: >
+      Plants approved to export animal products into the EU. Broad country
+      coverage, but excludes domestic-only facilities entirely. Skews large and
+      industrial. Section 0 "general activity" entries need manual triage.
+    parser: eu_traces
+
+  cifer_china:
+    name: China Import Food Enterprise Registration (CIFER) public query
+    authority: General Administration of Customs of China (GACC)
+    url: https://ciferquery.singlewindow.cn
+    url_status: verified
+    format: web_query (no bulk download published)
+    legal_basis: GACC Decree 248 / 249
+    id_scheme: CN-CIFER
+    carries_foreign_id: true     # stores the home-country establishment number
+    coverage_bias: >
+      Plants registered to export food into China. Meat is an Article 7
+      high-risk category requiring competent-authority recommendation, so
+      industrial coverage is good. Cold stores and processors are mixed in with
+      slaughterhouses; the foreign establishment number is what disambiguates.
+      No published bulk export -- paginated retrieval required, be polite.
+    parser: cifer
+
+  # ------------------------------------------------------------------ national
+
+  us_fsis_mpi:
+    name: FSIS Meat, Poultry and Egg Product Inspection Directory
+    authority: USDA Food Safety and Inspection Service
+    url: https://www.fsis.usda.gov/inspection/establishments/meat-poultry-and-egg-product-inspection-directory
+    url_status: verified          # landing page; CSV links are on it and change date-stamp weekly
+    format: csv
+    files:
+      - label: MPI Directory by Establishment Number
+        role: directory
+      - label: Establishment Demographic Data
+        role: demographic          # carries the slaughter / species flags
+    id_scheme: US-FSIS
+    update_cadence: weekly
+    coverage_bias: >
+      Federally inspected establishments only. State-inspected plants operating
+      under Talmadge-Aiken or state MPI programmes are absent, as are custom-
+      exempt kill floors. Join directory to demographic on establishment_number.
+    parser: fsis
+
+  eu_member_states:
+    name: Member State lists of approved establishments
+    authority: national competent authorities, indexed by DG SANTE
+    url: https://food.ec.europa.eu/food-safety/biological-safety/food-hygiene/approved-establishments_en
+    url_status: needs_check
+    mirror: https://www.fsai.ie/enforcement-and-legislation/official-controls/mancp/approved-food-premises
+    mirror_status: verified
+    format: per-country XLSX / PDF / HTML, no common schema
+    legal_basis: Reg. (EC) No 853/2004, Annex III
+    id_scheme: EU-APPROVAL
+    coverage_bias: >
+      Domestic EU coverage, which is what the third-country list misses. Each
+      member state publishes its own layout; expect one parser variant per
+      country. Activity codes (SH slaughterhouse, CP cutting plant, GHE game
+      handling, PP processing, CS cold store) are the reliable field.
+    parser: eu_member_state
+
+  uk_fsa:
+    name: FSA approved food establishments
+    authority: UK Food Standards Agency
+    url: https://www.food.gov.uk/
+    url_status: needs_check
+    format: xlsx
+    id_scheme: UK-APPROVAL
+    parser: eu_member_state        # same activity-code vocabulary post-Brexit
+    coverage_bias: Great Britain and Northern Ireland approved establishments.
+
+  ca_cfia:
+    name: CFIA licensed establishments (Safe Food for Canadians)
+    authority: Canadian Food Inspection Agency
+    url: https://www.inspection.canada.ca/
+    url_status: needs_check
+    format: web_query
+    id_scheme: CA-SFC
+    parser: generic_tabular
+
+  br_sif:
+    name: Serviço de Inspeção Federal establishment list
+    authority: Ministério da Agricultura e Pecuária (MAPA)
+    url: https://www.gov.br/agricultura/
+    url_status: needs_check
+    format: xlsx / csv
+    id_scheme: BR-SIF
+    parser: generic_tabular
+    coverage_bias: >
+      Federal inspection only. State (SIE) and municipal (SIM) inspected plants
+      are separate registries and are the majority by count in Brazil.
+
+  au_daff:
+    name: Export-registered establishments
+    authority: Australian Dept of Agriculture, Fisheries and Forestry
+    url: https://www.agriculture.gov.au/
+    url_status: needs_check
+    format: xlsx / pdf
+    id_scheme: AU-EXPORT
+    parser: generic_tabular
+    coverage_bias: >
+      Export-registered only. Domestic-supply abattoirs are licensed at state
+      level (PrimeSafe in Victoria, NSW Food Authority, etc.) and are absent.
+
+  nz_mpi:
+    name: Registered risk management programmes
+    authority: New Zealand Ministry for Primary Industries
+    url: https://www.mpi.govt.nz/
+    url_status: needs_check
+    format: xlsx
+    id_scheme: NZ-MPI
+    parser: generic_tabular
+
+  # ----------------------------------------------------- emissions attachment
+  # These do not add facilities. They attach measured pollutant data to
+  # facilities already present, and they carry real coordinates, which makes
+  # them useful as a geocoding check.
+
+  eu_industrial_emissions:
+    name: European Industrial Emissions Portal (EU Registry + E-PRTR)
+    authority: European Environment Agency
+    url: https://industry.eea.europa.eu/download
+    url_status: verified
+    format: zipped csv / sqlite, full series 2007-2023
+    role: emissions_join
+    match_on: [coordinates, name]
+    coverage_bias: >
+      IED Annex I 6.4(b) treatment and processing of animal raw materials,
+      above the capacity threshold. Large abattoirs only. Covers EU Member
+      States plus Iceland, Liechtenstein, Norway, Serbia, Switzerland, UK.
+      Carries facility coordinates, so doubles as a geocode validator.
+    parser: eprtr
+
+  # ------------------------------------------------------------- crowd / fill
+
+  osm_overpass:
+    name: OpenStreetMap
+    authority: OpenStreetMap contributors
+    url: https://overpass-api.de/api/interpreter
+    url_status: verified
+    format: overpass_json
+    query: |
+      [out:json][timeout:600];
+      (
+        nwr["industrial"="slaughterhouse"];
+        nwr["man_made"="works"]["works"="slaughterhouse"];
+        nwr["craft"="slaughterhouse"];
+      );
+      out center tags;
+    id_scheme: OSM
+    role: fill_and_verify
+    coverage_bias: >
+      Carries true coordinates but no registry identity, patchy and uneven by
+      country. Best used to supply coordinates to registry records via name and
+      proximity matching, not as a standalone facility source. Licence ODbL --
+      attribution required on any published map.
+    parser: osm
