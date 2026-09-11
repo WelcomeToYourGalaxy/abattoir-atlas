@@ -109,6 +109,16 @@ def parse_fsis(directory_csv: Path, demographic_csv: Path | None,
                 if key:
                     demo[key] = row
 
+    if demographic_csv and Path(demographic_csv).exists():
+        # Print what the demographic file actually offers. The slaughter and
+        # species flags all come from here, so if the join or the column
+        # detection is off, the atlas silently under-reports slaughter and
+        # nothing else tells you.
+        print(f"  demographic file: {len(demo):,} rows, columns: "
+              f"{sorted(demo_headers)}")
+    else:
+        print("  no demographic file — every record will carry slaughter=None")
+
     out = []
     with open(directory_csv, encoding="utf-8-sig", newline="") as fh:
         rd = csv.DictReader(fh)
@@ -194,6 +204,9 @@ def parse_fsis(directory_csv: Path, demographic_csv: Path | None,
                 src_lat=lat, src_lon=lon,
                 raw={k: v for k, v in row.items() if v} | {"_demographic": bool(d)},
             ))
+
+    joined = sum(1 for r in out if r.raw.get("_demographic"))
+    print(f"  joined to demographic data: {joined:,} of {len(out):,}")
     return out
 
 
@@ -311,7 +324,8 @@ def parse_cifer(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
             r = json.loads(line)
             cn_no = r.get("registerNo") or r.get("cn_register_no")
             fo_no = r.get("foreignRegisterNo") or r.get("foreign_no")
-            country = (r.get("countryCode") or r.get("country") or "").upper()[:3]
+            country = (r.get("_country_iso3")
+                       or r.get("countryCode") or r.get("country") or "").upper()[:3]
             cats = " ".join(str(c) for c in (r.get("productCategory") or r.get("categories") or []))
 
             # Only claim slaughter when the category text says so. Meat
@@ -319,14 +333,21 @@ def parse_cifer(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
             low = cats.lower()
             slaughter = True if ("slaughter" in low or "屠宰" in cats) else None
 
-            species = []
-            for kw, grp in (("beef", "bovine"), ("bovine", "bovine"), ("cattle", "bovine"),
-                            ("pork", "porcine"), ("swine", "porcine"), ("porcine", "porcine"),
-                            ("poultry", "poultry"), ("chicken", "poultry"),
-                            ("mutton", "ovine"), ("sheep", "ovine"), ("lamb", "ovine"),
-                            ("goat", "caprine"), ("horse", "equine")):
-                if kw in low:
-                    species.append(grp)
+            # Species comes from the category the row was queried under, which
+            # the browser harvester records as `_species`. The response text
+            # itself never names a species, so querying subcategory by
+            # subcategory is what makes this field exist at all.
+            species = list(r.get("_species") or [])
+            if not species:
+                for kw, grp in (("beef", "bovine"), ("bovine", "bovine"),
+                                ("cattle", "bovine"), ("pork", "porcine"),
+                                ("swine", "porcine"), ("porcine", "porcine"),
+                                ("poultry", "poultry"), ("chicken", "poultry"),
+                                ("mutton", "ovine"), ("sheep", "ovine"),
+                                ("lamb", "ovine"), ("goat", "caprine"),
+                                ("horse", "equine")):
+                    if kw in low:
+                        species.append(grp)
 
             out.append(SourceRecord(
                 source_id="cifer_china",
