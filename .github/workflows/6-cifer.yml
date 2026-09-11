@@ -39,9 +39,15 @@ jobs:
           pip install playwright
           playwright install --with-deps chromium
 
+      # Runs first and never fails the job. Its output plus the screenshot is
+      # how you find the real selector without a local browser.
+      - name: Dump the page's form controls
+        continue-on-error: true
+        run: python cifer_browser.py form
+
       - name: Check the page still drives
-        run: |
-          python cifer_browser.py probe --country USA --category 0102
+        continue-on-error: true
+        run: python cifer_browser.py probe --country USA --category 0102
 
       - name: Harvest
         run: |
@@ -59,6 +65,7 @@ jobs:
           git add -f raw/cifer.jsonl
           [ -f work/cifer_checkpoint.json ] && git add -f work/cifer_checkpoint.json
           [ -f work/cifer_probe.png ] && git add -f work/cifer_probe.png
+          [ -f work/cifer_form.json ] && git add -f work/cifer_form.json
           git diff --staged --quiet && echo "no change" && exit 0
           git commit -m "cifer: $(wc -l < raw/cifer.jsonl) rows"
           push() {
@@ -78,5 +85,7 @@ jobs:
           name: cifer-debug
           path: |
             work/cifer_probe.png
+            work/cifer_form.png
+            work/cifer_form.json
             work/cifer_checkpoint.json
           if-no-files-found: ignore
