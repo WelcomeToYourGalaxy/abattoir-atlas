@@ -19,11 +19,27 @@ import re
 from datetime import date
 from pathlib import Path
 
-from schema import SourceRecord
+from schema import SPECIES, SourceRecord
 
 
 class HeaderError(RuntimeError):
     pass
+
+
+def _resolve_exact(headers: list[str], *candidates: str) -> str | None:
+    """Exact header match only. Use where a substring match would be dangerous.
+
+    FSIS is the cautionary case: asking for "livestock_slaughter" by substring
+    matches `other_voluntary_livestock_slaughter`, a rare category, and the
+    result looks like a working column while under-reporting slaughter by two
+    thirds.
+    """
+    norm = {re.sub(r"[^a-z0-9]", "", h.lower()): h for h in headers}
+    for cand in candidates:
+        c = re.sub(r"[^a-z0-9]", "", cand.lower())
+        if c in norm:
+            return norm[c]
+    return None
 
 
 def _resolve(headers: list[str], *candidates: str, required: bool = True) -> str | None:
@@ -143,11 +159,16 @@ def parse_fsis(directory_csv: Path, demographic_csv: Path | None,
 
             species, activities, slaughter = set(), set(), None
             if d:
-                lv = _truthy(d.get(_resolve(demo_headers, "livestock_slaughter",
-                                            "livestockslaughter", required=False) or ""))
-                pv = _truthy(d.get(_resolve(demo_headers, "poultry_slaughter",
-                                            "poultryslaughter", required=False) or ""))
-                votes = [v for v in (lv, pv) if v is not None]
+                # Exact columns only. FSIS publishes a top-level `slaughter`
+                # flag plus `meat_slaughter` and `poultry_slaughter`; a
+                # substring search finds the wrong ones.
+                votes = []
+                for col in ("slaughter", "meat_slaughter", "poultry_slaughter"):
+                    c = _resolve_exact(demo_headers, col)
+                    if c:
+                        v = _truthy(d.get(c))
+                        if v is not None:
+                            votes.append(v)
                 slaughter = True if any(votes) else (False if votes else None)
                 if slaughter:
                     activities.add("slaughter")
@@ -199,7 +220,10 @@ def parse_fsis(directory_csv: Path, demographic_csv: Path | None,
                 species=sorted(species),
                 activities=sorted(activities) or ["unknown"],
                 slaughter=slaughter,
-                size_class=_f(row, c_size),
+                size_class=(_f(row, c_size)
+                            or (d.get(_resolve_exact(demo_headers,
+                                                     "slaughter_volume_category") or "")
+                                or None)),
                 operator=_f(row, c_dba),
                 src_lat=lat, src_lon=lon,
                 raw={k: v for k, v in row.items() if v} | {"_demographic": bool(d)},
@@ -217,10 +241,16 @@ def parse_fsis(directory_csv: Path, demographic_csv: Path | None,
 # Annex III to Reg. (EC) 853/2004. Section determines species; the activity
 # code determines whether the plant actually kills.
 _EU_SECTION_SPECIES = {
+    # Annex III section numbers, and the TRACES commodity codes that stand in
+    # for them in the establishment directory.
     "I": ["bovine", "porcine", "ovine", "caprine", "equine"],
     "II": ["poultry", "lagomorph"],
     "III": ["farmed_game"],
     "IV": ["wild_game"],
+    "RM": ["bovine", "porcine", "ovine", "caprine", "equine"],
+    "PM": ["poultry", "lagomorph"],
+    "GM": ["farmed_game"],
+    "WM": ["wild_game"],
 }
 
 _EU_ACTIVITY = {
@@ -259,6 +289,8 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
         c_section = _resolve(h, "section", required=False)
         c_act = _resolve(h, "activity", "activities", "activitycode", required=False)
         c_remark = _resolve(h, "remark", "remarks", "note", required=False)
+        c_slaughter = _resolve(h, "slaughter", required=False)
+        c_species = _resolve(h, "species", required=False)
 
         for i, row in enumerate(rd):
             num = _f(row, c_num)
@@ -267,8 +299,15 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
                 continue
 
             section = (_f(row, c_section) or "").strip().upper()
-            section = re.sub(r"[^IVX]", "", section)
-            species = list(_EU_SECTION_SPECIES.get(section, []))
+            if section not in _EU_SECTION_SPECIES:
+                section = re.sub(r"[^IVX]", "", section)
+
+            # Per-row species when the source gives it (TRACES lists them in
+            # Remarks), section-level only as a fallback. The difference is
+            # "this plant kills pigs" versus "this plant kills some ungulate".
+            row_species = (_f(row, c_species) or "").split()
+            species = ([s for s in row_species if s in SPECIES]
+                       or list(_EU_SECTION_SPECIES.get(section, [])))
 
             acts, slaughter = set(), None
             raw_act = (_f(row, c_act) or "").upper()
@@ -280,6 +319,9 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
                     slaughter = True
             if codes and slaughter is None:
                 slaughter = False   # activity codes present and none of them kill
+            flag = _truthy(_f(row, c_slaughter)) if c_slaughter else None
+            if flag is not None:
+                slaughter = flag
 
             out.append(SourceRecord(
                 source_id=source_id,
