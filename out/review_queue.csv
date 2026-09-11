@@ -1,0 +1,2 @@
+a_key,a_source,a_name,a_address,a_id,b_key,b_source,b_name,b_address,b_id,country,name_score,metres_apart,reason,decision
+eu_traces_third_country:BR-77a,eu_traces_third_country,Frigorifico Boa Vista,,77a,eu_traces_third_country:BR-92b,eu_traces_third_country,Frigorifico Boa Vista,,92b,BRA,1.0,,"identical name, no usable location on either record",
