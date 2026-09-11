@@ -1,8 +1,11 @@
 name: 6 · Harvest CIFER
 
-# Only useful after you have run `python cifer.py discover` locally once and
-# committed the edited ENDPOINT block. Until then this will fail on the first
-# request, which is the correct behaviour.
+# CIFER encrypts its responses with a modified SM4 under a per-session key, so
+# there is no HTTP client route. This drives the real page in headless Chromium
+# and reads the table the site renders after decrypting its own data.
+#
+# Long job. It checkpoints per country/category slice and resumes, so a timeout
+# costs you one slice, not the run.
 
 on:
   workflow_dispatch:
@@ -10,24 +13,41 @@ on:
       categories:
         type: choice
         default: meat
-        options: [meat, all_animal]
+        options: [meat, meat_and_casings, all_animal]
+      countries:
+        description: 'Comma-separated ISO3, or blank for all'
+        default: ''
 
 permissions:
   contents: write
 
+concurrency:
+  group: atlas-commit
+  cancel-in-progress: false
+
 jobs:
   harvest:
     runs-on: ubuntu-latest
-    timeout-minutes: 320
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
 
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Check the page still drives
+        run: |
+          python cifer_browser.py probe --country USA --category 0102
+
       - name: Harvest
         run: |
-          python cifer.py harvest \
+          python cifer_browser.py harvest \
             --categories ${{ inputs.categories || 'meat' }} \
+            ${{ inputs.countries && format('--countries {0}', inputs.countries) || '' }} \
             --out raw/cifer.jsonl --resume
 
       - name: Commit
@@ -35,11 +55,28 @@ jobs:
         run: |
           git config user.name  "atlas-bot"
           git config user.email "atlas-bot@users.noreply.github.com"
-          # Runs even when the harvest died partway: a partial file plus its
-          # checkpoint is exactly what --resume needs next time.
           [ -f raw/cifer.jsonl ] || { echo "nothing harvested"; exit 0; }
           git add -f raw/cifer.jsonl
           [ -f work/cifer_checkpoint.json ] && git add -f work/cifer_checkpoint.json
+          [ -f work/cifer_probe.png ] && git add -f work/cifer_probe.png
           git diff --staged --quiet && echo "no change" && exit 0
           git commit -m "cifer: $(wc -l < raw/cifer.jsonl) rows"
-          git push
+          push() {
+            for i in 1 2 3; do
+              if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push; then
+                return 0
+              fi
+              echo "push race; retry $i"; sleep $((i * 5))
+            done
+            return 1
+          }
+          push
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cifer-debug
+          path: |
+            work/cifer_probe.png
+            work/cifer_checkpoint.json
+          if-no-files-found: ignore
