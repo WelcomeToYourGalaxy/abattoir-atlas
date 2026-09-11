@@ -1,0 +1,119 @@
+{
+ "inputs": [
+  {
+   "tag": "INPUT",
+   "type": "hidden",
+   "id": "registerType",
+   "name": "registerType",
+   "cls": "form-control",
+   "placeholder": "",
+   "aria": "",
+   "visible": false,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "text",
+   "id": "registerTypeName",
+   "name": "registerTypeName",
+   "cls": "form-control autocompleter-node",
+   "placeholder": "按空格键检索支持模糊查询",
+   "aria": "",
+   "visible": true,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "hidden",
+   "id": "country",
+   "name": "country",
+   "cls": "form-control",
+   "placeholder": "",
+   "aria": "",
+   "visible": false,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "text",
+   "id": "countryName",
+   "name": "countryName",
+   "cls": "form-control autocompleter-node",
+   "placeholder": "按空格键检索支持模糊查询",
+   "aria": "",
+   "visible": true,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "text",
+   "id": "orgNo",
+   "name": "orgNo",
+   "cls": "form-control",
+   "placeholder": "请输入所在国家（地区）注册编号",
+   "aria": "",
+   "visible": true,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "text",
+   "id": "regCo",
+   "name": "regCo",
+   "cls": "form-control",
+   "placeholder": "请输入在华注册编号",
+   "aria": "",
+   "visible": true,
+   "context": ""
+  },
+  {
+   "tag": "INPUT",
+   "type": "text",
+   "id": "enterpriseName1",
+   "name": "enterpriseName",
+   "cls": "form-control",
+   "placeholder": "请输入企业名称",
+   "aria": "",
+   "visible": true,
+   "context": ""
+  }
+ ],
+ "selects": [
+  {
+   "id": "status",
+   "name": "status",
+   "cls": "form-control select",
+   "options": [
+    "ALL|全部",
+    "R|有效",
+    "P|暂停进口"
+   ]
+  }
+ ],
+ "buttons": [
+  {
+   "text": "查询",
+   "cls": "btn btn-primary"
+  },
+  {
+   "text": "重置",
+   "cls": "btn btn-primary"
+  },
+  {
+   "text": "10",
+   "cls": "btn btn-default btn-outline dropdown-toggle"
+  },
+  {
+   "text": "返回",
+   "cls": "btn btn-primary"
+  }
+ ],
+ "labels": [
+  "产品类别\n\nCATEGORY",
+  "所在国家（地区）\n\nCOUNTRY(REGION)",
+  "所在国家（地区）注册编号\n\nOVERSEAS REG. NO.",
+  "在华注册编号\n\nCHINA REG. NO.",
+  "状态\n\nSTATE",
+  "企业名称\n\nENTERPRISE NAME"
+ ]
+}
