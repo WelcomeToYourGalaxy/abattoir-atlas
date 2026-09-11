@@ -19,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: atlas-commit
   cancel-in-progress: false
 
 jobs:
@@ -30,6 +30,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
+
+      # Prints exactly what the build will read. If a source is missing from
+      # the map, it is missing from this listing first.
+      - name: What is in raw/
+        run: |
+          echo "--- raw/ ---"
+          find raw -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2 || ls -la raw/
+          for f in raw/*.jsonl raw/*.json raw/*.csv; do
+            [ -f "$f" ] && echo "$f: $(wc -l < "$f") lines"
+          done
+          echo "--- subdirs ---"
+          for d in raw/*/; do [ -d "$d" ] && echo "$d: $(ls -1 "$d" | wc -l) files"; done
 
       - run: bash parse_all.sh
 
@@ -55,7 +67,19 @@ jobs:
           git add -f docs/ out/facilities.json.gz out/review_queue.csv out/dedup_report.md
           git diff --staged --quiet && echo "no change" && exit 0
           git commit -m "atlas: build $(date -u +%Y-%m-%d)"
-          git push
+          # Another workflow may have pushed while this one ran. Rebase onto
+          # whatever landed and retry rather than failing the whole build.
+          push() {
+            for i in 1 2 3; do
+              if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push; then
+                return 0
+              fi
+              echo "push race; retry $i"
+              sleep $((i * 5))
+            done
+            return 1
+          }
+          push
 
       - uses: actions/upload-pages-artifact@v3
         with: {path: docs}
