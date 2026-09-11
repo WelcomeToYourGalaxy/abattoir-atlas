@@ -34,11 +34,12 @@ import sys
 import time
 from pathlib import Path
 
-from cifer import CATEGORIES, CATEGORY_SETS, CATEGORY_SPECIES, COUNTRY_CODES
+from cifer import (CATEGORIES, CATEGORY_SETS, CATEGORY_SPECIES,
+                   COUNTRY_CODES, iso3_from_name)
 
 URL = "https://ciferquery.singlewindow.cn"
 CHECKPOINT = Path("work/cifer_checkpoint.json")
-PAUSE = (1.2, 2.4)
+PAUSE = (1.2, 2.4)   # overridden by --pause
 
 
 # ---------------------------------------------------------------------------
@@ -50,17 +51,26 @@ PAUSE = (1.2, 2.4)
 # stops.
 # ---------------------------------------------------------------------------
 
+# Real element IDs, read off the page's own DOM via `python cifer_browser.py
+# form`. Not guessed -- and worth noting why guessing failed: the country box
+# carries a generic placeholder, while #orgNo (overseas registration number)
+# is the field whose placeholder contains 国家. A placeholder match for
+# "country" hits the wrong input and silently searches on nonsense.
 SEL = {
-    "country": ["input[placeholder*='国家']", "input[placeholder*='Country']",
-                ".country input", "#country"],
-    "category": ["input[placeholder*='产品']", "input[placeholder*='Category']",
-                 ".category input", "#productType"],
-    "search": ["button:has-text('查询')", "button:has-text('Search')",
-               ".search-btn", "button[type='submit']"],
-    "rows": ["table tbody tr", ".el-table__body tbody tr", ".ant-table-tbody tr"],
-    "next": ["button:has-text('下一页')", ".btn-next", "li.next",
-             "button[aria-label='Next page']"],
-    "total": [".el-pagination__total", ".total", "span:has-text('共')"],
+    "category": ["#registerTypeName", "input[name='registerTypeName']"],
+    "country":  ["#countryName", "input[name='countryName']"],
+    "orgno":    ["#orgNo"],
+    "status":   ["#status", "select[name='status']"],
+    "search":   ["button:has-text('查询')", ".btn-primary:has-text('查询')",
+                 "button.btn-primary"],
+    "rows":     ["table tbody tr", ".table tbody tr", "#dataTable tbody tr"],
+    "next":     ["a:has-text('下一页')", "button:has-text('下一页')",
+                 ".pagination li:not(.disabled) a:has-text('»')",
+                 ".pagination .next:not(.disabled) a", "a[rel='next']"],
+    # The autocompleters are the jQuery "autocompleter" plugin: type, press
+    # space to fire the lookup, then pick from the rendered list.
+    "ac_item":  [".autocompleter li", ".autocompleter-item",
+                 "ul.autocompleter-list li", ".autocompleter-hint li"],
 }
 
 
@@ -86,6 +96,39 @@ def _rows(page):
     return None
 
 
+def fill_autocomplete(page, field: str, value: str) -> bool:
+    """Fill one of the two autocompleter boxes.
+
+    The placeholder on both reads "press space to search, fuzzy matching
+    supported", so the space keypress is what fires the lookup -- typing alone
+    leaves the dropdown closed and the underlying hidden value unset, which is
+    the difference between a filtered query and a silently unfiltered one.
+    """
+    box = _first(page, field, timeout=10000)
+    box.click()
+    box.fill("")
+    box.type(value, delay=60)
+    page.keyboard.press("Space")
+    page.wait_for_timeout(800)
+
+    for sel in SEL["ac_item"]:
+        items = page.locator(sel)
+        try:
+            if items.count() and items.first.is_visible():
+                items.first.click()
+                page.wait_for_timeout(500)
+                return True
+        except Exception:
+            continue
+
+    # No list rendered. Fall back to keyboard selection, then verify the box
+    # actually holds something -- an empty box means the filter did not apply.
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(500)
+    return bool((box.input_value() or "").strip())
+
+
 def open_site(pw, headed: bool = False):
     browser = pw.chromium.launch(
         headless=not headed,
@@ -98,6 +141,12 @@ def open_site(pw, headed: bool = False):
                     "Chrome/128.0.0.0 Safari/537.36"),
         viewport={"width": 1440, "height": 900},
     )
+    # Images, fonts, stylesheets and analytics are pure latency for a table
+    # scrape. Blocking them roughly halves each page load.
+    ctx.route("**/*", lambda route: (
+        route.abort() if route.request.resource_type in
+        ("image", "font", "media", "stylesheet") else route.continue_()))
+
     page = ctx.new_page()
     # The page fires `debugger` in a loop to frustrate inspection. Playwright
     # never attaches a debugger, so the statement is a no-op -- but neutralise
@@ -109,32 +158,52 @@ def open_site(pw, headed: bool = False):
     return browser, ctx, page
 
 
-def run_query(page, country_code: str | None, category_code: str | None):
-    """Fill the form and search. Both fields are autocompletes, so the value has
-    to be typed and then chosen from the dropdown rather than just set."""
-    if country_code:
-        box = _first(page, "country")
-        box.click(); box.fill(""); box.type(country_code, delay=90)
-        page.wait_for_timeout(900)
-        page.keyboard.press("ArrowDown"); page.keyboard.press("Enter")
+def run_query(page, country_code: str | None, category_code: str | None) -> bool:
+    """Fill the form and search. Returns whether the category filter applied."""
+    # Status: include suspended registrations as well as active ones. Which
+    # plants to count is your call, not the scraper's, so it does not narrow
+    # the set here.
+    try:
+        page.select_option(SEL["status"][0], "ALL")
+    except Exception:
+        pass
 
+    if country_code:
+        if not fill_autocomplete(page, "country", country_code):
+            raise RuntimeError(f"country {country_code!r} did not resolve in the "
+                               f"autocompleter")
+
+    applied = True
     if category_code:
-        try:
-            box = _first(page, "category", timeout=5000)
-            box.click(); box.fill(""); box.type(category_code, delay=90)
-            page.wait_for_timeout(900)
-            page.keyboard.press("ArrowDown"); page.keyboard.press("Enter")
-        except RuntimeError as exc:
-            # Better to harvest the country unfiltered than to abort. The cost
-            # is species: without the category filter the rows carry no species
-            # at all, so the caller is told rather than left to assume.
-            print(f"  category field not found, querying country only "
-                  f"({exc.__class__.__name__})", file=sys.stderr)
-            return False
+        applied = fill_autocomplete(page, "category", category_code)
+        if not applied:
+            print(f"  category {category_code} did not resolve; querying the "
+                  f"country unfiltered", file=sys.stderr)
 
     _first(page, "search").click()
-    page.wait_for_timeout(2200)
-    return True
+    page.wait_for_timeout(1600)
+    set_page_size(page)
+    return applied
+
+
+def set_page_size(page, want: int = 50) -> None:
+    """Raise rows-per-page from the default 10. Best effort: if the control is
+    not there the harvest just pages more often."""
+    try:
+        tog = page.locator(".dropdown-toggle:has-text('10')").first
+        if tog.count() == 0:
+            return
+        tog.click()
+        page.wait_for_timeout(400)
+        for n in (str(want), "100", "50", "20"):
+            opt = page.locator(f".dropdown-menu li:has-text('{n}'), "
+                               f".dropdown-menu a:has-text('{n}')").first
+            if opt.count():
+                opt.click()
+                page.wait_for_timeout(1600)
+                return
+    except Exception:
+        pass
 
 
 def read_page(page) -> list[dict]:
@@ -154,13 +223,17 @@ def read_page(page) -> list[dict]:
                 return i
         return None
 
-    i_cn = col("china registration", "中国注册", "registration no")
-    i_fo = col("overseas", "所在国家（地区）注册", "country register")
-    i_nm = col("name", "企业名称")
-    i_ct = col("country", "国家")
+    # Header wording taken from the page's own labels:
+    #   产品类别 CATEGORY | 所在国家（地区）COUNTRY(REGION)
+    #   所在国家（地区）注册编号 OVERSEAS REG. NO. | 在华注册编号 CHINA REG. NO.
+    #   状态 STATE | 企业名称 ENTERPRISE NAME
+    i_cn = col("china reg", "在华注册编号")
+    i_fo = col("overseas reg", "所在国家（地区）注册编号")
+    i_nm = col("enterprise name", "企业名称")
+    i_ct = col("country(region)", "country", "所在国家")
     i_ad = col("address", "地址")
-    i_pd = col("product", "产品")
-    i_vd = col("valid", "有效期")
+    i_pd = col("category", "产品类别", "product")
+    i_vd = col("valid", "有效期", "state", "状态")
 
     out = []
     for r in range(rows.count()):
@@ -192,7 +265,7 @@ def next_page(page) -> bool:
             if "disabled" in cls or btn.is_disabled():
                 return False
             btn.click()
-            page.wait_for_timeout(1800)
+            page.wait_for_timeout(1100)
             return True
         except Exception:
             continue
@@ -201,8 +274,12 @@ def next_page(page) -> bool:
 
 # ---------------------------------------------------------------------------
 
-def harvest(out_path: Path, countries: list[str], categories: list[str],
-            resume: bool, max_pages: int, headed: bool):
+def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
+            resume: bool, max_pages: int, headed: bool, pause: float = 0.8):
+    """countries=None means a global sweep: query each category with no country
+    filter, which is twelve queries instead of twelve times a hundred and
+    seventeen. The country then comes out of the results table rather than
+    going into the form."""
     from playwright.sync_api import sync_playwright
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -226,17 +303,20 @@ def harvest(out_path: Path, countries: list[str], categories: list[str],
         mode = "a" if resume and out_path.exists() else "w"
         fh = open(out_path, mode, encoding="utf-8")
         try:
-            for country in countries:
+            for country in (countries if countries is not None else [None]):
                 for cat in categories:
-                    slice_id = f"{country}|{cat}"
+                    slice_id = f"{country or 'GLOBAL'}|{cat}"
                     if slice_id in state["done"]:
                         continue
                     label = CATEGORIES.get(cat, cat)
-                    print(f"[{country} / {label}]", flush=True)
+                    print(f"[{country or 'all countries'} / {label}]", flush=True)
 
                     try:
-                        page.goto(URL, wait_until="networkidle", timeout=90_000)
-                        run_query(page, COUNTRY_CODES.get(country, country), cat)
+                        page.goto(URL, wait_until="domcontentloaded", timeout=90_000)
+                        page.wait_for_timeout(1200)
+                        run_query(page,
+                                  COUNTRY_CODES.get(country, country) if country else None,
+                                  cat)
                     except Exception as exc:
                         print(f"  query failed: {exc}", file=sys.stderr)
                         continue
@@ -251,7 +331,8 @@ def harvest(out_path: Path, countries: list[str], categories: list[str],
                             if key and key in seen:
                                 continue
                             seen.add(key)
-                            r["_country_iso3"] = country
+                            r["_country_iso3"] = country or iso3_from_name(
+                                r.get("countryCode"))
                             r["_category_code"] = cat
                             r["_species"] = CATEGORY_SPECIES.get(cat, [])
                             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
@@ -262,11 +343,11 @@ def harvest(out_path: Path, countries: list[str], categories: list[str],
                         print(f"  page {pages}: +{len(rows)} (slice {got:,})", flush=True)
                         if not next_page(page):
                             break
-                        time.sleep(random.uniform(*PAUSE))
+                        time.sleep(pause * random.uniform(0.7, 1.3))
 
                     state["done"].append(slice_id)
                     CHECKPOINT.write_text(json.dumps(state))
-                    time.sleep(random.uniform(*PAUSE))
+                    time.sleep(pause)
         finally:
             fh.close()
             ctx.close(); browser.close()
@@ -395,8 +476,14 @@ def main():
     h = sub.add_parser("harvest")
     h.add_argument("--out", default="raw/cifer.jsonl")
     h.add_argument("--categories", default="meat", choices=list(CATEGORY_SETS))
+    h.add_argument("--scope", default="global", choices=["global", "country"],
+                   help="global: one query per category, country read from the "
+                        "results (fast). country: one query per country per "
+                        "category (slow, but shardable)")
     h.add_argument("--countries", default=None,
-                   help="comma-separated ISO3; default is every country in the table")
+                   help="comma-separated ISO3; only used with --scope country")
+    h.add_argument("--pause", type=float, default=0.8,
+                   help="seconds between page clicks")
     h.add_argument("--resume", action="store_true")
     h.add_argument("--max-pages", type=int, default=200)
     h.add_argument("--headed", action="store_true")
@@ -407,10 +494,13 @@ def main():
     elif a.cmd == "probe":
         probe(a.country, a.category, a.headed)
     else:
-        countries = (a.countries.split(",") if a.countries
-                     else sorted(COUNTRY_CODES))
+        if a.scope == "global":
+            countries = None
+        else:
+            countries = (a.countries.split(",") if a.countries
+                         else sorted(COUNTRY_CODES))
         harvest(Path(a.out), countries, CATEGORY_SETS[a.categories],
-                a.resume, a.max_pages, a.headed)
+                a.resume, a.max_pages, a.headed, a.pause)
 
 
 if __name__ == "__main__":

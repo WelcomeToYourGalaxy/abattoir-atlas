@@ -1,0 +1,158 @@
+name: 6 · Harvest CIFER
+
+# CIFER encrypts its responses with a modified SM4 under a per-session key, so
+# there is no HTTP client route. This drives the real page in headless Chromium
+# and reads the table the site renders after decrypting its own data.
+#
+# Default scope is "global": one query per product category with no country
+# filter, so twelve queries instead of twelve times a hundred and seventeen.
+# The country comes out of the results table. Expect tens of minutes, not hours.
+#
+# Scope "country" is the fallback if the site caps global result sets. It shards
+# across 12 parallel jobs, so 117 countries run about 12 times faster than the
+# single-job version did.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        type: choice
+        default: global
+        options: [global, country]
+      categories:
+        type: choice
+        default: meat
+        options: [meat, meat_and_casings, all_animal]
+      countries:
+        description: 'scope=country only: comma-separated ISO3, blank for all'
+        default: ''
+      pause:
+        description: 'Seconds between page clicks'
+        default: '0.8'
+
+permissions:
+  contents: write
+
+jobs:
+
+  # ---------------------------------------------------------------- global
+  global:
+    if: inputs.scope != 'country'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    concurrency:
+      group: atlas-commit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install Playwright
+        run: pip install playwright && playwright install --with-deps chromium
+
+      - name: Dump the page's form controls
+        continue-on-error: true
+        run: python cifer_browser.py form
+
+      - name: Check the page still drives
+        continue-on-error: true
+        run: python cifer_browser.py probe --country USA --category 0102
+
+      - name: Harvest
+        run: |
+          python cifer_browser.py harvest --scope global \
+            --categories ${{ inputs.categories || 'meat' }} \
+            --pause ${{ inputs.pause || '0.8' }} \
+            --out raw/cifer.jsonl --resume
+
+      - name: Commit
+        if: always()
+        run: bash .github/commit_cifer.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cifer-debug
+          path: |
+            work/cifer_probe.png
+            work/cifer_form.png
+            work/cifer_form.json
+          if-no-files-found: ignore
+
+  # --------------------------------------------------------------- sharded
+  shard:
+    if: inputs.scope == 'country'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install Playwright
+        run: pip install playwright && playwright install --with-deps chromium
+
+      - name: Harvest shard ${{ matrix.shard }} of 12
+        run: |
+          python - <<'PY' > /tmp/countries.txt
+          from cifer import COUNTRY_CODES
+          import os
+          want = "${{ inputs.countries }}".strip()
+          all_c = want.split(",") if want else sorted(COUNTRY_CODES)
+          print(",".join(c for i, c in enumerate(all_c) if i % 12 == ${{ matrix.shard }}))
+          PY
+          list=$(cat /tmp/countries.txt)
+          echo "this shard: $list"
+          [ -z "$list" ] && exit 0
+          python cifer_browser.py harvest --scope country \
+            --countries "$list" \
+            --categories ${{ inputs.categories || 'meat' }} \
+            --pause ${{ inputs.pause || '0.8' }} \
+            --out "raw/cifer_shard_${{ matrix.shard }}.jsonl"
+
+      # Shards never push. They upload, and merge collects them -- twelve jobs
+      # racing to commit to one branch is how you lose eleven of them.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cifer-shard-${{ matrix.shard }}
+          path: raw/cifer_shard_${{ matrix.shard }}.jsonl
+          if-no-files-found: ignore
+
+  merge:
+    needs: shard
+    if: always() && inputs.scope == 'country'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: atlas-commit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {pattern: cifer-shard-*, path: shards, merge-multiple: true}
+
+      - name: Merge, dropping rows the shards saw twice
+        run: |
+          mkdir -p raw
+          python - <<'PY'
+          import json, glob, pathlib
+          seen, out = set(), []
+          for f in sorted(glob.glob("shards/*.jsonl")) + ["raw/cifer.jsonl"]:
+              if not pathlib.Path(f).exists(): continue
+              for line in open(f, encoding="utf-8"):
+                  try: r = json.loads(line)
+                  except Exception: continue
+                  k = str(r.get("registerNo"))
+                  if k and k in seen: continue
+                  seen.add(k); out.append(r)
+          with open("raw/cifer.jsonl", "w", encoding="utf-8") as fh:
+              for r in out: fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+          print(f"{len(out):,} unique rows")
+          PY
+
+      - name: Commit
+        run: bash .github/commit_cifer.sh
