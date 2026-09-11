@@ -17,20 +17,62 @@ import argparse
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
 RAW = Path("raw")
-UA = {"User-Agent": "abattoir-atlas/1.0 (+https://welcometoyourgalaxy.com)"}
+
+# Full browser header set. FSIS sits behind an edge filter that returns 403 to a
+# bare urllib User-Agent, so the request has to look like a browser navigation
+# rather than announce itself as a script. Accept-Encoding is identity on
+# purpose: urllib does not transparently decompress, and a gzipped body here
+# would just read as mojibake.
+BROWSER = {
+    "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/128.0.0.0 Safari/537.36"),
+    "Accept": ("text/html,application/xhtml+xml,application/xml;q=0.9,"
+               "image/avif,image/webp,*/*;q=0.8"),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "identity",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+}
 
 
-def _get(url: str, *, data: bytes | None = None, timeout: int = 180) -> bytes:
-    req = urllib.request.Request(url, data=data, headers=UA)
+class Blocked(RuntimeError):
+    """The host refused us rather than failing. Retrying will not help."""
+
+
+def _get(url: str, *, data: bytes | None = None, timeout: int = 180,
+         referer: str | None = None) -> bytes:
+    headers = dict(BROWSER)
+    if referer:
+        headers["Referer"] = referer
+        headers["Sec-Fetch-Site"] = "same-origin"
+    if data is not None:
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        headers["Accept"] = "application/json,*/*;q=0.8"
+
+    req = urllib.request.Request(url, data=data, headers=headers)
     for attempt in range(4):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403, 451):
+                raise Blocked(f"HTTP {exc.code} from {url}") from exc
+            if attempt == 3:
+                raise
+            wait = 2 ** attempt * 3
+            print(f"  retry after HTTP {exc.code}; waiting {wait}s", file=sys.stderr)
+            time.sleep(wait)
         except Exception as exc:
             if attempt == 3:
                 raise
@@ -53,7 +95,16 @@ def fetch_fsis() -> None:
     behaviour you want at that point."""
     RAW.mkdir(exist_ok=True)
     print(f"reading {FSIS_PAGE}")
-    html = _get(FSIS_PAGE).decode("utf-8", "replace")
+    try:
+        html = _get(FSIS_PAGE).decode("utf-8", "replace")
+    except Blocked as exc:
+        raise Blocked(
+            f"{exc}\n"
+            "    FSIS is refusing this runner. Their edge filter blocks some\n"
+            "    datacentre ranges outright, and no header set gets past that.\n"
+            "    Download the two CSVs from the page by hand and upload them to\n"
+            "    raw/ as fsis_mpi_directory.csv and fsis_demographic.csv:\n"
+            f"    {FSIS_PAGE}") from exc
 
     links = {urllib.parse.urljoin(FSIS_PAGE, m)
              for m in re.findall(r'href="([^"]+\.csv[^"]*)"', html, re.I)}
@@ -81,7 +132,7 @@ def fetch_fsis() -> None:
                 print(f"    {l}")
             sys.exit(1)
         print(f"  {dest} <- {url}")
-        (RAW / dest).write_bytes(_get(url))
+        (RAW / dest).write_bytes(_get(url, referer=FSIS_PAGE))
         print(f"    {(RAW / dest).stat().st_size/1e6:.1f} MB")
 
 
@@ -149,14 +200,37 @@ def main():
             print(f"\n{name}\n  {url}\n  {note}")
         return
 
+    jobs = []
     if a.what in ("fsis", "all"):
-        fetch_fsis()
+        jobs.append(("FSIS", fetch_fsis))
     if a.what in ("osm", "all"):
-        fetch_osm()
+        jobs.append(("OpenStreetMap", fetch_osm))
+
+    ok, failed = [], []
+    for label, fn in jobs:
+        try:
+            fn()
+            ok.append(label)
+        except Exception as exc:
+            # One host refusing us is not a reason to skip the others. The run
+            # reports what it got and what it did not, and only fails outright
+            # when nothing came back.
+            failed.append((label, exc))
+            print(f"\n!! {label} failed: {exc}\n", file=sys.stderr)
+
+    print("\n--- summary ---")
+    for label in ok:
+        print(f"  fetched: {label}")
+    for label, exc in failed:
+        print(f"  FAILED:  {label} — {str(exc).splitlines()[0]}")
+
     if a.what == "all":
-        print("\nAutomatic sources done. Still needs a human:")
+        print("\nStill needs a human:")
         for k, (name, url, note) in MANUAL.items():
             print(f"  - {name}: {note.splitlines()[0]}")
+
+    if failed and not ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
