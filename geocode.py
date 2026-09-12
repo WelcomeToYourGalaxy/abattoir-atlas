@@ -129,53 +129,182 @@ def nominatim(query: str, *, contact: str, base: str = "https://nominatim.openst
     return GeoHit(float(top["lat"]), float(top["lon"]), precision, "nominatim", top)
 
 
+# --- Photon ---------------------------------------------------------------
+#
+# Komoot's Photon runs on the same OpenStreetMap data Nominatim does, so the
+# coordinates are of equal provenance -- but it is built for autocomplete and
+# has no one-per-second rule. It is the single biggest speed-up available
+# without paying anyone or lowering the standard of the result.
+
+_PHOTON_ROOFTOP = {"house", "building", "industrial", "commercial", "retail",
+                   "amenity", "shop", "office", "craft"}
+
+
+def photon(query: str, *, contact: str,
+           base: str = "https://photon.komoot.io", pause: float = 0.12) -> GeoHit:
+    url = base + "/api?" + urllib.parse.urlencode({"q": query, "limit": 1})
+    req = urllib.request.Request(url, headers={
+        "User-Agent": f"abattoir-atlas/1.0 ({contact})",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.load(resp)
+    except Exception as exc:
+        return GeoHit(None, None, "none", "photon", {"error": str(exc)})
+    finally:
+        if pause:
+            time.sleep(pause)
+
+    feats = data.get("features") or []
+    if not feats:
+        return GeoHit(None, None, "none", "photon", None)
+
+    f = feats[0]
+    lon, lat = f["geometry"]["coordinates"][:2]
+    props = f.get("properties", {})
+    osm_key, osm_val = props.get("osm_key"), props.get("osm_value")
+
+    if props.get("housenumber") or osm_key in _PHOTON_ROOFTOP or osm_val in _PHOTON_ROOFTOP:
+        precision = "rooftop"
+    elif props.get("street") or osm_key == "highway":
+        precision = "street"
+    elif props.get("type") in {"city", "district", "locality"} or osm_key == "place":
+        precision = "locality"
+    else:
+        precision = "admin"
+
+    return GeoHit(float(lat), float(lon), precision, "photon", props)
+
+
+# --- provider lanes -------------------------------------------------------
+
+@dataclass
+class Lane:
+    """One provider plus the rate it may be called at.
+
+    Lanes run concurrently, each self-limited, so the combined throughput is the
+    sum of what every provider allows rather than the slowest one. Nothing here
+    relaxes an individual provider's policy -- Nominatim still gets one request
+    per second, it just is not the only thing running.
+    """
+    name: str
+    fn: object
+    min_interval: float          # seconds between this lane's requests
+    _next_at: float = 0.0
+
+    def wait(self) -> None:
+        now = time.monotonic()
+        if now < self._next_at:
+            time.sleep(self._next_at - now)
+        self._next_at = max(now, self._next_at) + self.min_interval
+
+
+DEFAULT_LANES = [
+    # Photon first and in quantity: same OSM source, no per-second rule.
+    ("photon", photon, 0.25),
+    ("photon", photon, 0.25),
+    ("photon", photon, 0.25),
+    ("photon", photon, 0.25),
+    # Nominatim alongside, strictly at its documented one per second.
+    ("nominatim", nominatim, 1.1),
+]
+
+
 # --- driver ----------------------------------------------------------------
 
 def geocode_records(records, *, contact: str, cache_path: str = "work/geocache.json.gz",
-                    provider=nominatim, limit: int | None = None,
-                    progress_every: int = 200) -> dict:
+                    provider=None, limit: int | None = None,
+                    progress_every: int = 500, lanes=None,
+                    fallback: bool = True) -> dict:
     """Returns {record_key: {lat, lon, precision, provider}}.
 
     Records that already carry source coordinates are skipped -- a published
     coordinate always beats a geocoded one.
-    """
-    cache = Cache(cache_path)
-    result, done, fresh = {}, 0, 0
 
+    Work is distributed over concurrent lanes, each holding its own provider to
+    its own rate. A query that comes back empty from a fast lane is retried once
+    on Nominatim before being recorded as unresolvable, so speed never costs a
+    result: the slow, authoritative provider still sees everything the fast one
+    could not place.
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    cache = Cache(cache_path)
+
+    # One lookup per distinct address, not per record. Records sharing an
+    # address share the answer.
+    queries: dict[str, list] = {}
     for rec in records:
         if rec.src_lat is not None and rec.src_lon is not None:
             continue
         q = build_query(rec)
-        if not q:
-            continue
+        if q:
+            queries.setdefault(q, []).append(rec.key())
 
-        hit = cache.get(q)
-        if hit is None:
-            if limit is not None and fresh >= limit:
-                continue
-            hit = provider(q, contact=contact)
-            cache.put(q, hit)
-            fresh += 1
+    todo = [q for q in queries if cache.get(q) is None]
+    if limit is not None:
+        todo = todo[:limit]
 
-        result[rec.key()] = {
-            "lat": hit.lat, "lon": hit.lon,
-            "precision": hit.precision, "provider": hit.provider,
-        }
-        done += 1
-        if progress_every and done % progress_every == 0:
-            print(f"  geocoded {done} ({fresh} fresh lookups)", flush=True)
+    print(f"{len(queries):,} distinct addresses, {len(queries)-len(todo):,} cached, "
+          f"{len(todo):,} to look up", flush=True)
+
+    if provider is not None:                      # single-provider override
+        lane_specs = [("custom", provider, 1.1)]
+    else:
+        lane_specs = lanes or DEFAULT_LANES
+    lane_objs = [Lane(n, f, i) for n, f, i in lane_specs]
+
+    lock = threading.Lock()
+    counter = {"done": 0, "hit": 0, "retried": 0}
+
+    def work(idx: int):
+        lane = lane_objs[idx % len(lane_objs)]
+        while True:
+            with lock:
+                if not todo:
+                    return
+                q = todo.pop()
+            lane.wait()
+            hit = lane.fn(q, contact=contact)
+
+            # A fast lane drawing a blank is not a verdict. Ask Nominatim before
+            # writing "not found" into a cache that later runs will trust.
+            if fallback and hit.precision == "none" and lane.name != "nominatim":
+                nom = next((l for l in lane_objs if l.name == "nominatim"), None)
+                if nom is not None:
+                    nom.wait()
+                    retry = nom.fn(q, contact=contact)
+                    with lock:
+                        counter["retried"] += 1
+                    if retry.precision != "none":
+                        hit = retry
+
+            with lock:
+                cache.put(q, hit)
+                counter["done"] += 1
+                if hit.precision in ("rooftop", "street"):
+                    counter["hit"] += 1
+                if progress_every and counter["done"] % progress_every == 0:
+                    print(f"  {counter['done']:,}/{len(queries):,} looked up, "
+                          f"{counter['hit']:,} placed, "
+                          f"{counter['retried']:,} retried on Nominatim", flush=True)
+
+    with ThreadPoolExecutor(max_workers=len(lane_objs)) as pool:
+        list(pool.map(work, range(len(lane_objs))))
 
     cache.save()
+
+    result = {}
+    for q, keys in queries.items():
+        hit = cache.get(q)
+        if hit is None:
+            continue
+        for k in keys:
+            result[k] = {"lat": hit.lat, "lon": hit.lon,
+                         "precision": hit.precision, "provider": hit.provider}
     return result
-
-
-def pending_count(records, cache_path: str = "work/geocache.json.gz") -> tuple[int, int]:
-    """(already cached, still to do) — drives the chunked CI loop."""
-    cache = Cache(cache_path)
-    need = {build_query(r) for r in records
-            if r.src_lat is None and build_query(r)}
-    have = sum(1 for q in need if cache.get(q) is not None)
-    return have, len(need) - have
 
 
 def unlocated_report(facilities) -> dict:
