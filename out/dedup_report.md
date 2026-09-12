@@ -2,31 +2,32 @@
 
 Generated 2026-09-12
 
-- Input rows: **24,994**
-- Facilities after clustering: **22,880**
-- Rows absorbed into a multi-source facility: **2,114**
-- Flagged for review, not merged: **470 pairs**
+- Input rows: **30,832**
+- Facilities after clustering: **26,813**
+- Rows absorbed into a multi-source facility: **4,019**
+- Flagged for review, not merged: **543 pairs**
 
 ## Rows per source
 
-- Non-EU (EU-approved): 14,673
+- EU / EFTA member states: 14,372
+- Non-EU (EU-approved): 9,148
 - USDA FSIS: 7,241
-- EU / EFTA member states: 3,009
 - China CIFER: 71
 
 ## What joined the merges
 
-- `id`: 418 clusters
-- `addr`: 336 clusters
+- `id`: 621 clusters
+- `addr`: 359 clusters
 - `geo`: 92 clusters
 
 ## Cluster sizes
 
-- 1 source record: 22,061 facilities
-- 2 source records: 753 facilities
-- 3 source records: 49 facilities
-- 4 source records: 11 facilities
-- 5 source records: 5 facilities
+- 1 source record: 25,770 facilities
+- 2 source records: 959 facilities
+- 3 source records: 65 facilities
+- 4 source records: 13 facilities
+- 5 source records: 4 facilities
 - 6 source records: 1 facilities
+- 20 source records: 1 facilities
 
 Nothing was discarded. Every input row is inside exactly one facility above, and `out/facilities.json` carries all of them verbatim.
