@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from normalize import norm_text
+from schema import MAPPABLE_PRECISION
 
 @dataclass
 class GeoHit:
@@ -329,6 +330,24 @@ def geocode_records(records, *, contact: str, cache_path: str = "work/geocache.j
             result[k] = {"lat": hit.lat, "lon": hit.lon,
                          "precision": hit.precision, "provider": hit.provider}
     return result
+
+
+def pending_count(records, cache_path: str = "work/geocache.json.gz") -> tuple[int, int]:
+    """(resolved, still outstanding), counted over distinct addresses.
+
+    "Resolved" means a coordinate at street precision or better. An entry
+    cached as unresolvable counts as outstanding, not as done -- otherwise a
+    poisoned cache reports itself complete and the pipeline stops looking.
+    """
+    cache = Cache(cache_path)
+    need = {build_query(r) for r in records
+            if r.src_lat is None and build_query(r)}
+    resolved = 0
+    for q in need:
+        hit = cache.get(q)
+        if hit is not None and hit.precision in MAPPABLE_PRECISION:
+            resolved += 1
+    return resolved, len(need) - resolved
 
 
 def purge_misses(cache_path: str = "work/geocache.json.gz") -> tuple[int, int]:
