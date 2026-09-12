@@ -1,0 +1,103 @@
+List view ( Luxembourg - Meat of domestic ungulates )
+Country: Luxembourg
+Food RM Meat of domestic ungulates
+Approval number	Name 	Street	City	Region	Activities	Remarks
+16	ARTISAL ET KERN 	4 Ilot Est	4383 Ehlerange	
+Luxembourg
+CP - Cutting Plant
+88	Abattoir Beim Schmitchen 	16 Haaptstrooss	9186 Stegen	
+SH - Slaughterhouse
+LU97700026	Abattoir Ettelbruck 	ZONE ARTISANALE ET COMMERCIALE	9079 Ettelbruck	
+Luxembourg
+CP - Cutting Plant
+SH - Slaughterhouse
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+S Equidae
+3	Abattoir Ettelbruck S.A. 	Zone artisanale et commerciale 10	9085 Ettelbruck	
+Luxembourg
+SH - Slaughterhouse
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+87	Beim Burg 	41A Hauptstrooss	9972 Lieler	
+CP - Cutting Plant
+4	Boucherie - Traiteur Niessen s.a.r.l. 	103, Grand Rue	9905 Troisvierges	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+46	Boucherie Kirsch S.A.R.L. 	1, rue Charles Kieffer	8362 Grass	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+S Equidae
+11	CARNESA SA 	Route d'Arlon	8050 Bertrange	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+9	COBOLUX Production S.A. 	11, Haaptstroos	6869 wecker	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+S Equidae
+79	Frëschzenter 	8 Zone Artisanale et Commerciale	9085 Ettelbruck	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+S Equidae
+6	LA PROVENCALE 	ZI GRASBUCH 137, LEUDELANGE, LUXEMBOURG , 3370	3370 Leudelange	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+73	Manufacture Steffen - Production Pétange 	13 Route de Luxembourg	4761 Pétange	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+O Ovis aries
+P Suidae
+48	SUDVIANDES SARL 	30, RUE JOSEPH KIEFER	4176 Esch-sur-Alzette	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+14	Salaisons Marco Meyer 	240-A, avenue de Luxembourg	4940 Bascharage	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+7	Victus Sabotic sarl 	37 Rue Romain Fandel	4149 Esch-sur-Alzette	
+Luxembourg
+CP - Cutting Plant
+B Bovinae
+O Ovis aries

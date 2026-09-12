@@ -1,0 +1,45 @@
+Drop one .txt file per TRACES listing in this folder, then run:
+
+    python traces_paste.py
+
+NEVER DELETE THESE .txt FILES
+-----------------------------
+They are the primary record. The CSVs in raw/eu_traces_third_country/ are
+derived, and get rebuilt from scratch whenever the parser changes. If a
+listing's .txt is gone, that listing is gone and has to be re-copied from
+TRACES. Commit every file in this folder.
+
+Saving a listing
+----------------
+1. Open the listing in TRACES-NT and scroll to the very bottom. If it still
+   says "Loading more...", rows are missing -- keep scrolling until it stops.
+2. Cmd+A, Cmd+C.
+3. Paste into a plain text file here. One file can hold many listings. The
+   country and section are read from the header the page includes in the copy.
+
+Copy, do not retype. Every approval number and address has to be byte-identical
+to what the register published.
+
+Sections worth pulling
+----------------------
+    RM      Meat of domestic ungulates   (cattle, pigs, sheep, goats, horses)
+    PM      Meat from poultry and lagomorphs
+    GM      Meat of farmed game
+    WM      Wild game meat
+    ABP-SH  Slaughterhouses and fishery vessels
+    FFP     Fishery products (vessels and factory ships)
+
+Each appears twice in the section picker: once under Food (EFTA, European
+Union), once under Food (Third countries). Pull both -- the third-country lists
+are what make this global rather than European.
+
+Skip RPM, MM, CAS, FAT and MMP. Nothing is killed at any of those.
+
+What comes out
+--------------
+CSVs in raw/eu_traces_third_country/, one per country, tagged with a `group`
+column (EU-EFTA or third-country) and a `section` code. Re-running merges on
+approval number + name + section, so the same plant listed under RM and PM
+keeps both listings and their different species.
+
+Commit both folders, then run workflow 3.

@@ -1,0 +1,7 @@
+List view ( Malta - Meat of domestic ungulates )
+Country: Malta
+Food RM Meat of domestic ungulates
+Approval number	Name 	Street	City	Region	Activities	Remarks
+M001	Public Abattoir Marsa 	Abattoir Square. Albertown. Marsa	MRS1123 Marsa	
+Malta
+SH - Slaughterhouse

@@ -1,0 +1,11 @@
+List view ( Liechtenstein - Meat of domestic ungulates )
+Country: Liechtenstein
+Food RM Meat of domestic ungulates
+Approval number	Name 	Street	City	Region	Activities	Remarks
+10505	Falknis Anstalt 	Prär 1	9496 Balzers	
+SH - Slaughterhouse
+C Capra hircus
+O Ovis aries
+S Equidae
+P Suidae
+B Bovinae
