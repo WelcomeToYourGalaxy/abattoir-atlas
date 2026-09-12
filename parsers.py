@@ -291,6 +291,7 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
         c_remark = _resolve(h, "remark", "remarks", "note", required=False)
         c_slaughter = _resolve(h, "slaughter", required=False)
         c_species = _resolve(h, "species", required=False)
+        c_group = _resolve(h, "group", required=False)
 
         for i, row in enumerate(rd):
             num = _f(row, c_num)
@@ -323,8 +324,19 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
             if flag is not None:
                 slaughter = flag
 
+            # Two registers share this folder. Splitting them by source id is
+            # what lets the map filter "EU member states" apart from "non-EU
+            # countries approved to export into the EU" -- the country name
+            # cannot do it, since Northern Ireland sits in the EU group.
+            grp = (_f(row, c_group) or "").strip().lower()
+            sid = source_id
+            if grp == "eu-efta":
+                sid = "eu_traces_member_state"
+            elif grp == "third-country":
+                sid = "eu_traces_third_country"
+
             out.append(SourceRecord(
-                source_id=source_id,
+                source_id=sid,
                 source_snapshot=snapshot,
                 source_row_id=num or f"row{i}",
                 name=name or num,
@@ -517,4 +529,235 @@ def parse_generic(path: Path, *, source_id: str, id_scheme: str,
                 slaughter=slaughter_default,
                 raw={k: v for k, v in row.items() if v},
             ))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Farm Transparency Project
+# ---------------------------------------------------------------------------
+
+# FTP category -> activity. The point of carrying all of them rather than
+# filtering to slaughterhouses is that the killing is one stage of a system;
+# the farms, saleyards and holding yards are where the same animals spend the
+# rest of their lives, and the map can separate them on demand.
+_FTP_ACTIVITY = {
+    "slaughterhouse": "slaughter",
+    "knackery": "slaughter",
+    "farm (meat)": "farm_meat",        "meat farm": "farm_meat",
+    "farm (dairy)": "farm_dairy",      "dairy farm": "farm_dairy",
+    "farm (eggs)": "farm_eggs",        "egg farm": "farm_eggs",
+    "farm (wool)": "farm_wool",        "wool farm": "farm_wool",
+    "farm (skins/fur)": "farm_skins",  "fur farm": "farm_skins",
+    "honey farm": "farm_honey",
+    "sheep farm": "farm_meat",
+    "hatchery": "hatchery",
+    "saleyard": "saleyard",
+    "live market": "live_market",
+    "depot / holding yard": "holding_yard",
+    "experimentation": "experimentation",
+    "zoo": "zoo",
+    "wildlife": "wildlife",
+    "race training/breeding": "racing",
+    "race training/breeding facility": "racing",
+    "racecourse": "racing",
+    "rodeo": "rodeo",
+    "other entertainment": "entertainment",
+    "agricultural show": "agricultural_show",
+    "pet breeder": "pet_breeder",
+    "pet shop": "pet_shop",
+    "rendering plant": "rendering",
+    "meat processing (non-slaughter)": "processing",
+    "aquaculture": "aquaculture",
+    # Longer wordings used in the KML export of the same data.
+    "farm (honey)": "farm_honey",
+    "skin/fur farm": "farm_skins",
+    "meat processing (non-slaughter) facility": "processing",
+    "scientific experimentation facility": "experimentation",
+    "other/misc entertainment facility": "entertainment",
+    "egg processing and distribution factory": "processing",
+    "dairy processing factory": "processing",
+    "dairy processing": "processing",
+    "egg processing and distribution": "processing",
+    "circus": "entertainment",
+    "live animal export facility": "holding_yard",
+    "knackery / rendering": "slaughter",
+}
+
+_FTP_SPECIES = {
+    "cows/cattle": "bovine", "cattle": "bovine", "cows": "bovine",
+    "pigs": "porcine", "chickens": "poultry", "turkeys": "poultry",
+    "ducks": "poultry", "geese": "poultry", "quail": "poultry",
+    "misc birds": "poultry", "pigeons": "poultry", "emus": "poultry",
+    "ostriches": "poultry", "chicks": "poultry",
+    "sheep": "ovine", "lambs": "ovine", "goats": "caprine",
+    "horses": "equine", "donkeys": "equine", "greyhounds": "canine",
+    "dogs": "canine", "cats": "other", "rabbits": "lagomorph",
+    "minks": "mustelid", "ferrets": "mustelid", "foxes": "other",
+    "deer": "cervid", "kangaroos": "wild_game", "camels": "other",
+    "alpacas": "camelid", "llamas": "camelid", "buffalo": "bovine",
+    "fish/sealife": "fish", "fish": "fish", "prawns": "crustacean",
+    "crocodiles": "reptile", "alligators": "reptile", "bees": "insect",
+}
+
+
+def _ftp_split(value: str | None) -> list[str]:
+    """FTP joins multiple values with commas, but a value may itself contain a
+    comma inside brackets -- "Farm (meat) (unconfirmed)". Split on commas that
+    are not inside brackets."""
+    if not value:
+        return []
+    return [p.strip() for p in re.split(r",(?![^(]*\))", value) if p.strip()]
+
+
+def _ftp_map(values: list[str], table: dict, strip_unconfirmed: bool = True):
+    out, unknown = [], []
+    for v in values:
+        k = v.lower().strip()
+        if strip_unconfirmed:
+            k = k.replace("(unconfirmed)", "").strip()
+        if k in table:
+            out.append(table[k])
+        else:
+            unknown.append(v)
+    return sorted(set(out)), unknown
+
+
+def parse_ftp_csv(path: Path, *, country_iso3: str | None = None,
+                  snapshot: str | None = None) -> list[SourceRecord]:
+    """Farm Transparency Project CSV export.
+
+    Every row carries a coordinate the project verified, so these records skip
+    geocoding entirely -- which is why the CSV export is worth asking for in
+    preference to the KML.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    out = []
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        rd = csv.DictReader(fh)
+        h = rd.fieldnames or []
+        c_id = _resolve(h, "id")
+        c_name = _resolve(h, "name")
+        c_cat = _resolve(h, "categories", "category")
+        c_sp = _resolve(h, "species", required=False)
+        c_lat = _resolve(h, "lat", "latitude")
+        c_lon = _resolve(h, "lng", "lon", "longitude")
+        c_num = _resolve(h, "streetnum", "street num", required=False)
+        c_st = _resolve(h, "street", required=False)
+        c_sub = _resolve(h, "suburb", "city", required=False)
+        c_state = _resolve(h, "state", required=False)
+        c_pc = _resolve(h, "postcode", "zip", required=False)
+        c_ctry = _resolve(h, "country", required=False)
+        c_stat = _resolve(h, "lastknownstatus", "status", required=False)
+        c_own = _resolve(h, "ownedby", "owned by", required=False)
+        c_con = _resolve(h, "contractedto", required=False)
+
+        for row in rd:
+            lat = lon = None
+            try:
+                lat, lon = float(row[c_lat]), float(row[c_lon])
+                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                    lat = lon = None
+            except (TypeError, ValueError, KeyError):
+                lat = lon = None
+
+            acts, unknown_cats = _ftp_map(_ftp_split(_f(row, c_cat)), _FTP_ACTIVITY)
+            species, _ = _ftp_map(_ftp_split(_f(row, c_sp)), _FTP_SPECIES)
+
+            street = " ".join(x for x in (_f(row, c_num), _f(row, c_st)) if x)
+            addr = ", ".join(x for x in (street, _f(row, c_sub), _f(row, c_state)) if x)
+
+            out.append(SourceRecord(
+                source_id="farm_transparency",
+                source_snapshot=snapshot,
+                source_row_id=_f(row, c_id) or f"{lat},{lon}",
+                name=_f(row, c_name) or "(unnamed)",
+                country_iso3=(country_iso3 or _COUNTRY_ISO3.get(
+                    (_f(row, c_ctry) or "").strip().lower(), "")),
+                national_id=_f(row, c_id),
+                id_scheme="FTP",
+                address=addr or None,
+                locality=_f(row, c_sub),
+                admin1=_f(row, c_state),
+                postcode=_f(row, c_pc),
+                species=species,
+                activities=acts or ["unknown"],
+                # Only "slaughterhouse" and "knackery" mean animals are killed
+                # here. Everything else is left unstated rather than denied --
+                # a meat farm is not a slaughterhouse, but FTP does not assert
+                # that no animal ever dies on it.
+                slaughter=True if "slaughter" in acts else None,
+                operator=_f(row, c_own) or _f(row, c_con),
+                src_lat=lat, src_lon=lon,
+                raw={k: v for k, v in row.items() if v}
+                    | ({"_unmapped_categories": unknown_cats} if unknown_cats else {}),
+            ))
+    return out
+
+
+_COUNTRY_ISO3 = {
+    "united states": "USA", "usa": "USA", "australia": "AUS",
+    "new zealand": "NZL", "united kingdom": "GBR", "canada": "CAN",
+    "ireland": "IRL", "south africa": "ZAF",
+}
+
+
+def parse_ftp_kml(path: Path, *, country_iso3: str = "AUS",
+                  snapshot: str | None = None) -> list[SourceRecord]:
+    """Farm Transparency KML/GPX export.
+
+    Same project, worse format: everything but the coordinate is packed into a
+    prose description that has to be pulled apart. Use the CSV export where the
+    project offers one.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+
+    blocks = re.findall(
+        r'<Placemark id="placemark([^"]+)">\s*<name>(.*?)</name>\s*'
+        r'<description>(.*?)</description>.*?'
+        r'<coordinates>\s*([-0-9.]+)\s*,\s*([-0-9.]+)',
+        text, re.S)
+
+    out = []
+    for fid, name, desc, lon, lat in blocks:
+        def field(label):
+            # [^\n]* rather than a lazy .*? -- when the field is empty, a
+            # leading \s* swallows the newline and the pattern captures the
+            # NEXT line's value instead. That silently filed a thousand
+            # "Last known status: Open and operating" strings as categories.
+            m = re.search(rf"{label}:[ \t]*([^\n]*)", desc)
+            if not m:
+                return None
+            v = m.group(1).strip()
+            return v or None
+
+        # The name repeats the categories and id in brackets; strip them so the
+        # display name is the facility, not a restatement of its metadata.
+        clean = re.sub(r"\s*\([^()]*#[0-9a-f]+\)\s*$", "", name).strip()
+
+        acts, unknown = _ftp_map(_ftp_split(field("Categories")), _FTP_ACTIVITY)
+        species, _ = _ftp_map(_ftp_split(field("Species")), _FTP_SPECIES)
+        address = field("Address")
+
+        try:
+            flat, flon = float(lat), float(lon)
+        except ValueError:
+            continue
+
+        out.append(SourceRecord(
+            source_id="farm_transparency",
+            source_snapshot=snapshot,
+            source_row_id=fid,
+            name=clean or name,
+            country_iso3=country_iso3,
+            national_id=fid,
+            id_scheme="FTP",
+            address=address,
+            species=species,
+            activities=acts or ["unknown"],
+            slaughter=True if "slaughter" in acts else None,
+            src_lat=flat, src_lon=flon,
+            raw={"description": desc, "status": field("Last known status")}
+                | ({"_unmapped_categories": unknown} if unknown else {}),
+        ))
     return out

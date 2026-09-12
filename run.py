@@ -40,8 +40,12 @@ FACILITIES = WORK / "facilities.pkl"
 
 SOURCE_LABELS = {
     "us_fsis_mpi": {"name": "USDA FSIS inspection directory", "short": "USDA FSIS"},
-    "eu_traces_third_country": {"name": "EU authorised establishments, non-EU countries",
-                                "short": "EU third-country list"},
+    "eu_traces_third_country": {"name": "EU register of non-EU establishments "
+                                        "approved to export into the EU",
+                                "short": "Non-EU (EU-approved)"},
+    "eu_traces_member_state": {"name": "EU and EFTA member state approved "
+                                       "establishments",
+                               "short": "EU / EFTA member states"},
     "eu_member_states": {"name": "EU member state approved establishments",
                          "short": "EU member state"},
     "uk_fsa": {"name": "UK FSA approved establishments", "short": "UK FSA"},
@@ -52,6 +56,8 @@ SOURCE_LABELS = {
     "au_daff": {"name": "Australian export-registered establishments", "short": "Australia DAFF"},
     "nz_mpi": {"name": "NZ registered risk management programmes", "short": "NZ MPI"},
     "osm_overpass": {"name": "OpenStreetMap", "short": "OpenStreetMap"},
+    "farm_transparency": {"name": "Farm Transparency Project",
+                          "short": "Farm Transparency"},
 }
 
 
@@ -71,7 +77,13 @@ def _save(obj, path: Path):
 
 def cmd_parse(args):
     existing = _load(RECORDS) if RECORDS.exists() else []
-    existing = [r for r in existing if r.source_id != args.source]
+    # The TRACES folder splits into two source ids by register group, so
+    # re-parsing it has to clear both -- otherwise last run's rows survive
+    # under whichever id this run did not produce.
+    clears = {args.source}
+    if args.source in ("eu_traces_third_country", "eu_traces_member_state"):
+        clears |= {"eu_traces_third_country", "eu_traces_member_state"}
+    existing = [r for r in existing if r.source_id not in clears]
 
     sid = args.source
     if sid == "us_fsis_mpi":
@@ -89,6 +101,15 @@ def cmd_parse(args):
                 country_iso3=args.country, snapshot=args.snapshot)
     elif sid == "cifer_china":
         new = parsers.parse_cifer(RAW / (args.file or "cifer.jsonl"), args.snapshot)
+    elif sid == "farm_transparency":
+        new = []
+        for f in sorted((RAW / "farm_transparency").glob("*")):
+            if f.suffix.lower() == ".csv":
+                new += parsers.parse_ftp_csv(f, country_iso3=args.country,
+                                             snapshot=args.snapshot)
+            elif f.suffix.lower() in (".kml", ".gpx"):
+                new += parsers.parse_ftp_kml(f, country_iso3=args.country or "AUS",
+                                             snapshot=args.snapshot)
     elif sid == "osm_overpass":
         new = parsers.parse_osm(RAW / (args.file or "osm.json"), args.snapshot)
     else:

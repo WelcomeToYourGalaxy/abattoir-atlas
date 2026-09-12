@@ -30,6 +30,13 @@ SPECIES = {
     "equine",       # horses, donkeys
     "cervid",       # deer, elk, reindeer, antelope
     "lagomorph",    # rabbit, hare
+    "mustelid",     # mink, ferret
+    "canine",       # dogs
+    "camelid",      # alpaca, llama
+    "fish",
+    "crustacean",
+    "reptile",
+    "insect",       # bees
     "poultry",      # all birds incl. ratites
     "farmed_game",  # Annex III Section III
     "wild_game",    # Annex III Section IV
@@ -41,6 +48,14 @@ SPECIES = {
 # pipeline deciding for them.
 ACTIVITIES = {
     "slaughter",
+    # Farm Transparency Project adds the tiers before and around killing:
+    # where animals are raised, held, traded and used. Carried as activities so
+    # the map can separate "killed here" from "held here" without dropping
+    # anything.
+    "farm_meat", "farm_dairy", "farm_eggs", "farm_wool", "farm_skins",
+    "farm_honey", "hatchery", "saleyard", "live_market", "holding_yard",
+    "experimentation", "zoo", "wildlife", "racing", "rodeo", "entertainment",
+    "pet_breeder", "pet_shop", "agricultural_show", "aquaculture",
     "cutting",          # EU "CP" cutting plant
     "processing",       # EU "PP"
     "minced_meat",

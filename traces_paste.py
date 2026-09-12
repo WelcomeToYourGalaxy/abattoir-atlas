@@ -63,8 +63,8 @@ SEP_RE = re.compile(r"\t|  +")
 COUNTRY_RE = re.compile(r"^Country:\s*(.+?)\s*$", re.M)
 SECTION_HDR_RE = re.compile(r"List view\s*\(\s*(.+?)\s*-\s*(.+?)\s*\)")
 SECTION_CODE_RE = re.compile(
-    r"\b(RM|PM|GM|WM|RPM|MM|CAS|EEP|EPP|FFP|GEL|HON|LBM|MMP|FAT|FLS|SPR|"
-    r"COL|RCG|TCG|GEN|ABP-[A-Z]+)\b")
+    r"\b(ABP-[A-Z]+|RM|PM|GM|WM|RPM|MM|CAS|EEP|EPP|FFP|GEL|HON|LBM|MMP|FAT|"
+    r"FLS|SPR|COL|RCG|TCG|GEN)\b")
 
 # Activity codes as they appear in the Activities column, e.g. "SH - Slaughterhouse".
 ACTIVITY_RE = re.compile(r"^([A-Z]{2,4})\s*[-–]\s*(.+)$")
@@ -88,12 +88,43 @@ SLAUGHTER_CODES = {"SH"}
 
 # Sections this atlas cares about. Anything else is recorded but flagged, so a
 # mistaken pull is visible rather than silently mixed in.
-MEAT_SECTIONS = {"RM", "PM", "GM", "WM"}
+MEAT_SECTIONS = {"RM", "PM", "GM", "WM", "FFP", "ABP-SH"}
+
+# The section picker offers every commodity code twice: once under Food (EFTA,
+# European Union) and once under Food (Third countries). Both land in the same
+# folder, and the filename cannot tell them apart -- so the group is derived
+# from membership and written into the row. Northern Ireland is the reason this
+# has to be a lookup rather than a guess: it sits in the EU group under the
+# Windsor Framework despite not being a member state.
+EU_EFTA = {
+    "austria", "belgium", "bulgaria", "croatia", "cyprus", "czechia", "denmark",
+    "estonia", "finland", "france", "germany", "greece", "hungary", "ireland",
+    "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands",
+    "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden",
+    "iceland", "liechtenstein", "norway", "switzerland",
+    "united kingdom (northern ireland)",
+}
+
+
+SECTION_BY_NAME = {
+    "meat of domestic ungulates": "RM",
+    "meat from poultry and lagomorphs": "PM",
+    "meat of farmed game": "GM",
+    "wild game meat": "WM",
+    "fishery products": "FFP",
+    "fishery products - eu": "FFP",
+    "slaughterhouses and fishery vessels": "ABP-SH",
+    "meat products": "RPM",
+}
+
+
+def group_for(country: str) -> str:
+    return "EU-EFTA" if country.strip().lower() in EU_EFTA else "third-country"
 
 # Sections whose vocabulary has no SH/CP distinction. A row here is neither
 # confirmed nor denied as a slaughterhouse, and saying "N" would be a claim the
 # source never made.
-NO_ACTIVITY_VOCAB = {"ABP-SH", "ABP-PROCP", "ABP-PET", "ABP-INTP"}
+NO_ACTIVITY_VOCAB = {"ABP-SH", "ABP-PROCP", "ABP-PET", "ABP-INTP", "FFP"}
 DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{4}$")
 CAT_RE = re.compile(r"^CAT\d\b|^[A-Z]{2,4}\s*-\s*", re.I)
 # Page chrome that can survive into a block when a copy starts mid-page.
@@ -210,9 +241,15 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
         country = fallback_country.replace("-", " ").replace("_", " ").title()
 
     section = ""
-    m = SECTION_CODE_RE.search(text)
+    # The header line "List view ( Country - Section )" is the reliable source;
+    # a bare code search can pick up a stray two-letter token from an address.
+    m = SECTION_HDR_RE.search(text)
     if m:
-        section = m.group(1).strip()
+        section = SECTION_BY_NAME.get(m.group(2).strip().lower(), "")
+    if not section:
+        m = SECTION_CODE_RE.search(text)
+        if m:
+            section = m.group(1).strip()
 
     rows, cur = [], None
     for raw in text.splitlines():
@@ -317,6 +354,7 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
             "postcode": postcode,
             "region": r["region"],
             "country": country,
+            "group": group_for(country),
             "section": section,
             "activity": " ".join(codes),
             "slaughter": slaughter,
@@ -331,8 +369,8 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
 
 
 FIELDS = ["approval_number", "name", "address", "city", "postcode", "region",
-          "country", "section", "activity", "slaughter", "species", "remarks",
-          "date_of_approval", "publication_date"]
+          "country", "group", "section", "activity", "slaughter", "species",
+          "remarks", "date_of_approval", "publication_date"]
 
 
 def main():
@@ -359,9 +397,15 @@ def main():
             if dest.exists():
                 with open(dest, encoding="utf-8-sig", newline="") as fh:
                     existing = list(csv.DictReader(fh))
-            seen = {(r.get("approval_number"), r.get("name")) for r in existing}
-            merged = existing + [r for r in rows
-                                 if (r["approval_number"], r["name"]) not in seen]
+            # The key must include the section. One plant is commonly listed
+            # under several commodity codes -- a works appears under RM and PM
+            # and ABP-SH with the same national number -- and each listing
+            # carries its own activity codes and species. Keying on number and
+            # name alone silently drops every listing after the first.
+            key = lambda r: (r.get("approval_number"), r.get("name"),
+                             r.get("section"))
+            seen = {key(r) for r in existing}
+            merged = existing + [r for r in rows if key(r) not in seen]
 
             with open(dest, "w", encoding="utf-8", newline="") as fh:
                 w = csv.DictWriter(fh, fieldnames=FIELDS)
@@ -374,7 +418,8 @@ def main():
             nospec = sum(1 for r in rows if not r["species"])
             warn = ("" if section in MEAT_SECTIONS or section in NO_ACTIVITY_VOCAB
                     else "  <- not a meat or ABP-SH section")
-            print(f"  {country or path.stem:22} {section or '?':5} "
+            grp = group_for(country)
+            print(f"  {country or path.stem:22} {grp:13} {section or '?':5} "
                   f"{len(rows):4} rows, {sh:4} slaughter"
                   f"{f', {unk} unstated' if unk else ''}, {new:4} new"
                   f" ({nospec} without species) -> {dest.name}{warn}")

@@ -24,6 +24,11 @@ if [ -f raw/cifer.jsonl ]; then
   python run.py parse --source cifer_china --file cifer.jsonl --snapshot "$snap"
 fi
 
+if compgen -G "raw/farm_transparency/*" > /dev/null 2>&1; then
+  echo "== Farm Transparency Project"
+  python run.py parse --source farm_transparency --snapshot "$snap"
+fi
+
 if [ -f raw/osm.json ]; then
   echo "== OpenStreetMap"
   python run.py parse --source osm_overpass --file osm.json --snapshot "$snap"
