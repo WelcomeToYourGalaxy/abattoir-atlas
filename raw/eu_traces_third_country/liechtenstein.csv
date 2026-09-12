@@ -1,3 +1,5 @@
-approval_number,name,address,city,postcode,region,country,section,activity,slaughter,species,remarks,date_of_approval,publication_date
-10505,Falknis Anstalt,Prär 1,Balzers,9496,,Liechtenstein,RM,SH,Y,caprine ovine equine porcine bovine,SH - Slaughterhouse,,
-2276,Ospelt Metzgerei Aktiengesellschaft,Landstrasse 6,Schaan,9494,wU Wild ungulates,Liechtenstein,WM,GHE,N,,GHE - Game-Handling Establishment,,
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+10505,Falknis Anstalt,Prär 1,Balzers,9496,fG Farmed land mammals other than domestic ungulates,Liechtenstein,EU-EFTA,GM,SH,Y,,SH - Slaughterhouse,,
+2276,Ospelt Metzgerei Aktiengesellschaft,Landstrasse 6,Schaan,9494,wU Wild ungulates,Liechtenstein,EU-EFTA,WM,GHE,N,,GHE - Game-Handling Establishment,,
+10505,Falknis Anstalt,Prär 1,Balzers,9496,,Liechtenstein,EU-EFTA,RM,SH,Y,caprine ovine equine porcine bovine,SH - Slaughterhouse,,
+224,Hilcona AG,Bendererstrasse 21,Schaan,9494,,Liechtenstein,EU-EFTA,FFP,PP,,,PP - Processing Plant,,

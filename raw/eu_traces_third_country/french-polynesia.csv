@@ -1,0 +1,5 @@
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+1048 PF,OCEAN PRODUCTS TAHITI,Motu Uta BP 9082 9875,Papeete,,Windward Islands,French Polynesia,third-country,FFP,PP CS,,,PP - Processing Plant | CS - Cold Stores,,
+1029 PF,PACIFIC TUNA,Port de Péche - ZI Faré Uté,Papeete,,Windward Islands,French Polynesia,third-country,FFP,PP CS,,,PP - Processing Plant | CS - Cold Stores,,
+1050 PF,ULYSSE 2,"Armement Tahiti Tuna-BP 9089, 98715 Papeete",Papeete,,Windward Islands,French Polynesia,third-country,FFP,FV,,,FV - Factory Vessel,,
+1049 PF,ULYSSE ONE,"Armement Tahiti Tuna-BP 9089, 98715, Tahiti",Papeete,98701,Windward Islands,French Polynesia,third-country,FFP,FV,,,FV - Factory Vessel,,
