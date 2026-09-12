@@ -183,11 +183,25 @@ def cmd_dedup(args):
 
 def cmd_geocode(args):
     import geocode as geo
+
+    contact = (args.contact or "").strip()
+    if len(contact) < 5 or ("@" not in contact and "://" not in contact):
+        sys.exit(
+            "geocode needs a real contact string -- an email address or a URL.\n"
+            f"  got: {args.contact!r}\n"
+            "Nominatim and Photon both require one in the User-Agent and will\n"
+            "refuse requests without it. An empty CONTACT secret is how 30,000\n"
+            "addresses once got cached as unresolvable.")
+
     records = _load(RECORDS)
     cache = {}
     if (WORK / "geo.json").exists():
         cache = json.loads((WORK / "geo.json").read_text())
-    fresh = geo.geocode_records(records, contact=args.contact, limit=args.limit)
+    if args.purge_misses:
+        before, after = geo.purge_misses()
+        print(f"purged {before-after:,} cached misses, kept {after:,} real hits")
+
+    fresh = geo.geocode_records(records, contact=contact, limit=args.limit)
     cache.update(fresh)
     (WORK / "geo.json").write_text(json.dumps(cache), encoding="utf-8")
     prec = Counter(v["precision"] for v in cache.values())
@@ -337,6 +351,9 @@ def main():
                    help="email or URL for the geocoder User-Agent")
     c.add_argument("--limit", type=int, default=None,
                    help="cap fresh lookups this run; cache persists between runs")
+    c.add_argument("--purge-misses", action="store_true",
+                   help="drop cached entries that resolved to nothing, keeping "
+                        "every real hit, then retry them")
 
     d = sub.add_parser("build"); d.set_defaults(fn=cmd_build)
     d.add_argument("--out")

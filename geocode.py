@@ -36,6 +36,14 @@ class GeoHit:
     precision: str
     provider: str
     payload: dict | None = None
+    error: str | None = None        # transport/HTTP failure, not a real answer
+
+    @property
+    def cacheable(self) -> bool:
+        """A refused or failed request is not evidence that an address cannot
+        be placed. Caching one turns a temporary outage -- or a missing contact
+        string -- into a permanent hole that every later run trusts and skips."""
+        return self.error is None
 
 
 class Cache:
@@ -106,7 +114,7 @@ def nominatim(query: str, *, contact: str, base: str = "https://nominatim.openst
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.load(resp)
     except Exception as exc:                       # network, rate limit, malformed
-        return GeoHit(None, None, "none", "nominatim", {"error": str(exc)})
+        return GeoHit(None, None, "none", "nominatim", None, error=str(exc))
     finally:
         time.sleep(pause)
 
@@ -151,7 +159,7 @@ def photon(query: str, *, contact: str,
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.load(resp)
     except Exception as exc:
-        return GeoHit(None, None, "none", "photon", {"error": str(exc)})
+        return GeoHit(None, None, "none", "photon", None, error=str(exc))
     finally:
         if pause:
             time.sleep(pause)
@@ -257,7 +265,7 @@ def geocode_records(records, *, contact: str, cache_path: str = "work/geocache.j
     lane_objs = [Lane(n, f, i) for n, f, i in lane_specs]
 
     lock = threading.Lock()
-    counter = {"done": 0, "hit": 0, "retried": 0}
+    counter = {"done": 0, "hit": 0, "retried": 0, "errors": 0}
 
     def work(idx: int):
         lane = lane_objs[idx % len(lane_objs)]
@@ -282,19 +290,35 @@ def geocode_records(records, *, contact: str, cache_path: str = "work/geocache.j
                         hit = retry
 
             with lock:
-                cache.put(q, hit)
+                if hit.cacheable:
+                    cache.put(q, hit)
+                else:
+                    counter["errors"] += 1
                 counter["done"] += 1
                 if hit.precision in ("rooftop", "street"):
                     counter["hit"] += 1
                 if progress_every and counter["done"] % progress_every == 0:
                     print(f"  {counter['done']:,}/{len(queries):,} looked up, "
                           f"{counter['hit']:,} placed, "
-                          f"{counter['retried']:,} retried on Nominatim", flush=True)
+                          f"{counter['retried']:,} retried, "
+                          f"{counter['errors']:,} request failures", flush=True)
 
     with ThreadPoolExecutor(max_workers=len(lane_objs)) as pool:
         list(pool.map(work, range(len(lane_objs))))
 
     cache.save()
+
+    done, errs, hits = counter["done"], counter["errors"], counter["hit"]
+    if done:
+        if errs > done * 0.2:
+            print(f"\n!! {errs:,} of {done:,} requests FAILED at the transport "
+                  f"level. Nothing was cached for those. Check the contact "
+                  f"string and whether the providers are reachable before "
+                  f"re-running.", flush=True)
+        elif hits < done * 0.2:
+            print(f"\n!! only {hits:,} of {done:,} addresses resolved to a "
+                  f"street or building. That is low enough to suspect the "
+                  f"address format rather than the data.", flush=True)
 
     result = {}
     for q, keys in queries.items():
@@ -305,6 +329,20 @@ def geocode_records(records, *, contact: str, cache_path: str = "work/geocache.j
             result[k] = {"lat": hit.lat, "lon": hit.lon,
                          "precision": hit.precision, "provider": hit.provider}
     return result
+
+
+def purge_misses(cache_path: str = "work/geocache.json.gz") -> tuple[int, int]:
+    """Drop cached entries that resolved to nothing, keeping every real hit.
+
+    Use after a run that was misconfigured: the successful lookups stay, the
+    poisoned "not found" entries are removed so the next run retries them.
+    """
+    cache = Cache(cache_path)
+    before = len(cache)
+    cache._d = {q: v for q, v in cache._d.items()
+                if v.get("precision") in ("rooftop", "street", "locality", "admin")}
+    cache.save()
+    return before, len(cache)
 
 
 def unlocated_report(facilities) -> dict:
