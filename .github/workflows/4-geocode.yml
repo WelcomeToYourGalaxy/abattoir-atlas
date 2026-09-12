@@ -1,25 +1,33 @@
 name: 4 · Geocode
 
-# The long pole. Nominatim's usage policy is one request a second, so ~60,000
-# addresses is around seventeen hours of wall clock. A GitHub job is capped at
-# six, so this runs in chunks: each run does a slice, commits the cache, and the
-# next run picks up where it stopped. The cache is the whole point — those
-# seventeen hours happen once, not once per rebuild.
+# Geocoding runs over concurrent provider lanes: four on Photon, which serves
+# the same OpenStreetMap data with no per-second rule, and one on Nominatim at
+# its documented one per second. Anything Photon cannot place is retried on
+# Nominatim before being recorded as unresolvable, so the speed costs nothing
+# in coverage or precision.
 #
-# Set the CONTACT secret to a real email or URL. Nominatim expects one, and
-# they will block a User-Agent without it.
+# That is roughly ten times the old rate — tens of thousands of addresses in a
+# single run rather than days of cron cycles. It still chunks and resumes, and
+# the cache is still the point: the work happens once, not once per rebuild.
+#
+# Set the CONTACT secret to a real email or URL. Both providers expect one and
+# will throttle or block a User-Agent without it.
 
 on:
   workflow_dispatch:
     inputs:
       limit:
         description: 'Fresh lookups this run'
-        default: '10000'
+        default: '40000'
   schedule:
     - cron: '0 */6 * * *'
 
 permissions:
   contents: write
+
+concurrency:
+  group: atlas-commit
+  cancel-in-progress: false
 
 jobs:
   geocode:
@@ -47,7 +55,7 @@ jobs:
         run: |
           python run.py geocode \
             --contact "${{ secrets.CONTACT }}" \
-            --limit ${{ inputs.limit || 10000 }}
+            --limit ${{ inputs.limit || 40000 }}
 
       - name: Commit the cache
         if: steps.check.outputs.done != 'true'
@@ -58,4 +66,16 @@ jobs:
           git diff --staged --quiet && echo "no change" && exit 0
           n=$(python -c "import gzip,json;print(len(json.load(gzip.open('work/geocache.json.gz','rt'))))")
           git commit -m "geocode: $n addresses cached"
-          git push
+          # Another workflow may have pushed while this one ran. Rebase onto
+          # whatever landed and retry rather than failing the whole build.
+          push() {
+            for i in 1 2 3; do
+              if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push; then
+                return 0
+              fi
+              echo "push race; retry $i"
+              sleep $((i * 5))
+            done
+            return 1
+          }
+          push

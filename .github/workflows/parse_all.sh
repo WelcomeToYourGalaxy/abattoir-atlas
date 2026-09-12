@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Parses every source file present in raw/. Safe to run repeatedly: each source
+# replaces its own previous records rather than appending, so re-running after a
+# fresh download updates that source and leaves the others alone.
+set -euo pipefail
+snap="${1:-$(date -u +%Y-%m-%d)}"
+
+if [ -f raw/fsis_mpi_directory.csv ]; then
+  echo "== FSIS"
+  python run.py parse --source us_fsis_mpi \
+    --file fsis_mpi_directory.csv \
+    --demographic fsis_demographic.csv --snapshot "$snap"
+fi
+
+for dir in eu_traces_third_country eu_member_states uk_fsa; do
+  if compgen -G "raw/$dir/*.csv" > /dev/null 2>&1; then
+    echo "== $dir"
+    python run.py parse --source "$dir" --snapshot "$snap"
+  fi
+done
+
+if [ -f raw/cifer.jsonl ]; then
+  echo "== CIFER"
+  python run.py parse --source cifer_china --file cifer.jsonl --snapshot "$snap"
+fi
+
+if compgen -G "raw/farm_transparency/*" > /dev/null 2>&1; then
+  echo "== Farm Transparency Project"
+  python run.py parse --source farm_transparency --snapshot "$snap"
+fi
+
+if [ -f raw/osm.json ]; then
+  echo "== OpenStreetMap"
+  python run.py parse --source osm_overpass --file osm.json --snapshot "$snap"
+fi
