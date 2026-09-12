@@ -19,6 +19,10 @@ on:
       limit:
         description: 'Fresh lookups this run'
         default: '40000'
+      purge_misses:
+        description: 'Retry addresses previously cached as unresolvable'
+        type: boolean
+        default: false
   schedule:
     - cron: '0 */6 * * *'
 
@@ -38,6 +42,18 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
 
+      # Fail here rather than three hours in. An empty CONTACT once caused
+      # 30,000 addresses to be cached as unresolvable, and every later run
+      # trusted that and skipped them.
+      - name: Check the CONTACT secret is set
+        run: |
+          if [ -z "${{ secrets.CONTACT }}" ]; then
+            echo "::error::CONTACT secret is empty. Set it under Settings ->"
+            echo "::error::Secrets and variables -> Actions to an email or URL."
+            exit 1
+          fi
+          echo "contact is set"
+
       - name: Rebuild records from raw/
         run: bash parse_all.sh
 
@@ -55,7 +71,8 @@ jobs:
         run: |
           python run.py geocode \
             --contact "${{ secrets.CONTACT }}" \
-            --limit ${{ inputs.limit || 40000 }}
+            --limit ${{ inputs.limit || 40000 }} \
+            ${{ inputs.purge_misses && '--purge-misses' || '' }}
 
       - name: Commit the cache
         if: steps.check.outputs.done != 'true'
