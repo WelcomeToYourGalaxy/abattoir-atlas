@@ -1,0 +1,9 @@
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+MK 24 06 0610,AGRO SLOGA 2024 DOOEL Kavadarci,str. Regionalen pat Kavadarci-Rosoman no.1 Kavadarci,Kavadarci,1430,Vardar Region,North Macedonia,third-country,FFP,PP,,,PP - Processing Plant,24/06/2026,
+MK 01 00 0253,Metro,St. Treta Makedonska brigada No. 74A,Skopje,,Skopje Region,North Macedonia,third-country,FFP,CS,,,CS - Cold Stores,,
+MK 01 08 0253,Metro,St. Treta Makedonska brigada No. 74A,Skopje,,Skopje Region,North Macedonia,third-country,FFP,PP CS,,,PP - Processing Plant | CS - Cold Stores,,
+MK 12 01 0243,AD Klanica So Ladilnik Strumica,str.Kliment Ohridski no.45,Strumica,2400,Southeastern Region,North Macedonia,third-country,RM,SH,Y,ovine,SH - Slaughterhouse,,
+MK 07 05 0588,LEIBAH Gostivar,st.Mara Ugrinoska no.KP B3644/4 Gostivar mv. Magacin na Zheleznichka stanica,Gostivar,,Polog Region,North Macedonia,third-country,RM,CP,N,bovine,CP - Cutting Plant,12/11/2024,
+MK 24 01 0242,Serta Kompani,Str. Shishka nn,Kavadarci,1430,Vardar Region,North Macedonia,third-country,RM,CS SH,Y,ovine,CS - Cold Stores | SH - Slaughterhouse,22/04/2025,
+MK 09 01 0547,Serta Kompani Doo,Naseleno mesto bez ulichen sistem no.11 Mazhuchishte Prilep,Prilep,7500,Pelagonia Region,North Macedonia,third-country,RM,CS SH,Y,bovine ovine caprine,CS - Cold Stores | SH - Slaughterhouse,08/03/2022,
+MK 12 01 0250,TD Klanica DOOEL Novo Selo,St.Marshal Tito bb Novo Selo,Novo Selo,,Southeastern Region,North Macedonia,third-country,RM,SH,Y,ovine,SH - Slaughterhouse,14/01/2026,

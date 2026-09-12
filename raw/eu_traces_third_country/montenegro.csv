@@ -1,0 +1,7 @@
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+72,ASK D.o.o,Golubovci bb.,Podgorica,81102,Podgorica Municipality,Montenegro,third-country,FFP,PP,,,PP - Processing Plant,,
+MNE-71,MONTEFISH d.o.o,Dumidan Tivatsko polje,Tivat,,Tivat Municipality,Montenegro,third-country,FFP,CS PP,,,CS - Cold Stores | PP - Processing Plant,,
+114,Goranovič,Vukov most bb,Niksic,81400,Nikšić Municipality,Montenegro,third-country,RM,CP SH,Y,porcine bovine caprine ovine,CP - Cutting Plant | SH - Slaughterhouse,,
+106,HM DURMITOR D.o.o,Staro pazariste,Žabljak,84220,Žabljak Municipality,Montenegro,third-country,RM,CP SH,Y,bovine caprine ovine,CP - Cutting Plant | SH - Slaughterhouse,,
+226,Mesopromet,Industrijska bb.,Bijelo Polje,84000,Bijelo Polje Municipality,Montenegro,third-country,RM,CP,N,porcine,CP - Cutting Plant,,
+240,Mesopromet,"Industrijska bb., Bijelo Polje",Bijelo Polje,84000,Bijelo Polje Municipality,Montenegro,third-country,RM,SH CP,Y,ovine caprine bovine,SH - Slaughterhouse | CP - Cutting Plant,,

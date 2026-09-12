@@ -1,0 +1,10 @@
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+COR-0095-22,CHITOSE,10 ANSON ROAD #29-07 INTERNATIONAL PLAZA SINGAPORE 079903,Singapore,,Central; 9666508	07/10/2025,Singapore,third-country,FFP,RV,,,RV - Reefer Vessel,,
+VPH-FE-003,Fong Hsiang Enterprise Co. Pte Ltd,"1 FISHERY PORT ROAD, SINGAPORE 619729",Singapore,,Central,Singapore,third-country,FFP,PP,,,PP - Processing Plant,09/04/2025,
+PF96B0142,HAI SIA SEAFOOD PTE LTD,35A FISHERY PORT ROAD SINGAPORE 619743,Singapore,,"Central; 62 Third countries using only raw material either from Member States or from other third countries approved for imports of such raw material to the Union, in accordance with Article 2.",Singapore,third-country,FFP,PP,,,PP - Processing Plant,04/10/2023,
+COR-1221-24,HARIMA,10 ANSON ROAD #29-07 INTERNATIONAL PLAZA SINGAPORE 079903 Singapore,Singapore,,Central; 9819923	21/04/2026,Singapore,third-country,FFP,RV,,,RV - Reefer Vessel,,
+CY95M0036,NCS COLD STORES (S) PTE LTD,1 FISHERY PORT ROAD SINGAPORE 619729,Singapore,,Central,Singapore,third-country,FFP,CS,,,CS - Cold Stores,18/04/2023,
+VPH-FE-007,Thong Siek Food Industry Pte Ltd,22 Senoko Way Singapore 758044,Singapore,,Central,Singapore,third-country,FFP,PP,,,PP - Processing Plant,09/04/2024,
+CY11G0007,SATS AIRPORT SERVICES PTE LTD,20 Airport Boulevard SATS Inflight Catering 1,Singapore,627946,Central; 61 Only for TRANSIT,Singapore,third-country,RM,CS,N,,CS - Cold Stores,,
+CY11G0007,SATS AIRPORT SERVICES PTE LTD,20 Airport Boulevard SATS Inflight Catering 1,Singapore,627946,Central; 61 Only for TRANSIT,Singapore,third-country,GM,CS,N,,CS - Cold Stores,,
+CY11G0007,SATS AIRPORT SERVICES PTE LTD,20 Airport Boulevard SATS Inflight Catering 1,Singapore,627946,Central; 61 Only for TRANSIT,Singapore,third-country,WM,CS,N,,CS - Cold Stores,,

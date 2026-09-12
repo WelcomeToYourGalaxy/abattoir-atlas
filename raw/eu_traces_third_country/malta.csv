@@ -1,2 +1,5 @@
-approval_number,name,address,city,postcode,region,country,section,activity,slaughter,species,remarks,date_of_approval,publication_date
-M001,Public Abattoir Marsa,Abattoir Square. Albertown. Marsa,Marsa,MRS1123,Malta,Malta,RM,SH,Y,,SH - Slaughterhouse,,
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+M001,Public Abattoir Marsa,Abattoir Square. Albertown. Marsa,Marsa,MRS1123,Malta,Malta,EU-EFTA,RM,SH,Y,,SH - Slaughterhouse,,
+MTFP003,Azzopardi Fisheries,Mosta Road,MST 9072 Saint Paul's Bay,,Malta,Malta,EU-EFTA,FFP,PP,,,PP - Processing Plant,,
+MF025,MFF Ltd,"Hangar, Triq it-Trunciera, Marsa Xlokk, MXK 1522",Marsaxlokk,MXK1472,Malta,Malta,EU-EFTA,FFP,FFPP,,,FFPP - Fresh Fishery Products Plant,,
+FP010,Mare Blu Tuna Farm,"74, Liesse Hill,",VLT 1179 Valletta,,Malta,Malta,EU-EFTA,FFP,FFPP,,,FFPP - Fresh Fishery Products Plant,,

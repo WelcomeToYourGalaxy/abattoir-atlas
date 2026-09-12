@@ -1,0 +1,23 @@
+approval_number,name,address,city,postcode,region,country,group,section,activity,slaughter,species,remarks,date_of_approval,publication_date
+6,Cooperativa Multiactiva Neuland Ltda.,Tte. Ramos y Tte Lovera,Mariano Roque Alonso,0000,"Central,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,,
+1,Cooperativa Multiactiva Neuland Ltda. Frigorifico Neuland,Ruta TransChaco Km 28.5,Villa Hayes,1331,"Presidente Hayes,Región Occidental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,29/09/2007,18/02/2026
+23,FRIGORIFICO BELEN,Calle Jose Batista Sobrinho,Belén,,"Concepción,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,24/07/2024
+14,FRIGORÍFICO VICTORIA S.A.E.,"RUTA 9 ""CARLOS ANTONIO LOPEZ"" KM 26.5",Villa Hayes,1331,"Presidente Hayes,Región Occidental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/11/2024,20/12/2024
+9,Frigochorti,Neudorf,Loma Plata,9370,"Boquerón,Región Occidental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,24/07/2024
+38,Frigorifico Concepcion S.A.,"Km 6,5 Camino Aeropuerto , Concepción",Concepción,8100,"Concepción,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,24/07/2024
+10,Frigorifico Frigochaco,EX COMBATIENTE PASCUAL TORRES N° 1264,Limpio,9900,"Central,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,23/07/2024
+2,Frigorifico Frigomerc S.A.,Capitán Lombardo y Calle Corta,Asuncion,1524,"Distrito Capital de Paraguay,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,24/07/2024
+3,MATADERO FRIGORIFICO SAN ANTONIO,AV. SAN ANTONIO Y CADETE DE BOQUERÓN,San Antonio,2610,"Central,Región Oriental",Paraguay,third-country,ABP-SH,,,,CAT3 - Category 3,01/01/2019,24/07/2024
+1,Cooperativa Multiactiva Neuland Ltda. Frigorifico Neuland,Ruta TransChaco Km 28.5,Villa Hayes,1331,"Presidente Hayes,Región Occidental",Paraguay,third-country,RM,SH CP CS,Y,bovine,SH - Slaughterhouse | CP - Cutting Plant | CS - Cold Stores,,
+23,FRIGORIFICO BELEN,Calle Jose Batista Sobrinho,Belén,,"Concepción,Región Oriental",Paraguay,third-country,RM,CS CP SH,Y,bovine,CS - Cold Stores | CP - Cutting Plant | SH - Slaughterhouse,,
+7,FRIGORIFICO GUARANI S.A.C.I.,AVDA. 6 DE ENERO N° 1164,Limpio,9900,"Central,Región Oriental",Paraguay,third-country,RM,CS SH CP,Y,bovine,CS - Cold Stores | SH - Slaughterhouse | CP - Cutting Plant,02/06/2022,
+12,FRIGORIFICO LOS LAZOS SOCIEDAD ANONIMA,"RUTA PY09, KILOMETRO 45",Benjamín Aceval,9800,"Presidente Hayes,Región Occidental",Paraguay,third-country,RM,CS SH CP,Y,bovine,CS - Cold Stores | SH - Slaughterhouse | CP - Cutting Plant,18/02/2026,
+14,FRIGORÍFICO VICTORIA S.A.E.,"RUTA 9 ""CARLOS ANTONIO LOPEZ"" KM 26.5",Villa Hayes,1331,"Presidente Hayes,Región Occidental",Paraguay,third-country,RM,CS SH CP,Y,bovine,CS - Cold Stores | SH - Slaughterhouse | CP - Cutting Plant,05/07/2024,
+9,Frigochorti,Neudorf,Loma Plata,9370,"Boquerón,Región Occidental",Paraguay,third-country,RM,SH CP CS,Y,bovine,SH - Slaughterhouse | CP - Cutting Plant | CS - Cold Stores,,
+38,Frigorifico Concepcion S.A.,"Km 6,5 Camino Aeropuerto , Concepción",Concepción,8100,"Concepción,Región Oriental",Paraguay,third-country,RM,CS CP SH,Y,bovine,CS - Cold Stores | CP - Cutting Plant | SH - Slaughterhouse,,
+10,Frigorifico Frigochaco,EX COMBATIENTE PASCUAL TORRES N° 1264,Limpio,9900,"Central,Región Oriental",Paraguay,third-country,RM,CP CS SH,Y,bovine,CP - Cutting Plant | CS - Cold Stores | SH - Slaughterhouse,23/07/2024,
+2,Frigorifico Frigomerc S.A.,Capitán Lombardo y Calle Corta,Asuncion,1524,"Distrito Capital de Paraguay,Región Oriental",Paraguay,third-country,RM,SH CP CS,Y,bovine,SH - Slaughterhouse | CP - Cutting Plant | CS - Cold Stores,,
+8,Frigorifico Lombardo,Capitan Lombardo y Teniente Bernal,Asuncion,0000,"Distrito Capital de Paraguay,Región Oriental",Paraguay,third-country,RM,CS,N,bovine,CS - Cold Stores,23/08/2024,
+1843,Frigorifico Modelo Py S.A,"Ruta 12 Vicepresidente Sánches Km 3,5 - Complejo del Chaco",Villa Hayes,1331,"Presidente Hayes,Región Occidental",Paraguay,third-country,RM,CS,N,bovine,CS - Cold Stores,,
+15,Frigorifico Norte S.A.,"CAMINO A FORTUNA GUAZÚ KM 3.5, CALLEJÓN 1111",Pedro Juan Caballero,8500,"Amambay,Región Oriental",Paraguay,third-country,RM,CP CS SH,Y,bovine,CP - Cutting Plant | CS - Cold Stores | SH - Slaughterhouse,25/07/2024,
+3,MATADERO FRIGORIFICO SAN ANTONIO,AV. SAN ANTONIO Y CADETE DE BOQUERÓN,San Antonio,2610,"Central,Región Oriental",Paraguay,third-country,RM,CP SH CS,Y,bovine,CP - Cutting Plant | SH - Slaughterhouse | CS - Cold Stores,,
