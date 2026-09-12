@@ -1,0 +1,74 @@
+List view ( Switzerland - Meat of domestic ungulates )
+Country: Switzerland
+Food RM Meat of domestic ungulates
+Approval number	Name 	Street	City	Region	Activities	Remarks
+16-GE-27714	Abattoir de Loëx Sàrl 	Route de Loëx 157	1233 Bernex	
+Geneva
+SH - Slaughterhouse
+70593921	Abattoir de Meinier 	Chemin du Stade 5A	1252 Meinier	
+Geneva
+SH - Slaughterhouse
+10257103	Abattoirs de la Vallée Sàrl 	Rue des Artisans 13	2830 Courrendlin	
+Jura
+SH - Slaughterhouse
+2288635 / Platzhalter	Amt für Veterinärwesen 	Herrengasse 1	3008 Bern	
+Verwaltungsregion Bern-Mittelland,Bern
+SH - Slaughterhouse
+CH 211	Bell Schweiz AG, Frischfleisch Basel 	Hagenaustrasse 3	4056 Basel	
+Basel-City
+CP - Cutting Plant
+CH 103	Bell Schweiz AG, Schlachtbetrieb Basel 	Schlachthofstrasse 55	4056 Basel	
+Basel-City
+SH - Slaughterhouse
+43921515	CUNI Bislim 	Abattoir de Genthod Route de Malagny 33	1294 Genthod	
+Geneva
+SH - Slaughterhouse
+CH-SG-CP-001	ERNST SUTTER AG 	Neue Industriestrasse 60	9602 Bazenheid	
+Sankt Gallen
+CP - Cutting Plant
+B Bovinae
+1620900	FF Frischfleisch AG 	Zeughausstrasse 14	6210 Sursee	
+Luzern
+CP - Cutting Plant
+SH - Slaughterhouse
+P Suidae
+2235479	Lucarna Macana AG 	Wildbachstrasse 20	8340 Hinwil	
+Zurich
+CP - Cutting Plant
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
+77334156b	Luma Beef AG 	Gewerbestrasse 6	8212 Neuhausen am Rheinfall	
+Schaffhausen
+CP - Cutting Plant
+157	Marmy Viandes En Gros SA 	Chemin des Marais 10	1470 Estavayer	
+Fribourg
+SH - Slaughterhouse
+B Bovinae
+340	Micarna SA / division Carnée 	Route de l'Industrie 25	1784 Courtepin	
+Fribourg
+SH - Slaughterhouse
+1855173	SIGE - ABATTOIR DE CLARENS 	Rue du Collège 44	1815 Clarens	
+Vaud
+SH - Slaughterhouse
+346	Schlachtbetrieb Bazenheid AG 	Neue Industriestrasse 44	9602 Bazenheid	
+Sankt Gallen
+SH - Slaughterhouse
+P Suidae
+107	Schlachtbetrieb St.Gallen AG 	Schlachthofstrasse 24	9015 St. Gallen	
+Sankt Gallen
+SH - Slaughterhouse
+B Bovinae
+115	Spiess Gustav AG / A+C Delikatessen AG 	Musterplatzstrasse 2	9442 Berneck	
+Sankt Gallen
+CP - Cutting Plant
+B Bovinae
+P Suidae
+1285673	Zentralschlachthof Hinwil AG ZSHAG 	Wildbachstrasse 18 CHE-107.243.484	8340 Hinwil	
+Zurich
+SH - Slaughterhouse
+B Bovinae
+C Capra hircus
+O Ovis aries
+P Suidae
