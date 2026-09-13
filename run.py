@@ -242,7 +242,8 @@ def cmd_build(args):
     report = build_map.build(
         facilities, str(OUT / (args.out or "abattoir_atlas.html")),
         title=args.title, subtitle=args.subtitle,
-        sources_meta=SOURCE_LABELS)
+        sources_meta=SOURCE_LABELS,
+        keep_post_mortem=args.keep_post_mortem)
     print(json.dumps(report, indent=2))
     if report["warning"]:
         print("\n" + report["warning"])
@@ -383,7 +384,12 @@ def main():
 
     d = sub.add_parser("build"); d.set_defaults(fn=cmd_build)
     d.add_argument("--out")
-    d.add_argument("--title", default="Where animals are killed")
+    d.add_argument("--keep-post-mortem", action="store_true",
+                   help="also draw plants that only handle animals already "
+                        "dead -- cutting, processing, cold store, rendering. "
+                        "They are held off the map by default; they stay in "
+                        "out/facilities.json.gz either way")
+    d.add_argument("--title", default="Commercial Slaughter")
     d.add_argument("--subtitle", default="")
 
     e = sub.add_parser("selftest"); e.set_defaults(fn=cmd_selftest)

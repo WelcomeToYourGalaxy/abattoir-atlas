@@ -83,6 +83,30 @@ def load_outlines() -> list:
     return json.loads(f.read_text()) if f.exists() else []
 
 
+# Activities that only ever involve an animal already dead. A plant listed
+# under these and nothing else never sees a live animal, so it is held out of
+# the map by default -- see drop_post_mortem_only below. Nothing is deleted:
+# out/facilities.json.gz still carries every row, and --keep-post-mortem puts
+# them back on the map.
+POST_MORTEM_ONLY = {"cutting", "processing", "minced_meat", "meat_preparations",
+                    "game_handling", "cold_store", "rendering", "casings",
+                    "egg_products"}
+
+
+def drop_post_mortem_only(facilities):
+    """(kept, dropped). A facility is dropped only when every activity it
+    carries is one of the post-mortem ones AND no registry flagged it as
+    slaughtering. A plant listed `SH CP` kills and cuts, so it stays."""
+    kept, dropped = [], []
+    for f in facilities:
+        acts = set(f.activities or [])
+        if acts and acts <= POST_MORTEM_ONLY and f.slaughter is not True:
+            dropped.append(f)
+        else:
+            kept.append(f)
+    return kept, dropped
+
+
 def shares(facilities) -> dict:
     """Percentage of the whole dataset behind each filter row.
 
@@ -212,6 +236,15 @@ label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
 .rowtop .lbl{flex:1}
 .hint{display:block;color:var(--dim);font-size:11px;line-height:1.45;margin-top:1px}
 .hint .share{color:var(--text);font-variant-numeric:tabular-nums}
+.fate{display:inline-block;margin-top:3px;font-size:10.5px;line-height:1.5;
+  padding:0 6px;border:1px solid currentColor;border-radius:9px;opacity:.85}
+#kindsNote{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
+  border-top:1px solid var(--rule)}
+.kinds h4{font-size:12px;color:var(--text);margin:16px 0 2px;font-weight:600}
+.kinds p{color:var(--dim);font-size:12px;line-height:1.6;margin:0 0 4px}
+.kinds ul{margin:2px 0 0;padding-left:17px;color:var(--dim);font-size:12px;
+  line-height:1.6}
+.kinds li b{color:var(--text);font-weight:500}
 .tally{margin-left:auto;color:var(--dim);font-size:11.5px;
   font-variant-numeric:tabular-nums}
 .grp .lede{color:var(--dim);font-size:11px;line-height:1.5;margin:-4px 0 8px}
@@ -276,6 +309,7 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
   __SUBTITLE_BLOCK__
   <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span></div>
   <div id="filters"></div>
+  <div id="kindsNote"></div>
   <div class="note" id="unlocatedNote"></div>
 </aside>
 
@@ -341,6 +375,26 @@ const ACTIVITY_NOTE = {
   casings:'Intestines processed into casings', egg_products:'Eggs processed',
   unknown:'The registry listed this plant without saying what it does',
   _none:'The registry listed this plant without saying what it does'};
+/* Whether the animals in a given kind of place are killed, and where. This is
+   the question the map is most likely to be misread on: a dot is not a kill
+   floor unless it says so, and a dairy is not a place where nothing dies. */
+const FATE = {
+  here:{tag:'killed here',           colour:'#a4635c'},
+  elsewhere:{tag:'killed elsewhere', colour:'#a1808d'},
+  some:{tag:'some killed',           colour:'#8b8474'},
+  after:{tag:'bodies handled here',  colour:'#6d8b93'},
+  no:{tag:'not killed here',         colour:'#7e8e6c'}};
+const ACTIVITY_FATE = {
+  slaughter:'here', live_market:'here', aquaculture:'elsewhere',
+  farm_meat:'elsewhere', farm_dairy:'elsewhere', farm_eggs:'elsewhere',
+  farm_wool:'elsewhere', farm_skins:'elsewhere', hatchery:'some',
+  farm_honey:'no', saleyard:'elsewhere', holding_yard:'elsewhere',
+  cutting:'after', processing:'after', minced_meat:'after',
+  meat_preparations:'after', game_handling:'after', cold_store:'after',
+  rendering:'after', casings:'after', egg_products:'after',
+  experimentation:'some', zoo:'some', wildlife:'some', racing:'some',
+  rodeo:'some', entertainment:'some', pet_breeder:'some', pet_shop:'some',
+  agricultural_show:'no'};
 const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
   'farm_meat','farm_dairy','farm_eggs','farm_wool','farm_skins','farm_honey',
   'hatchery','aquaculture','cutting','game_handling','processing','minced_meat',
@@ -718,6 +772,11 @@ function group(title,items,set,swatches,lede){
     if(it.note) bits.push(esc(it.note));
     if(bits.length){ const h=document.createElement('span'); h.className='hint';
       h.innerHTML=bits.join(' &middot; '); body.appendChild(h); }
+    if(it.fate&&FATE[it.fate]){
+      const f=document.createElement('span'); f.className='fate';
+      f.textContent=FATE[it.fate].tag; f.style.color=FATE[it.fate].colour;
+      body.appendChild(f);
+    }
 
     l.appendChild(body);
     g.appendChild(l);
@@ -759,9 +818,11 @@ const actPresent=[...new Set((D.dict.activity||[]).flat())]
   });
 if(actPresent.length){
   group('What happens here', actPresent.map(a=>({key:a,
-    label:ACTIVITY_LABEL[a]||a, note:ACTIVITY_NOTE[a]||''})), active.activity,
-    false, 'What each registry says the place does. A facility can be listed '+
-    'under several of these, so the percentages overlap and do not sum to 100.');
+    label:ACTIVITY_LABEL[a]||a, note:ACTIVITY_NOTE[a]||'',
+    fate:ACTIVITY_FATE[a]})), active.activity,
+    false, 'What each registry says the place does, and whether the animals '+
+    'there are killed. A facility can be listed under several of these, so the '+
+    'percentages overlap and do not sum to 100.');
 }
 
 const order=Object.keys(SPECIES_LABEL);
@@ -798,13 +859,95 @@ function updateTallies(){
   });
 }
 
+/* ---- what kind of places these are ----------------------------------- */
+/* The commonest way to misread this map is to take every dot as a kill floor.
+   Most are not. The panel below says which are, which feed one, and which do
+   not lead to a killing at all, using the registries' own categories rather
+   than a judgement laid over them. */
+(function(){
+  const pct = k => { const v=SHARES['What happens here::'+k];
+    return v===undefined ? null : v.toFixed(1)+'%'; };
+  const kill = pct('slaughter');
+  document.getElementById('kindsNote').innerHTML =
+    'Not every dot is a slaughterhouse. '+
+    (kill ? kill+' of the facilities here are places where animals are killed; '
+          : '')+
+    'the rest are where animals are raised, held or traded before they get '+
+    'there. Plants that only handle animals already dead are not drawn. '+
+    '<button class="link" id="showKinds">What each kind is</button>';
+
+  const SECTIONS = [
+   {h:'Where animals are killed',
+    p:'The kill floor itself, and the markets where animals are sold alive and '+
+      'killed on the spot or within the hour.',
+    keys:['slaughter','live_market']},
+   {h:'Where animals are held on the way',
+    p:'No killing happens at these, and almost every animal that passes through '+
+      'one is on its way to a place where it does.',
+    keys:['saleyard','holding_yard']},
+   {h:'Where animals are confined and raised',
+    p:'Animals live here and are killed elsewhere. A dairy cow is slaughtered '+
+      'when her milk yield falls, usually at five or six years against a '+
+      'natural twenty; a laying hen when she moults; a wool sheep when her '+
+      'fleece thins. Male chicks are killed at the hatchery within a day of '+
+      'hatching because they will not lay. None of that happens at the address '+
+      'on the map, which is why these are the largest share of it.',
+    keys:['farm_meat','farm_dairy','farm_eggs','farm_wool','farm_skins',
+          'hatchery','aquaculture','farm_honey']},
+   {h:'Where bodies are handled, on a site that also kills',
+    p:'A cutting line or a cold store attached to a kill floor. Plants that '+
+      'only handle animals already dead -- standalone cutting plants, '+
+      'processors, cold stores, renderers -- are held off this map, because a '+
+      'dot on them says nothing about where the animal died. They are still in '+
+      'the published dataset.',
+    keys:['cutting','processing','minced_meat','meat_preparations',
+          'game_handling','cold_store','rendering','casings','egg_products']},
+   {h:'Where animals are used other ways',
+    p:'Killing is not the purpose here, but it is a common ending: laboratory '+
+      'animals at the end of a study, racing animals when they stop winning, '+
+      'surplus zoo animals, unsold breeding stock.',
+    keys:['experimentation','zoo','wildlife','racing','rodeo','entertainment',
+          'pet_breeder','pet_shop','agricultural_show']},
+   {h:'Where the registry did not say',
+    p:'The listing exists and the activity field is empty. Silence is not a '+
+      'no, and these are not counted as anything.',
+    keys:['unknown','_none']}];
+
+  document.getElementById('showKinds').onclick=function(){
+    let h='<h3>What kind of places these are</h3>'+
+      '<p class="where">Every category below is the registry&rsquo;s own. '+
+      'Percentages are the share of all '+(D.n_all||0).toLocaleString()+
+      ' facilities, located or not; a facility can be listed under several, so '+
+      'they overlap.</p><div class="prov kinds">';
+    for(const s of SECTIONS){
+      const rows=s.keys.filter(k=>pct(k)!==null);
+      if(!rows.length) continue;
+      h+='<h4>'+esc(s.h)+'</h4><p>'+esc(s.p)+'</p><ul>';
+      for(const k of rows){
+        h+='<li><b>'+esc(ACTIVITY_LABEL[k]||k)+'</b> &middot; '+pct(k)+
+           ' &middot; '+esc(ACTIVITY_NOTE[k]||'')+'</li>';
+      }
+      h+='</ul>';
+    }
+    h+='<h4>What this map is not</h4><p>These are registry listings, not a '+
+       'census. A plant appears because some authority licensed it, and most '+
+       'authorities license only what exports or what falls above a size '+
+       'threshold. Where the map is empty, that is usually a gap in who keeps '+
+       'records rather than a place where animals are not killed.</p>';
+    h+='</div>';
+    body.innerHTML=h; drawer.classList.add('open');
+  };
+})();
+
 /* ---- unlocated ------------------------------------------------------- */
 const u=D.unlocated||[];
 document.getElementById('unlocatedNote').innerHTML =
   u.length
   ? u.length.toLocaleString()+' facilities have a registry listing but no address '+
-    'precise enough to place. They are not drawn here rather than pinned to a town '+
-    'centre. <button class="link" id="showUn">See the list</button>'
+    'precise enough to place. They are not on the map at all &mdash; no dot, no '+
+    'circle, no town centre standing in for a street. They are listed here and '+
+    'carried in full in the published dataset. '+
+    '<button class="link" id="showUn">See the list</button>'
   : 'Every facility in this dataset has a located address.';
 if(u.length){
   document.getElementById('showUn').onclick=function(){
@@ -838,7 +981,11 @@ layer.addTo(map);
 
 
 def build(facilities, out_path: str, *, title: str, subtitle: str,
-          sources_meta: dict | None = None) -> dict:
+          sources_meta: dict | None = None,
+          keep_post_mortem: bool = False) -> dict:
+    dropped = []
+    if not keep_post_mortem:
+        facilities, dropped = drop_post_mortem_only(facilities)
     payload = encode(facilities, sources_meta or {})
     html = (TEMPLATE
             .replace("__TITLE__", title)
@@ -854,6 +1001,7 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
         "size_mb": round(size_mb, 2),
         "mapped": payload["n_mapped"],
         "unlocated": payload["n_unlocated"],
+        "post_mortem_only_excluded": len(dropped),
         "by_country": dict(Counter(f.country_iso3 for f in facilities).most_common(25)),
         "warning": (
             "Over 12 MB. Most shared hosts will serve this, but Weebly's embed "
