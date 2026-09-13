@@ -19,6 +19,12 @@ on:
       limit:
         description: 'Fresh lookups this run'
         default: '40000'
+      probe:
+        description: 'Sample N addresses, print what came back, write nothing'
+        default: '0'
+      max_minutes:
+        description: 'Stop and commit after this many minutes'
+        default: '240'
       purge_misses:
         description: 'Retry addresses previously cached as unresolvable'
         type: boolean
@@ -57,8 +63,18 @@ jobs:
       - name: Rebuild records from raw/
         run: bash parse_all.sh
 
+      # A full run is hours. This is under a minute and prints the query and
+      # the answer side by side, which is the only way to tell a bad address
+      # from a bad query before committing to the long version.
+      - name: Probe a sample
+        if: inputs.probe != '' && inputs.probe != '0'
+        run: |
+          python run.py geocode --contact "${{ secrets.CONTACT }}" \
+            --probe ${{ inputs.probe }}
+
       - name: Stop early if nothing is outstanding
         id: check
+        if: inputs.probe == '' || inputs.probe == '0'
         run: |
           python run.py status | tee status.txt
           if grep -qE 'geocode cache: .*, 0 outstanding' status.txt; then
@@ -66,16 +82,20 @@ jobs:
             echo "Nothing left to geocode."
           fi
 
+      # --max-minutes stops the run short of the job timeout. A job killed by
+      # the timeout never reaches the commit step below, so every lookup it
+      # made is discarded; stopping early keeps the hours already spent.
       - name: Geocode a slice
-        if: steps.check.outputs.done != 'true'
+        if: steps.check.outputs.done != 'true' && (inputs.probe == '' || inputs.probe == '0')
         run: |
           python run.py geocode \
             --contact "${{ secrets.CONTACT }}" \
             --limit ${{ inputs.limit || 40000 }} \
+            --max-minutes ${{ inputs.max_minutes || 240 }} \
             ${{ inputs.purge_misses && '--purge-misses' || '' }}
 
       - name: Commit the cache
-        if: steps.check.outputs.done != 'true'
+        if: steps.check.outputs.done != 'true' && (inputs.probe == '' || inputs.probe == '0')
         run: |
           git config user.name  "atlas-bot"
           git config user.email "atlas-bot@users.noreply.github.com"
