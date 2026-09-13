@@ -76,9 +76,19 @@ GEO_PRECISION = {
     "none",       # no coordinate at all
 }
 
-# Only these two precisions are safe to draw as a facility pin. Anything coarser
-# is a placeholder that would imply a precision the data does not have.
+# Precise enough to draw as a facility pin: this is where the site is.
 MAPPABLE_PRECISION = {"rooftop", "street"}
+
+# Town-level only. The register named a locality and no usable street, so the
+# coordinate is the town, not the plant. Drawn -- because a facility in the
+# right town is worth more than a facility nowhere -- but drawn differently,
+# and labelled as such wherever it appears. The map must never imply a
+# precision the source did not give.
+APPROX_PRECISION = {"locality"}
+
+# Coarser than a town (region or country centroid) stays off the map entirely.
+# A country centroid is not a location, it is an average.
+DRAWABLE_PRECISION = MAPPABLE_PRECISION | APPROX_PRECISION
 
 
 # ---------------------------------------------------------------------------
@@ -162,12 +172,20 @@ class Facility:
     review_notes: list[str] = field(default_factory=list)
 
     @property
+    def precise(self) -> bool:
+        """Located to a street or a building."""
+        return (self.lat is not None and self.lon is not None
+                and self.geo_precision in MAPPABLE_PRECISION)
+
+    @property
+    def approximate(self) -> bool:
+        """Located to a town only -- the right settlement, not the right site."""
+        return (self.lat is not None and self.lon is not None
+                and self.geo_precision in APPROX_PRECISION)
+
+    @property
     def mappable(self) -> bool:
-        return (
-            self.lat is not None
-            and self.lon is not None
-            and self.geo_precision in MAPPABLE_PRECISION
-        )
+        return self.precise or self.approximate
 
     def to_dict(self) -> dict:
         return asdict(self)

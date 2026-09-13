@@ -40,7 +40,8 @@ from collections import defaultdict
 from itertools import combinations
 
 from normalize import addr_key, norm_name, norm_id, token_set_ratio
-from schema import Facility, SourceRecord, make_uid
+from schema import (DRAWABLE_PRECISION, Facility, MAPPABLE_PRECISION,
+                    SourceRecord, make_uid)
 
 # Thresholds. Deliberately conservative: an unmerged duplicate is a visible,
 # fixable error, while a wrong merge silently destroys a distinct facility.
@@ -90,14 +91,26 @@ def haversine_m(lat1, lon1, lat2, lon2) -> float:
 
 # ---------------------------------------------------------------------------
 
-def _coords(rec: SourceRecord, geocache: dict) -> tuple[float, float, str] | None:
+def _coords(rec: SourceRecord, geocache: dict, *,
+            precise_only: bool = False) -> tuple[float, float, str] | None:
     """Best available coordinate for a record: source-published first, then
-    geocoded. Returns None if neither exists at usable precision."""
+    geocoded.
+
+    precise_only exists because the two callers want different things. Drawing
+    a facility on a map can honestly use a town-level coordinate, labelled as
+    such. Deciding whether two records are the same site cannot: every plant in
+    one town shares that town's centroid, so a 250 m proximity test on locality
+    coordinates would merge every abattoir in Parma into one.
+    """
     if rec.src_lat is not None and rec.src_lon is not None:
         return (rec.src_lat, rec.src_lon, "rooftop")
     hit = geocache.get(rec.key())
-    if hit and hit.get("lat") is not None and hit.get("precision") in ("rooftop", "street"):
-        return (hit["lat"], hit["lon"], hit["precision"])
+    if not hit or hit.get("lat") is None:
+        return None
+    prec = hit.get("precision")
+    allowed = MAPPABLE_PRECISION if precise_only else DRAWABLE_PRECISION
+    if prec in allowed:
+        return (hit["lat"], hit["lon"], prec)
     return None
 
 
@@ -164,7 +177,7 @@ def cluster(records: list[SourceRecord], geocache: dict | None = None):
         grid: dict[tuple, list[str]] = defaultdict(list)
         coord_of: dict[str, tuple] = {}
         for k in keys:
-            c = _coords(by_key[k], geocache)
+            c = _coords(by_key[k], geocache, precise_only=True)
             if c:
                 coord_of[k] = c
                 grid[(round(c[0], 2), round(c[1], 2))].append(k)
@@ -261,12 +274,16 @@ def _build_facility(members: list[SourceRecord], tiers: list[str], geocache: dic
 
     # Coordinates: the most precise available among members. Never averaged --
     # a mean of two geocodes is a location no source published.
+    # Most precise available across the cluster. A rooftop hit on one member
+    # beats a town centroid on another, so a facility is only ever shown as
+    # approximate when no member could be placed better than that.
+    rank_of = {"rooftop": 0, "street": 1, "locality": 2}
     best = None
     for m in members:
         c = _coords(m, geocache)
         if not c:
             continue
-        rank = 0 if c[2] == "rooftop" else 1
+        rank = rank_of.get(c[2], 9)
         if best is None or rank < best[0]:
             src = "source" if m.src_lat is not None else geocache.get(m.key(), {}).get("provider")
             best = (rank, c[0], c[1], c[2], src)

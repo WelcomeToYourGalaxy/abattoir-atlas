@@ -96,7 +96,8 @@ def encode(facilities, sources_meta: dict) -> dict:
             d[key] = len(d)
         return d[key]
 
-    lat, lon, name, c_i, sp_i, src_i, tier_i, sl, uid, ids, ci = ([] for _ in range(11))
+    lat, lon, name, c_i, sp_i, src_i, tier_i, sl, uid, ids, ci, prec = (
+        [] for _ in range(12))
 
     for f in mappable:
         lat.append(round(f.lat * 1e5))
@@ -109,6 +110,8 @@ def encode(facilities, sources_meta: dict) -> dict:
         sl.append({True: 1, False: 0, None: 2}[f.slaughter])
         uid.append(f.uid)
         ci.append(idx(palette, _dot_colour(f.species)))
+        # 1 = located to a street or building, 0 = located to the town only.
+        prec.append(1 if f.precise else 0)
         ids.append([f"{m['source']}|{m.get('id_scheme') or ''}|{m.get('national_id') or ''}"
                     for m in f.members])
 
@@ -131,7 +134,9 @@ def encode(facilities, sources_meta: dict) -> dict:
                      "_unstated": SPECIES_COLOUR["_unstated"]},
         "lat": lat, "lon": lon, "name": name,
         "c": c_i, "sp": sp_i, "src": src_i, "tier": tier_i, "sl": sl,
-        "ci": ci, "uid": uid, "ids": ids,
+        "ci": ci, "prec": prec, "uid": uid, "ids": ids,
+        "n_precise": sum(prec),
+        "n_approx": len(prec) - sum(prec),
         "unlocated": [{"name": f.name, "country": f.country_iso3,
                        "locality": f.locality, "uid": f.uid,
                        "sources": sorted({m["source"] for m in f.members})}
@@ -181,6 +186,11 @@ label.row input{accent-color:var(--live);margin:0;flex:none}
 .swatch{width:9px;height:9px;border-radius:50%;flex:none}
 .tally{margin-left:auto;color:var(--dim);font-size:11.5px;
   font-variant-numeric:tabular-nums}
+.legend{margin-top:11px;font-size:11.5px;color:var(--dim);line-height:1.5}
+.legend span{display:flex;align-items:center;gap:8px;margin-top:4px}
+.legend i{width:11px;height:11px;border-radius:50%;flex:none;font-style:normal}
+.legend i.solid{background:var(--dim)}
+.legend i.hollow{border:1.4px solid var(--dim)}
 .note{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
   border-top:1px solid var(--rule)}
 button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12px;
@@ -240,7 +250,9 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 <aside id="rail">
   <h1>__TITLE__</h1>
   __SUBTITLE_BLOCK__
-  <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span></div>
+  <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span>
+    <div class="legend" id="legend"></div>
+  </div>
   <div id="filters"></div>
   <div class="note" id="unlocatedNote"></div>
 </aside>
@@ -277,20 +289,26 @@ for(let i=0;i<N;i++){
 }
 
 /* ---- pre-group by colour so fillStyle is set a handful of times ------- */
-const GROUPS = D.palette.map(col=>({colour:col, idx:[]}));
-for(let i=0;i<N;i++) GROUPS[D.ci[i]].idx.push(i);
-for(const g of GROUPS) g.idx = Int32Array.from(g.idx);
+/* Two draw passes per colour: filled dots for facilities located to a street
+   or building, hollow rings for those located only to their town. The ring is
+   not decoration -- it is the map refusing to claim a precision the register
+   did not publish. */
+const GROUPS = D.palette.map(col=>({colour:col, exact:[], approx:[]}));
+for(let i=0;i<N;i++) (D.prec[i] ? GROUPS[D.ci[i]].exact : GROUPS[D.ci[i]].approx).push(i);
+for(const g of GROUPS){ g.exact = Int32Array.from(g.exact);
+                        g.approx = Int32Array.from(g.approx); }
 
 /* ---- filter state; VIS is rebuilt only when a filter changes ---------- */
 const VIS = new Uint8Array(N);
-const active = {species:new Set(), slaughter:new Set([0,1,2]), source:new Set()};
+const active = {species:new Set(), slaughter:new Set([0,1,2]), source:new Set(),
+                precision:new Set([0,1])};
 D.dict.species.forEach(c=>c.forEach(s=>active.species.add(s)));
 active.species.add('_none');
 D.dict.source.forEach(c=>c.forEach(s=>active.source.add(s)));
 
 function rebuildVis(){
   for(let i=0;i<N;i++){
-    let ok = active.slaughter.has(D.sl[i]);
+    let ok = active.precision.has(D.prec[i]) && active.slaughter.has(D.sl[i]);
     if(ok){
       const sp = D.dict.species[D.sp[i]];
       ok = sp.length===0 ? active.species.has('_none')
@@ -415,7 +433,29 @@ const Layer = L.Layer.extend({
     const d=r*2, wrap = z<6 ? S : 0;   // second world copy near the dateline
 
     for(const g of GROUPS){
-      const arr=g.idx, n=arr.length;
+      /* town-level: hollow ring, slightly larger and fainter */
+      const ar=g.approx, an=ar.length;
+      if(an){
+        const rr = r + (useRect ? 0.6 : 1.0), dd = rr*2;
+        ctx.globalAlpha = alpha*0.75;
+        ctx.strokeStyle = g.colour;
+        ctx.lineWidth = useRect ? 1 : 1.3;
+        ctx.beginPath();
+        for(let k=0;k<an;k++){
+          const i=ar[k]; if(!VIS[i]) continue;
+          let x=WX[i]*S-offX;
+          if(wrap){ if(x<-dd) x+=wrap; else if(x>w+dd) x-=wrap; }
+          if(x<-dd||x>w+dd) continue;
+          const y=WY[i]*S-offY;
+          if(y<-dd||y>h+dd) continue;
+          ctx.moveTo(x+rr,y); ctx.arc(x,y,rr,0,TAU);
+          count++;
+        }
+        ctx.stroke();
+      }
+
+      /* street or building: filled dot */
+      const arr=g.exact, n=arr.length;
       ctx.fillStyle=g.colour; ctx.globalAlpha=alpha;
       if(useRect){
         for(let k=0;k<n;k++){
@@ -531,7 +571,12 @@ function openDrawer(i){
   h+='<div class="fact"><i>Species</i><span>'+
      (sp.length?sp.map(s=>SPECIES_LABEL[s]||s).join(', '):'Not stated')+'</span></div>';
   h+='<div class="fact"><i>Listed by</i><span>'+srcs.length+
-     (srcs.length===1?' registry':' registries')+'</span></div></div>';
+     (srcs.length===1?' registry':' registries')+'</span></div>';
+  h+='<div class="fact"><i>Location</i><span>'+
+     (D.prec[i] ? 'Located to a street or building'
+                : 'Located to this town only \u2014 the register gave no usable '+
+                  'street address, so this marker is the settlement, not the site')+
+     '</span></div></div>';
   h+='<div class="prov"><h4>Where this record comes from</h4>';
   h+='<p class="lede">Each entry below is one registry\'s own listing, kept as '+
      'that registry published it.</p>';
@@ -577,6 +622,9 @@ group('Species', speciesPresent.map(s=>({key:s,label:SPECIES_LABEL[s]||s,
   colour:D.colour._unstated}]), active.species, true);
 group('Slaughter activity',[{key:1,label:'Confirmed'},
   {key:0,label:'Listed as none'},{key:2,label:'Not stated'}], active.slaughter);
+group('Location precision',[
+  {key:1,label:'Street or building'},
+  {key:0,label:'Town only'}], active.precision);
 group('Registry',[...new Set(D.dict.source.flat())].sort().map(s=>({
   key:s,label:(D.sources_meta[s]&&D.sources_meta[s].short)||s})), active.source);
 
@@ -588,6 +636,7 @@ function updateTallies(){
     if(sp.length===0) t['Species::_none']=(t['Species::_none']||0)+1;
     else sp.forEach(s=>{const k='Species::'+s;t[k]=(t[k]||0)+1;});
     const sk='Slaughter activity::'+D.sl[i]; t[sk]=(t[sk]||0)+1;
+    const pk='Location precision::'+D.prec[i]; t[pk]=(t[pk]||0)+1;
     D.dict.source[D.src[i]].forEach(s=>{const k='Registry::'+s;t[k]=(t[k]||0)+1;});
   }
   document.querySelectorAll('.tally').forEach(el=>{
@@ -599,9 +648,9 @@ function updateTallies(){
 const u=D.unlocated||[];
 document.getElementById('unlocatedNote').innerHTML =
   u.length
-  ? u.length.toLocaleString()+' facilities have a registry listing but no address '+
-    'precise enough to place. They are not drawn here rather than pinned to a town '+
-    'centre. <button class="link" id="showUn">See the list</button>'
+  ? u.length.toLocaleString()+' facilities have a registry listing but nothing '+
+    'that places them even to a town. They are not drawn rather than pinned to a '+
+    'country centroid. <button class="link" id="showUn">See the list</button>'
   : 'Every facility in this dataset has a located address.';
 if(u.length){
   document.getElementById('showUn').onclick=function(){
@@ -620,6 +669,12 @@ if(u.length){
     body.innerHTML=h; drawer.classList.add('open');
   };
 }
+
+document.getElementById('legend').innerHTML =
+  '<span><i class="solid"></i>located to a street or building ('+
+  (D.n_precise||0).toLocaleString()+')</span>'+
+  '<span><i class="hollow"></i>located to the town only ('+
+  (D.n_approx||0).toLocaleString()+')</span>';
 
 document.getElementById('toggleRail').onclick=function(){
   document.getElementById('rail').classList.toggle('open');};
