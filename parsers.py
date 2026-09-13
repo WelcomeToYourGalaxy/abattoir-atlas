@@ -19,6 +19,7 @@ import re
 from datetime import date
 from pathlib import Path
 
+from countries import to_iso3
 from schema import SPECIES, SourceRecord
 
 
@@ -340,7 +341,8 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
                 source_snapshot=snapshot,
                 source_row_id=num or f"row{i}",
                 name=name or num,
-                country_iso3=(country_iso3 or _f(row, c_country) or "").upper()[:3],
+                country_iso3=(to_iso3(country_iso3) or to_iso3(_f(row, c_country))
+                              or to_iso3(path.stem.replace("-", " ")) or ""),
                 national_id=num,
                 id_scheme=id_scheme,
                 address=_f(row, c_addr),
@@ -378,8 +380,9 @@ def parse_cifer(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
             r = json.loads(line)
             cn_no = r.get("registerNo") or r.get("cn_register_no")
             fo_no = r.get("foreignRegisterNo") or r.get("foreign_no")
-            country = (r.get("_country_iso3")
-                       or r.get("countryCode") or r.get("country") or "").upper()[:3]
+            country = (to_iso3(r.get("_country_iso3"))
+                       or to_iso3(r.get("countryCode"))
+                       or to_iso3(r.get("country")) or "")
             cats = " ".join(str(c) for c in (r.get("productCategory") or r.get("categories") or []))
 
             # Only claim slaughter when the category text says so. Meat
@@ -466,7 +469,7 @@ def parse_osm(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
             source_snapshot=snapshot,
             source_row_id=f"{el['type']}/{el['id']}",
             name=name,
-            country_iso3=(tags.get("addr:country") or "").upper()[:3],
+            country_iso3=to_iso3(tags.get("addr:country")) or "",
             national_id=None,
             id_scheme="OSM",
             address=street or None,
@@ -671,8 +674,7 @@ def parse_ftp_csv(path: Path, *, country_iso3: str | None = None,
                 source_snapshot=snapshot,
                 source_row_id=_f(row, c_id) or f"{lat},{lon}",
                 name=_f(row, c_name) or "(unnamed)",
-                country_iso3=(country_iso3 or _COUNTRY_ISO3.get(
-                    (_f(row, c_ctry) or "").strip().lower(), "")),
+                country_iso3=(to_iso3(country_iso3) or to_iso3(_f(row, c_ctry)) or ""),
                 national_id=_f(row, c_id),
                 id_scheme="FTP",
                 address=addr or None,
@@ -694,11 +696,8 @@ def parse_ftp_csv(path: Path, *, country_iso3: str | None = None,
     return out
 
 
-_COUNTRY_ISO3 = {
-    "united states": "USA", "usa": "USA", "australia": "AUS",
-    "new zealand": "NZL", "united kingdom": "GBR", "canada": "CAN",
-    "ireland": "IRL", "south africa": "ZAF",
-}
+# Country names now resolve through countries.to_iso3, which covers every
+# name the sources publish rather than the eight that were listed here.
 
 
 def parse_ftp_kml(path: Path, *, country_iso3: str = "AUS",

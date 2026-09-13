@@ -131,10 +131,23 @@ def cmd_parse(args):
 # ---------------------------------------------------------------- dedup
 
 def cmd_dedup(args):
+    import geocode as geo
+
     records = _load(RECORDS)
-    geocache = {}
+    # Coordinates come from work/geocache.json.gz, which the geocode workflow
+    # commits. work/geo.json is written by the geocode stage but never
+    # committed, so a build job on a fresh checkout saw an empty geocache and
+    # clustered as though nothing had ever been geocoded -- which is why the
+    # published map showed only the registries that publish their own
+    # coordinates. Read the committed artifact first, then let a local
+    # geo.json add anything on top.
+    geocache = geo.coords_for_records(records)
     if (WORK / "geo.json").exists():
-        geocache = json.loads((WORK / "geo.json").read_text())
+        geocache.update(json.loads((WORK / "geo.json").read_text()))
+    placed = sum(1 for v in geocache.values()
+                 if v.get("precision") in ("rooftop", "street"))
+    print(f"geocoded coordinates available: {placed:,} records "
+          f"at street precision or better")
 
     facilities, review = dedup_mod.cluster(records, geocache)
     _save(facilities, FACILITIES)
@@ -194,6 +207,10 @@ def cmd_geocode(args):
             "addresses once got cached as unresolvable.")
 
     records = _load(RECORDS)
+    if args.probe:
+        geo.probe(records, contact=contact, n=args.probe)
+        return
+
     cache = {}
     if (WORK / "geo.json").exists():
         cache = json.loads((WORK / "geo.json").read_text())
@@ -201,13 +218,13 @@ def cmd_geocode(args):
         before, after = geo.purge_misses()
         print(f"purged {before-after:,} cached misses, kept {after:,} real hits")
 
-    fresh = geo.geocode_records(records, contact=contact, limit=args.limit)
+    fresh = geo.geocode_records(records, contact=contact, limit=args.limit,
+                                max_minutes=args.max_minutes or None)
     cache.update(fresh)
     (WORK / "geo.json").write_text(json.dumps(cache), encoding="utf-8")
-    prec = Counter(v["precision"] for v in cache.values())
-    print(f"geocache now holds {len(cache):,} entries")
-    for p, n in prec.most_common():
-        print(f"  {p}: {n:,}")
+    for outcome, n in sorted(geo.cache_breakdown(records).items(),
+                             key=lambda kv: -kv[1]):
+        print(f"  {outcome}: {n:,}")
     have, left = geo.pending_count(records)
     print(f"\naddresses cached: {have:,}   still to look up: {left:,}")
     (WORK / "geocode_pending").write_text(str(left))
@@ -323,6 +340,9 @@ def cmd_status(args):
     for s, n in per.most_common():
         print(f"  {SOURCE_LABELS.get(s,{}).get('short',s)}: {n:,}")
     print(f"geocode cache: {have:,} resolved, {left:,} outstanding")
+    for outcome, n in sorted(geo.cache_breakdown(records).items(),
+                             key=lambda kv: -kv[1]):
+        print(f"  {outcome}: {n:,}")
     if FACILITIES.exists():
         fac = _load(FACILITIES)
         mapped = sum(1 for f in fac if f.mappable)
@@ -351,6 +371,12 @@ def main():
                    help="email or URL for the geocoder User-Agent")
     c.add_argument("--limit", type=int, default=None,
                    help="cap fresh lookups this run; cache persists between runs")
+    c.add_argument("--max-minutes", type=float, default=240,
+                   help="stop cleanly after this long so the cache still gets "
+                        "committed; 0 disables the budget")
+    c.add_argument("--probe", type=int, default=0, metavar="N",
+                   help="look up N sample addresses, print the query and the "
+                        "answer for each, and write nothing")
     c.add_argument("--purge-misses", action="store_true",
                    help="drop cached entries that resolved to nothing, keeping "
                         "every real hit, then retry them")
