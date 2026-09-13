@@ -83,6 +83,28 @@ def load_outlines() -> list:
     return json.loads(f.read_text()) if f.exists() else []
 
 
+def shares(facilities) -> dict:
+    """Percentage of the whole dataset behind each filter row.
+
+    Counted over every facility, located or not, because "12% of all plants
+    slaughter" is a fact about the registries and should not change depending
+    on how much of the geocoding has finished. A facility can carry several
+    species and several activities, so these do not sum to 100 and the panel
+    says so.
+    """
+    n = len(facilities) or 1
+    c: Counter = Counter()
+    for f in facilities:
+        for a in (f.activities or ["_none"]):
+            c["What happens here::" + a] += 1
+        for sp in (f.species or ["_none"]):
+            c["Species::" + sp] += 1
+        c["Slaughter activity::" + str({True: 1, False: 0, None: 2}[f.slaughter])] += 1
+        for src in {m["source"] for m in f.members}:
+            c["Registry::" + src] += 1
+    return {k: round(v * 100 / n, 1) for k, v in c.items()}
+
+
 def encode(facilities, sources_meta: dict) -> dict:
     """Compact payload. Only mappable facilities get geometry; the rest are
     carried in `unlocated` so they stay visible as a count and a list."""
@@ -96,8 +118,9 @@ def encode(facilities, sources_meta: dict) -> dict:
             d[key] = len(d)
         return d[key]
 
-    lat, lon, name, c_i, sp_i, src_i, tier_i, sl, uid, ids, ci, prec = (
-        [] for _ in range(12))
+    (lat, lon, name, c_i, sp_i, act_i, src_i, tier_i, sl, uid, ids,
+     ci) = ([] for _ in range(12))
+    activity_combos: dict = {}
 
     for f in mappable:
         lat.append(round(f.lat * 1e5))
@@ -105,13 +128,12 @@ def encode(facilities, sources_meta: dict) -> dict:
         name.append(f.name)
         c_i.append(idx(countries, f.country_iso3 or "—"))
         sp_i.append(idx(species_combos, tuple(f.species)))
+        act_i.append(idx(activity_combos, tuple(sorted(f.activities))))
         src_i.append(idx(source_combos, tuple(sorted({m["source"] for m in f.members}))))
         tier_i.append(idx(tier_combos, tuple(f.match_tiers)))
         sl.append({True: 1, False: 0, None: 2}[f.slaughter])
         uid.append(f.uid)
         ci.append(idx(palette, _dot_colour(f.species)))
-        # 1 = located to a street or building, 0 = located to the town only.
-        prec.append(1 if f.precise else 0)
         ids.append([f"{m['source']}|{m.get('id_scheme') or ''}|{m.get('national_id') or ''}"
                     for m in f.members])
 
@@ -119,12 +141,15 @@ def encode(facilities, sources_meta: dict) -> dict:
         return [k for k, _ in sorted(d.items(), key=lambda kv: kv[1])]
 
     return {
+        "shares": shares(facilities),
+        "n_all": len(facilities),
         "generated": date.today().isoformat(),
         "n_mapped": len(mappable),
         "n_unlocated": len(unlocated),
         "dict": {
             "country": inv(countries),
             "species": [list(t) for t in inv(species_combos)],
+            "activity": [list(t) for t in inv(activity_combos)],
             "source": [list(t) for t in inv(source_combos)],
             "tier": [list(t) for t in inv(tier_combos)],
         },
@@ -133,10 +158,8 @@ def encode(facilities, sources_meta: dict) -> dict:
                   | {"_mixed": SPECIES_COLOUR["_mixed"],
                      "_unstated": SPECIES_COLOUR["_unstated"]},
         "lat": lat, "lon": lon, "name": name,
-        "c": c_i, "sp": sp_i, "src": src_i, "tier": tier_i, "sl": sl,
-        "ci": ci, "prec": prec, "uid": uid, "ids": ids,
-        "n_precise": sum(prec),
-        "n_approx": len(prec) - sum(prec),
+        "c": c_i, "sp": sp_i, "act": act_i, "src": src_i, "tier": tier_i, "sl": sl,
+        "ci": ci, "uid": uid, "ids": ids,
         "unlocated": [{"name": f.name, "country": f.country_iso3,
                        "locality": f.locality, "uid": f.uid,
                        "sources": sorted({m["source"] for m in f.members})}
@@ -180,17 +203,18 @@ html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-fami
 .grp{padding:14px 20px 6px}
 .grp h2{font-size:11.5px;font-weight:600;color:var(--dim);margin:0 0 9px;
   letter-spacing:.02em}
-label.row{display:flex;align-items:center;gap:9px;padding:4px 0;cursor:pointer;
+label.row{display:flex;align-items:flex-start;gap:9px;padding:5px 0;cursor:pointer;
   font-size:13px;line-height:1.3}
-label.row input{accent-color:var(--live);margin:0;flex:none}
-.swatch{width:9px;height:9px;border-radius:50%;flex:none}
+label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
+.swatch{width:9px;height:9px;border-radius:50%;flex:none;margin-top:4px}
+.rowbody{flex:1;min-width:0}
+.rowtop{display:flex;align-items:baseline;gap:8px}
+.rowtop .lbl{flex:1}
+.hint{display:block;color:var(--dim);font-size:11px;line-height:1.45;margin-top:1px}
+.hint .share{color:var(--text);font-variant-numeric:tabular-nums}
 .tally{margin-left:auto;color:var(--dim);font-size:11.5px;
   font-variant-numeric:tabular-nums}
-.legend{margin-top:11px;font-size:11.5px;color:var(--dim);line-height:1.5}
-.legend span{display:flex;align-items:center;gap:8px;margin-top:4px}
-.legend i{width:11px;height:11px;border-radius:50%;flex:none;font-style:normal}
-.legend i.solid{background:var(--dim)}
-.legend i.hollow{border:1.4px solid var(--dim)}
+.grp .lede{color:var(--dim);font-size:11px;line-height:1.5;margin:-4px 0 8px}
 .note{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
   border-top:1px solid var(--rule)}
 button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12px;
@@ -250,9 +274,7 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 <aside id="rail">
   <h1>__TITLE__</h1>
   __SUBTITLE_BLOCK__
-  <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span>
-    <div class="legend" id="legend"></div>
-  </div>
+  <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span></div>
   <div id="filters"></div>
   <div class="note" id="unlocatedNote"></div>
 </aside>
@@ -276,6 +298,60 @@ const SPECIES_LABEL = {bovine:'Cattle',porcine:'Pigs',poultry:'Poultry',ovine:'S
 const SLAUGHTER_LABEL = {1:'Slaughter confirmed by a registry',
   0:'Registry lists no slaughter activity', 2:'No registry stated either way'};
 
+/* What the registries mean by each activity code, in plain words. The atlas is
+   called an abattoir atlas, but only some of what the sources list is a kill
+   floor -- the rest is where animals are held, raised, traded, cut up or kept
+   cold. Saying which is which on the toggle is the difference between a map of
+   slaughter and a map of the industry around it. */
+const ACTIVITY_LABEL = {
+  slaughter:'Slaughterhouse', farm_meat:'Meat farm', farm_dairy:'Dairy farm',
+  farm_eggs:'Egg farm', farm_wool:'Wool farm', farm_skins:'Skin and fur farm',
+  farm_honey:'Apiary', hatchery:'Hatchery', saleyard:'Saleyard',
+  live_market:'Live animal market', holding_yard:'Holding yard',
+  aquaculture:'Aquaculture', experimentation:'Laboratory', zoo:'Zoo',
+  wildlife:'Wildlife facility', racing:'Racing', rodeo:'Rodeo',
+  entertainment:'Entertainment', pet_breeder:'Pet breeder', pet_shop:'Pet shop',
+  agricultural_show:'Agricultural show', cutting:'Cutting plant',
+  processing:'Processing plant', minced_meat:'Minced meat plant',
+  meat_preparations:'Meat preparations', game_handling:'Game handling',
+  cold_store:'Cold store', rendering:'Rendering plant', casings:'Casings plant',
+  egg_products:'Egg products plant', unknown:'Activity not stated',
+  _none:'Activity not stated'};
+const ACTIVITY_NOTE = {
+  slaughter:'Animals are killed here',
+  farm_meat:'Animals confined and raised to be killed elsewhere',
+  farm_dairy:'Cows confined for milk; calves and spent cows go to slaughter',
+  farm_eggs:'Hens confined for eggs; male chicks and spent hens are killed',
+  farm_wool:'Sheep confined for wool', farm_skins:'Animals confined for skin or fur',
+  farm_honey:'Bees kept for honey', hatchery:'Chicks hatched and sorted by sex',
+  saleyard:'Animals bought and sold, usually on the way to a kill floor',
+  live_market:'Animals sold alive, often killed on site',
+  holding_yard:'Animals held in transit', aquaculture:'Fish or shellfish farmed',
+  experimentation:'Animals used in research', zoo:'Animals held on display',
+  wildlife:'Wild animals held or handled', racing:'Animals raced',
+  rodeo:'Animals used in rodeo', entertainment:'Animals used in performance',
+  pet_breeder:'Animals bred to sell', pet_shop:'Animals sold as pets',
+  agricultural_show:'Animals exhibited',
+  cutting:'Carcasses cut into pieces after killing',
+  processing:'Meat processed; no killing stated',
+  minced_meat:'Meat minced', meat_preparations:'Meat prepared for sale',
+  game_handling:'Hunted animals brought in and dressed',
+  cold_store:'Carcasses and meat held cold',
+  rendering:'Bodies and offcuts rendered down',
+  casings:'Intestines processed into casings', egg_products:'Eggs processed',
+  unknown:'The registry listed this plant without saying what it does',
+  _none:'The registry listed this plant without saying what it does'};
+const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
+  'farm_meat','farm_dairy','farm_eggs','farm_wool','farm_skins','farm_honey',
+  'hatchery','aquaculture','cutting','game_handling','processing','minced_meat',
+  'meat_preparations','casings','egg_products','rendering','cold_store',
+  'experimentation','zoo','wildlife','racing','rodeo','entertainment',
+  'pet_breeder','pet_shop','agricultural_show','unknown','_none'];
+const SLAUGHTER_NOTE = {
+  1:'A registry field says animals are killed on site',
+  0:'The registry lists activities and none of them is killing',
+  2:'The registry is silent, which is not the same as a no'};
+
 /* ---- project once ----------------------------------------------------
    Web Mercator, normalised to 0..1. Per frame this becomes two multiplies and
    a subtract per point, which is what makes drawing every single facility
@@ -289,30 +365,32 @@ for(let i=0;i<N;i++){
 }
 
 /* ---- pre-group by colour so fillStyle is set a handful of times ------- */
-/* Two draw passes per colour: filled dots for facilities located to a street
-   or building, hollow rings for those located only to their town. The ring is
-   not decoration -- it is the map refusing to claim a precision the register
-   did not publish. */
-const GROUPS = D.palette.map(col=>({colour:col, exact:[], approx:[]}));
-for(let i=0;i<N;i++) (D.prec[i] ? GROUPS[D.ci[i]].exact : GROUPS[D.ci[i]].approx).push(i);
-for(const g of GROUPS){ g.exact = Int32Array.from(g.exact);
-                        g.approx = Int32Array.from(g.approx); }
+const GROUPS = D.palette.map(col=>({colour:col, idx:[]}));
+for(let i=0;i<N;i++) GROUPS[D.ci[i]].idx.push(i);
+for(const g of GROUPS) g.idx = Int32Array.from(g.idx);
 
 /* ---- filter state; VIS is rebuilt only when a filter changes ---------- */
 const VIS = new Uint8Array(N);
 const active = {species:new Set(), slaughter:new Set([0,1,2]), source:new Set(),
-                precision:new Set([0,1])};
+                activity:new Set()};
 D.dict.species.forEach(c=>c.forEach(s=>active.species.add(s)));
 active.species.add('_none');
+(D.dict.activity||[]).forEach(c=>c.forEach(a=>active.activity.add(a)));
+active.activity.add('_none');
 D.dict.source.forEach(c=>c.forEach(s=>active.source.add(s)));
 
 function rebuildVis(){
   for(let i=0;i<N;i++){
-    let ok = active.precision.has(D.prec[i]) && active.slaughter.has(D.sl[i]);
+    let ok = active.slaughter.has(D.sl[i]);
     if(ok){
       const sp = D.dict.species[D.sp[i]];
       ok = sp.length===0 ? active.species.has('_none')
                          : sp.some(s=>active.species.has(s));
+    }
+    if(ok){
+      const ac = (D.dict.activity&&D.act) ? D.dict.activity[D.act[i]] : null;
+      if(ac) ok = ac.length===0 ? active.activity.has('_none')
+                                : ac.some(a=>active.activity.has(a));
     }
     if(ok) ok = D.dict.source[D.src[i]].some(s=>active.source.has(s));
     VIS[i] = ok?1:0;
@@ -347,6 +425,11 @@ const Base = L.Layer.extend({
     m.on('moveend zoomend resize',this.draw,this);
     if(m.options.zoomAnimation) m.on('zoomanim',this._anim,this);
     this.draw();
+  },
+  onRemove(m){
+    m.off('moveend zoomend resize',this.draw,this);
+    m.off('zoomanim',this._anim,this);
+    L.DomUtil.remove(this._c);
   },
   _anim(e){
     const s=this._map.getZoomScale(e.zoom), o=this._map._latLngToNewLayerPoint(
@@ -385,7 +468,36 @@ const Base = L.Layer.extend({
     ctx.stroke();
   }
 });
-new Base().addTo(map);
+const outlineBase = new Base();
+outlineBase.addTo(map);
+
+/* Esri World Imagery: free, no API key, no sign-up. The outlines above stay
+   the default because they are embedded in this file and work with no network
+   at all; imagery is a second pair of eyes for when you want to see the sheds,
+   the lagoons and the yards rather than a dot on a plain field.
+
+   maxNativeZoom stops at the deepest zoom Esri actually serves and lets the
+   map keep zooming past it on stretched tiles, so the dots do not hit a wall
+   at z19. */
+let SATELLITE = false;
+const imagery = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxNativeZoom:19, maxZoom:22,
+   attribution:'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, '+
+     'Earthstar Geographics, USDA FSA, USGS, Aerogrid, IGN, IGP and the GIS '+
+     'user community'});
+
+function setBasemap(kind){
+  SATELLITE = (kind==='satellite');
+  if(SATELLITE){
+    if(map.hasLayer(outlineBase)) map.removeLayer(outlineBase);
+    if(!map.hasLayer(imagery)) imagery.addTo(map);
+  }else{
+    if(map.hasLayer(imagery)) map.removeLayer(imagery);
+    if(!map.hasLayer(outlineBase)) outlineBase.addTo(map);
+  }
+  layer.draw();
+}
 
 /* ---- one canvas, one point per facility ------------------------------ */
 let geom = {S:0, offX:0, offY:0, w:0, h:0};
@@ -428,34 +540,15 @@ const Layer = L.Layer.extend({
     else if(z<8){ r=1.8; alpha=.68; useRect=true; }
     else if(z<10){ r=2.7; alpha=.82; useRect=false; }
     else { r=4.3; alpha=.92; useRect=false; ring=true; }
+    /* Over imagery the background is bright and busy rather than flat and
+       dark, so the same alpha reads as a smudge. */
+    if(SATELLITE){ alpha=Math.min(1,alpha+.2); r+=.3; }
 
     let count=0;
     const d=r*2, wrap = z<6 ? S : 0;   // second world copy near the dateline
 
     for(const g of GROUPS){
-      /* town-level: hollow ring, slightly larger and fainter */
-      const ar=g.approx, an=ar.length;
-      if(an){
-        const rr = r + (useRect ? 0.6 : 1.0), dd = rr*2;
-        ctx.globalAlpha = alpha*0.75;
-        ctx.strokeStyle = g.colour;
-        ctx.lineWidth = useRect ? 1 : 1.3;
-        ctx.beginPath();
-        for(let k=0;k<an;k++){
-          const i=ar[k]; if(!VIS[i]) continue;
-          let x=WX[i]*S-offX;
-          if(wrap){ if(x<-dd) x+=wrap; else if(x>w+dd) x-=wrap; }
-          if(x<-dd||x>w+dd) continue;
-          const y=WY[i]*S-offY;
-          if(y<-dd||y>h+dd) continue;
-          ctx.moveTo(x+rr,y); ctx.arc(x,y,rr,0,TAU);
-          count++;
-        }
-        ctx.stroke();
-      }
-
-      /* street or building: filled dot */
-      const arr=g.exact, n=arr.length;
+      const arr=g.idx, n=arr.length;
       ctx.fillStyle=g.colour; ctx.globalAlpha=alpha;
       if(useRect){
         for(let k=0;k<n;k++){
@@ -479,8 +572,9 @@ const Layer = L.Layer.extend({
         }
         ctx.fill();
         if(ring){
-          ctx.globalAlpha=.7; ctx.lineWidth=1;
-          ctx.strokeStyle='rgba(23,29,27,.9)'; ctx.stroke();
+          ctx.globalAlpha=SATELLITE?.85:.7; ctx.lineWidth=1;
+          ctx.strokeStyle=SATELLITE?'rgba(255,255,255,.75)':'rgba(23,29,27,.9)';
+          ctx.stroke();
         }
       }
     }
@@ -571,12 +665,7 @@ function openDrawer(i){
   h+='<div class="fact"><i>Species</i><span>'+
      (sp.length?sp.map(s=>SPECIES_LABEL[s]||s).join(', '):'Not stated')+'</span></div>';
   h+='<div class="fact"><i>Listed by</i><span>'+srcs.length+
-     (srcs.length===1?' registry':' registries')+'</span></div>';
-  h+='<div class="fact"><i>Location</i><span>'+
-     (D.prec[i] ? 'Located to a street or building'
-                : 'Located to this town only \u2014 the register gave no usable '+
-                  'street address, so this marker is the settlement, not the site')+
-     '</span></div></div>';
+     (srcs.length===1?' registry':' registries')+'</span></div></div>';
   h+='<div class="prov"><h4>Where this record comes from</h4>';
   h+='<p class="lede">Each entry below is one registry\'s own listing, kept as '+
      'that registry published it.</p>';
@@ -596,9 +685,17 @@ function openDrawer(i){
 
 /* ---- filter UI ------------------------------------------------------- */
 const F=document.getElementById('filters');
-function group(title,items,set,swatches){
+const SHARES=D.shares||{};
+
+/* Each toggle carries two things the label alone does not: the share of the
+   whole dataset behind it, and a line saying what that kind of place actually
+   is. A map of 72,000 dots is not a map of 72,000 kill floors, and the panel
+   should not let anyone assume it is. */
+function group(title,items,set,swatches,lede){
   const g=document.createElement('div'); g.className='grp';
   g.innerHTML='<h2>'+title+'</h2>';
+  if(lede){ const p=document.createElement('p'); p.className='lede';
+    p.textContent=lede; g.appendChild(p); }
   for(const it of items){
     const l=document.createElement('label'); l.className='row';
     const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=set.has(it.key);
@@ -607,26 +704,79 @@ function group(title,items,set,swatches){
     l.appendChild(cb);
     if(swatches&&it.colour){const s=document.createElement('span');
       s.className='swatch'; s.style.background=it.colour; l.appendChild(s);}
-    const t=document.createElement('span'); t.textContent=it.label; l.appendChild(t);
+
+    const body=document.createElement('div'); body.className='rowbody';
+    const top=document.createElement('div'); top.className='rowtop';
+    const t=document.createElement('span'); t.className='lbl'; t.textContent=it.label;
     const n=document.createElement('span'); n.className='tally';
-    n.dataset.k=title+'::'+it.key; l.appendChild(n);
+    n.dataset.k=title+'::'+it.key;
+    top.appendChild(t); top.appendChild(n); body.appendChild(top);
+
+    const pct=SHARES[title+'::'+it.key];
+    const bits=[];
+    if(pct!==undefined) bits.push('<span class="share">'+pct.toFixed(1)+'%</span> of all');
+    if(it.note) bits.push(esc(it.note));
+    if(bits.length){ const h=document.createElement('span'); h.className='hint';
+      h.innerHTML=bits.join(' &middot; '); body.appendChild(h); }
+
+    l.appendChild(body);
     g.appendChild(l);
   }
   F.appendChild(g);
 }
+
+/* ---- basemap ---------------------------------------------------------- */
+(function(){
+  const g=document.createElement('div'); g.className='grp';
+  g.innerHTML='<h2>Basemap</h2>';
+  const opts=[
+    {k:'outlines',label:'Country outlines',
+     note:'Embedded in this file. No tile server, nothing to expire, works offline.'},
+    {k:'satellite',label:'Satellite imagery',
+     note:'Esri World Imagery, free and keyless. Loads tiles over the network; '+
+          'deep zoom shows the sheds, lagoons and stockyards themselves.'}];
+  for(const o of opts){
+    const l=document.createElement('label'); l.className='row';
+    const rb=document.createElement('input'); rb.type='radio'; rb.name='basemap';
+    rb.checked=(o.k==='outlines');
+    rb.onchange=function(){ if(rb.checked) setBasemap(o.k); };
+    l.appendChild(rb);
+    const body=document.createElement('div'); body.className='rowbody';
+    const top=document.createElement('div'); top.className='rowtop';
+    const t=document.createElement('span'); t.className='lbl'; t.textContent=o.label;
+    top.appendChild(t); body.appendChild(top);
+    const h=document.createElement('span'); h.className='hint'; h.textContent=o.note;
+    body.appendChild(h); l.appendChild(body); g.appendChild(l);
+  }
+  F.appendChild(g);
+})();
+
+/* ---- what kind of place ----------------------------------------------- */
+const actPresent=[...new Set((D.dict.activity||[]).flat())]
+  .sort((a,b)=>{
+    const ia=ACTIVITY_ORDER.indexOf(a), ib=ACTIVITY_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib);
+  });
+if(actPresent.length){
+  group('What happens here', actPresent.map(a=>({key:a,
+    label:ACTIVITY_LABEL[a]||a, note:ACTIVITY_NOTE[a]||''})), active.activity,
+    false, 'What each registry says the place does. A facility can be listed '+
+    'under several of these, so the percentages overlap and do not sum to 100.');
+}
+
 const order=Object.keys(SPECIES_LABEL);
 const speciesPresent=[...new Set(D.dict.species.flat())]
   .sort((a,b)=>order.indexOf(a)-order.indexOf(b));
 group('Species', speciesPresent.map(s=>({key:s,label:SPECIES_LABEL[s]||s,
   colour:D.colour[s]})).concat([{key:'_none',label:'Not stated',
-  colour:D.colour._unstated}]), active.species, true);
-group('Slaughter activity',[{key:1,label:'Confirmed'},
-  {key:0,label:'Listed as none'},{key:2,label:'Not stated'}], active.slaughter);
-group('Location precision',[
-  {key:1,label:'Street or building'},
-  {key:0,label:'Town only'}], active.precision);
+  colour:D.colour._unstated}]), active.species, true,
+  'Which animals a registry names. Most third-country listings name none.');
+group('Slaughter activity',[{key:1,label:'Confirmed',note:SLAUGHTER_NOTE[1]},
+  {key:0,label:'Listed as none',note:SLAUGHTER_NOTE[0]},
+  {key:2,label:'Not stated',note:SLAUGHTER_NOTE[2]}], active.slaughter);
 group('Registry',[...new Set(D.dict.source.flat())].sort().map(s=>({
-  key:s,label:(D.sources_meta[s]&&D.sources_meta[s].short)||s})), active.source);
+  key:s,label:(D.sources_meta[s]&&D.sources_meta[s].short)||s,
+  note:(D.sources_meta[s]&&D.sources_meta[s].name)||''})), active.source);
 
 function updateTallies(){
   const t={};
@@ -635,8 +785,12 @@ function updateTallies(){
     const sp=D.dict.species[D.sp[i]];
     if(sp.length===0) t['Species::_none']=(t['Species::_none']||0)+1;
     else sp.forEach(s=>{const k='Species::'+s;t[k]=(t[k]||0)+1;});
+    if(D.dict.activity&&D.act){
+      const ac=D.dict.activity[D.act[i]];
+      if(ac.length===0) t['What happens here::_none']=(t['What happens here::_none']||0)+1;
+      else ac.forEach(a=>{const k='What happens here::'+a;t[k]=(t[k]||0)+1;});
+    }
     const sk='Slaughter activity::'+D.sl[i]; t[sk]=(t[sk]||0)+1;
-    const pk='Location precision::'+D.prec[i]; t[pk]=(t[pk]||0)+1;
     D.dict.source[D.src[i]].forEach(s=>{const k='Registry::'+s;t[k]=(t[k]||0)+1;});
   }
   document.querySelectorAll('.tally').forEach(el=>{
@@ -648,9 +802,9 @@ function updateTallies(){
 const u=D.unlocated||[];
 document.getElementById('unlocatedNote').innerHTML =
   u.length
-  ? u.length.toLocaleString()+' facilities have a registry listing but nothing '+
-    'that places them even to a town. They are not drawn rather than pinned to a '+
-    'country centroid. <button class="link" id="showUn">See the list</button>'
+  ? u.length.toLocaleString()+' facilities have a registry listing but no address '+
+    'precise enough to place. They are not drawn here rather than pinned to a town '+
+    'centre. <button class="link" id="showUn">See the list</button>'
   : 'Every facility in this dataset has a located address.';
 if(u.length){
   document.getElementById('showUn').onclick=function(){
@@ -669,12 +823,6 @@ if(u.length){
     body.innerHTML=h; drawer.classList.add('open');
   };
 }
-
-document.getElementById('legend').innerHTML =
-  '<span><i class="solid"></i>located to a street or building ('+
-  (D.n_precise||0).toLocaleString()+')</span>'+
-  '<span><i class="hollow"></i>located to the town only ('+
-  (D.n_approx||0).toLocaleString()+')</span>';
 
 document.getElementById('toggleRail').onclick=function(){
   document.getElementById('rail').classList.toggle('open');};
