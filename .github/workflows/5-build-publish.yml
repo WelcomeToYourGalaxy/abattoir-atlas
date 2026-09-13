@@ -8,7 +8,7 @@ on:
     inputs:
       title:
         description: 'Map title'
-        default: 'Where animals are killed'
+        default: 'Commercial Slaughter'
   workflow_run:
     workflows: ['4 · Geocode']
     types: [completed]
@@ -59,7 +59,7 @@ jobs:
         run: |
           python run.py build \
             --out atlas.html \
-            --title "${{ inputs.title || 'Where animals are killed' }}"
+            --title "${{ inputs.title || 'Commercial Slaughter' }}"
           mkdir -p docs
           cp out/atlas.html docs/index.html
           cp out/dedup_report.md docs/dedup_report.md
