@@ -83,6 +83,33 @@ SPECIES_MAP = {
     "Equidae": "equine",
 }
 
+# The poultry, farmed-game and wild-game sections use their own species codes,
+# printed the same way but with a different vocabulary from the ungulate one
+# above. They were falling through to the region field, which is why 2,071
+# poultry establishments carried no species at all and why a Swedish plant
+# listed its region as "Vastra Gotaland County; wA Wild game birds".
+TRACES_SPECIES_RE = re.compile(r"^([A-Za-z]{1,4}!?)\s+([A-Z].*)$")
+TRACES_SPECIES_MAP = {
+    "A": "poultry",              # Poultry
+    "R": "poultry",              # Ratites -- schema groups all birds as poultry
+    "wA": "wild_game",           # Wild game birds
+    "L": "lagomorph",            # Lagomorphs
+    "Ll": "lagomorph",           # Leporidae
+    "Lo": "lagomorph",           # Oryctolagus cuniculus
+    "wL": "wild_game",           # Lagomorphs living freely in the wild
+    "fG": "farmed_game",         # Farmed land mammals other than domestic ungulates
+    "wG": "wild_game",           # Wild land mammals other than wild ungulates
+    "wU": "wild_game",           # Wild ungulates
+    "lwG": "wild_game",          # Large wild game
+    "swG": "wild_game",          # Small wild game
+    "wbU": "wild_game",          # Biungulates
+    "Bbis": "bovine",            # Bison bison -- schema: bovine covers bison
+}
+
+# A numbered footnote from the Remarks column: "1 Offal excluded",
+# "10 Only storage of meat already finally packaged". A remark, not a region.
+REMARK_NUM_RE = re.compile(r"^\d{1,3}\s+\S")
+
 # Which activity codes mean animals are killed on site. Only these.
 SLAUGHTER_CODES = {"SH"}
 
@@ -126,6 +153,15 @@ def group_for(country: str) -> str:
 # source never made.
 NO_ACTIVITY_VOCAB = {"ABP-SH", "ABP-PROCP", "ABP-PET", "ABP-INTP", "FFP"}
 DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{4}$")
+
+# A registration number on its own line, sometimes with the approval date tab-
+# separated after it. It is neither a date, a species nor an activity code, so
+# the catch-all below used to sweep it into the region field and leave 1,249
+# facilities carrying "Luanda; 9194191  13/07/2026" as their region.
+ID_DATE_RE = re.compile(r"^(\d{4,})(?:[\s\t]+(\d{2}/\d{2}/\d{4}))?$")
+
+# Region text that arrived with an approval date or a bare number glued on.
+REGION_TAIL_RE = re.compile(r"[;,]?\s*\d{4,}(?:[\s\t]+\d{2}/\d{2}/\d{4})?\s*$")
 CAT_RE = re.compile(r"^CAT\d\b|^[A-Z]{2,4}\s*-\s*", re.I)
 # Page chrome that can survive into a block when a copy starts mid-page.
 CHROME = {"faq", "contact", "directory", "publications", "log in", "search",
@@ -284,12 +320,21 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
 
         s = line.strip()
         sp = SPECIES_RE.match(s)
+        idm = ID_DATE_RE.match(s)
         if DATE_RE.match(s):
             cur["dates"].append(s)
+        elif idm:
+            # Keep the date it carried; drop the number, which is already in
+            # approval_number and belongs nowhere near the region.
+            if idm.group(2):
+                cur["dates"].append(idm.group(2))
         elif sp:
             cur["species"].append(SPECIES_MAP[sp.group(2)])
-        elif ACTIVITY_RE.match(s) or CAT_RE.match(s):
+        elif ACTIVITY_RE.match(s) or CAT_RE.match(s) or REMARK_NUM_RE.match(s):
             cur["activities"].append(s)
+        elif (tsp := TRACES_SPECIES_RE.match(s)) and tsp.group(1) in TRACES_SPECIES_MAP:
+            cur["species"].append(TRACES_SPECIES_MAP[tsp.group(1)])
+            cur["activities"].append(s)      # keep the source wording verbatim
         elif not cur["region"]:
             cur["region"] = s
         else:
@@ -352,7 +397,7 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
             "address": r["address"],
             "city": city,
             "postcode": postcode,
-            "region": r["region"],
+            "region": clean_region(r["region"]),
             "country": country,
             "group": group_for(country),
             "section": section,
@@ -366,6 +411,46 @@ def parse_document(text: str, fallback_country: str = "") -> tuple[str, str, lis
             "publication_date": r["dates"][1] if len(r["dates"]) > 1 else "",
         })
     return country, section, out
+
+
+def clean_region(s: str) -> str:
+    """The region field as an administrative name, and nothing else.
+
+    Anything the parser could not classify landed here, so alongside the real
+    region a row could pick up an establishment number, an approval date, or a
+    trailing remark clause. The remark stays out of the region: it is already
+    carried in `remarks` and in the species column."""
+    if not s:
+        return ""
+    out = []
+    for part in s.split(";"):
+        part = part.replace("\t", " ").strip()
+        part = REGION_TAIL_RE.sub("", part).strip(" ,;")
+        if not part or ID_DATE_RE.match(part) or DATE_RE.match(part):
+            continue
+        if SPECIES_RE.match(part) or ACTIVITY_RE.match(part) or CAT_RE.match(part):
+            continue
+        if REMARK_NUM_RE.match(part):
+            continue
+        m = TRACES_SPECIES_RE.match(part)
+        if m and m.group(1) in TRACES_SPECIES_MAP:
+            continue
+        out.append(part)
+    return "; ".join(dict.fromkeys(out))
+
+
+def recover_species(region: str) -> list:
+    """Species codes that ended up in the region field of an already-harvested
+    CSV. Same vocabulary as the live parse, applied after the fact."""
+    out = []
+    for part in (region or "").split(";"):
+        m = TRACES_SPECIES_RE.match(part.replace("\t", " ").strip())
+        if m and m.group(1) in TRACES_SPECIES_MAP:
+            out.append(TRACES_SPECIES_MAP[m.group(1)])
+        m2 = SPECIES_RE.match(part.strip())
+        if m2:
+            out.append(SPECIES_MAP[m2.group(2)])
+    return list(dict.fromkeys(out))
 
 
 FIELDS = ["approval_number", "name", "address", "city", "postcode", "region",

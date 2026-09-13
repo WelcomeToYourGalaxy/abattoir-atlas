@@ -76,8 +76,12 @@ def load_outlines() -> list:
     This replaces the tile layer outright. Hosted basemaps keep moving behind
     API keys -- CARTO now stamps "API key required" across the tiles -- and a
     map that depends on somebody else's key is a map that breaks without
-    warning. 61 KB of Natural Earth outlines is the whole background, and the
+    warning. 150 KB of Natural Earth outlines is the whole background, and the
     file has no network dependency left except Leaflet itself.
+
+    Each entry is {"iso3": ..., "r": [ring, ...]} so the same geometry can do
+    double duty: the background, and the coarse layer that shades a country by
+    how many of its facilities have no address precise enough to place.
     """
     f = Path(__file__).parent / "world_outlines.json"
     return json.loads(f.read_text()) if f.exists() else []
@@ -189,6 +193,8 @@ def encode(facilities, sources_meta: dict) -> dict:
                        "sources": sorted({m["source"] for m in f.members})}
                       for f in unlocated],
         "sources_meta": sources_meta,
+        "unlocated_by_country": dict(
+            Counter(f.country_iso3 or "—" for f in unlocated).most_common()),
         "outlines": load_outlines(),
     }
 
@@ -460,16 +466,35 @@ map.attributionControl.addAttribution(
 
 /* Country outlines, drawn from embedded geometry. No tile server, so no key
    to expire and nothing to rate-limit. */
-const OUT = (D.outlines||[]).map(country =>
-  country.map(ring => {
-    const wx = new Float64Array(ring.length), wy = new Float64Array(ring.length);
-    for(let i=0;i<ring.length;i++){
-      wx[i] = (ring[i][0]+180)/360;
-      const s = Math.sin(ring[i][1]*Math.PI/180);
-      wy[i] = 0.5 - Math.log((1+s)/(1-s))/(4*Math.PI);
+const OUT = (D.outlines||[]).map(country => {
+  const raw = Array.isArray(country) ? country : country.r;      // v1 or v2
+  return {
+    iso3: Array.isArray(country) ? null : country.iso3,
+    rings: raw.map(ring => {
+      const wx = new Float64Array(ring.length), wy = new Float64Array(ring.length);
+      for(let i=0;i<ring.length;i++){
+        wx[i] = (ring[i][0]+180)/360;
+        const s = Math.sin(ring[i][1]*Math.PI/180);
+        wy[i] = 0.5 - Math.log((1+s)/(1-s))/(4*Math.PI);
+      }
+      return {wx, wy};
+    })
+  };
+});
+
+/* Path-building is shared by the background and the coarse layer below. */
+function tracePath(ctx, rings, S, offX, offY, w, h){
+  for(const ring of rings){
+    const {wx,wy} = ring;
+    let started=false, any=false;
+    for(let i=0;i<wx.length;i++){
+      const x=wx[i]*S-offX, y=wy[i]*S-offY;
+      if(x>-2000 && x<w+2000 && y>-2000 && y<h+2000) any=true;
+      if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
     }
-    return {wx, wy};
-  }));
+    if(any) ctx.closePath();
+  }
+}
 
 const Base = L.Layer.extend({
   onAdd(m){
@@ -506,18 +531,7 @@ const Base = L.Layer.extend({
     ctx.strokeStyle='rgba(214,211,200,.17)';
     ctx.lineWidth = z < 4 ? 0.6 : 0.9;
     ctx.beginPath();
-    for(const country of OUT){
-      for(const ring of country){
-        const {wx,wy} = ring;
-        let started=false, any=false;
-        for(let i=0;i<wx.length;i++){
-          const x=wx[i]*S-offX, y=wy[i]*S-offY;
-          if(x>-2000 && x<w+2000 && y>-2000 && y<h+2000) any=true;
-          if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
-        }
-        if(any) ctx.closePath();
-      }
-    }
+    for(const country of OUT) tracePath(ctx, country.rings, S, offX, offY, w, h);
     ctx.fill('evenodd');
     ctx.stroke();
   }
@@ -552,6 +566,61 @@ function setBasemap(kind){
   }
   layer.draw();
 }
+
+/* ---- coarse layer: the facilities that cannot be placed --------------- */
+/* Admin-1 polygons would be the honest resolution here -- 97.8% of these
+   records name a region -- but a global admin-1 boundary set runs to tens of
+   megabytes and there is no reliable join from the TRACES region string
+   ("Creuse,New Aquitaine,Metropolitan France") to a boundary name. Country
+   shading is what the embedded geometry can support truthfully: it says how
+   many are missing and where, and claims nothing finer. */
+const UNLOC_BY_C = D.unlocated_by_country || {};
+const UNLOC_MAX = Math.max(1, ...Object.values(UNLOC_BY_C));
+let SHOW_UNLOC = false;
+
+const Coarse = L.Layer.extend({
+  onAdd(m){
+    this._c = L.DomUtil.create('canvas','leaflet-zoom-animated');
+    this._ctx = this._c.getContext('2d');
+    m.getPanes().overlayPane.appendChild(this._c);
+    m.on('moveend zoomend resize',this.draw,this);
+    if(m.options.zoomAnimation) m.on('zoomanim',this._anim,this);
+    this.draw();
+  },
+  _anim(e){
+    const s=this._map.getZoomScale(e.zoom), o=this._map._latLngToNewLayerPoint(
+      this._map.getBounds().getNorthWest(), e.zoom, e.center);
+    L.DomUtil.setTransform(this._c,o,s);
+  },
+  draw(){
+    const m=this._map; if(!m) return;
+    const size=m.getSize(), dpr=window.devicePixelRatio||1;
+    const tl=m.containerPointToLayerPoint([0,0]);
+    L.DomUtil.setPosition(this._c,tl);
+    this._c.width=size.x*dpr; this._c.height=size.y*dpr;
+    this._c.style.width=size.x+'px'; this._c.style.height=size.y+'px';
+    const ctx=this._ctx; ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,size.x,size.y);
+    if(!SHOW_UNLOC) return;
+
+    const z=m.getZoom(), S=256*Math.pow(2,z), o=m.getPixelOrigin();
+    const offX=o.x+tl.x, offY=o.y+tl.y, w=size.x, h=size.y;
+    for(const country of OUT){
+      const n = country.iso3 ? UNLOC_BY_C[country.iso3] : 0;
+      if(!n) continue;
+      /* Square root rather than linear: one country holds several thousand and
+         most hold a handful, and a linear ramp would render all but the top
+         two invisible. */
+      ctx.globalAlpha = 0.12 + 0.5*Math.sqrt(n/UNLOC_MAX);
+      ctx.fillStyle = '#a4635c';
+      ctx.beginPath();
+      tracePath(ctx, country.rings, S, offX, offY, w, h);
+      ctx.fill('evenodd');
+    }
+    ctx.globalAlpha=1;
+  }
+});
+const coarse = new Coarse();
 
 /* ---- one canvas, one point per facility ------------------------------ */
 let geom = {S:0, offX:0, offY:0, w:0, h:0};
@@ -859,6 +928,33 @@ function updateTallies(){
   });
 }
 
+/* ---- unplaced-facility layer toggle ----------------------------------- */
+(function(){
+  const total=Object.values(UNLOC_BY_C).reduce((a,b)=>a+b,0);
+  if(!total) return;
+  const g=document.createElement('div'); g.className='grp';
+  g.innerHTML='<h2>Unplaced facilities</h2>';
+  const p=document.createElement('p'); p.className='lede';
+  p.textContent='Shade each country by how many of its facilities have a '+
+    'registry listing but no address precise enough to draw. Country level '+
+    'only \u2014 it says how many and where, not where in the country.';
+  g.appendChild(p);
+  const l=document.createElement('label'); l.className='row';
+  const cb=document.createElement('input'); cb.type='checkbox';
+  cb.onchange=function(){ SHOW_UNLOC=cb.checked; coarse.draw(); };
+  l.appendChild(cb);
+  const body=document.createElement('div'); body.className='rowbody';
+  const top=document.createElement('div'); top.className='rowtop';
+  const t=document.createElement('span'); t.className='lbl';
+  t.textContent='Show as country shading';
+  top.appendChild(t); body.appendChild(top);
+  const h=document.createElement('span'); h.className='hint';
+  h.innerHTML='<span class="share">'+total.toLocaleString()+'</span> facilities, '+
+    'deepest where the most are missing';
+  body.appendChild(h); l.appendChild(body); g.appendChild(l);
+  F.appendChild(g);
+})();
+
 /* ---- what kind of places these are ----------------------------------- */
 /* The commonest way to misread this map is to take every dot as a kill floor.
    Most are not. The panel below says which are, which feed one, and which do
@@ -953,8 +1049,16 @@ if(u.length){
   document.getElementById('showUn').onclick=function(){
     let h='<h3>Facilities without a usable location</h3>';
     h+='<p class="where">'+u.length.toLocaleString()+' records. Listed by a registry, '+
-       'but with an address too coarse to geocode to a street or building.</p>'+
-       '<div class="prov">';
+       'but with an address too coarse to geocode to a street or building. They '+
+       'are not drawn anywhere on the map.</p><div class="prov kinds">';
+    const byc=Object.entries(UNLOC_BY_C);
+    if(byc.length){
+      h+='<h4>By country</h4><ul>';
+      for(const [c,n] of byc.slice(0,40))
+        h+='<li><b>'+esc(c)+'</b> &middot; '+n.toLocaleString()+'</li>';
+      if(byc.length>40) h+='<li>and '+(byc.length-40)+' more</li>';
+      h+='</ul><h4>The records</h4>';
+    }
     for(const r of u.slice(0,500)){
       h+='<div class="rec"><div class="who">'+esc(r.name)+'</div>'+
          '<div class="addr">'+esc([r.locality,r.country].filter(Boolean).join(', '))+
@@ -973,6 +1077,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape') drawer.classList.remove('open');});
 
 rebuildVis();
+coarse.addTo(map);        /* under the points, over the basemap */
 layer.addTo(map);
 </script>
 </body>

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from countries import to_iso3
 from schema import SPECIES, SourceRecord
+from traces_paste import clean_region, recover_species
 
 
 class HeaderError(RuntimeError):
@@ -307,8 +308,15 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
             # Per-row species when the source gives it (TRACES lists them in
             # Remarks), section-level only as a fallback. The difference is
             # "this plant kills pigs" versus "this plant kills some ungulate".
+            # The region column in the harvested CSVs can carry an approval
+            # number, a date, or a species clause the paste conversion could not
+            # classify. Clean it here as well as at conversion time, so files
+            # already in raw/ get the benefit without being re-harvested.
+            region = clean_region(_f(row, c_region))
+
             row_species = (_f(row, c_species) or "").split()
             species = ([s for s in row_species if s in SPECIES]
+                       or recover_species(_f(row, c_region))
                        or list(_EU_SECTION_SPECIES.get(section, [])))
 
             acts, slaughter = set(), None
@@ -347,7 +355,7 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
                 id_scheme=id_scheme,
                 address=_f(row, c_addr),
                 locality=_f(row, c_city),
-                admin1=_f(row, c_region),
+                admin1=region or None,
                 postcode=_f(row, c_pc),
                 species=species,
                 activities=sorted(acts) or ["unknown"],
