@@ -391,7 +391,7 @@ _HEALTH_SECTION_ACTIVITY = {
     # not the row text, is what tells them apart.
     "AQUA-EST-DISEASE": "slaughter",
     "CONF": "zoo",                  # confined establishments, zoos, collections
-    "QUR": "holding_yard",          # quarantine
+    "QUR": "quarantine",
     "COP": "holding_yard",          # control post, transport rest stop
     "SEM-COL": "germinal_products",       # semen collection centres
     "EMB-COL": "germinal_products",       # embryo collection teams
@@ -413,7 +413,8 @@ _HEALTH_ACTIVITY_TEXT = {
     "assembly centre": "holding_yard",
     "poultry establishment": "farm_poultry",
     "hatchery": "hatchery",
-    "quarantine": "holding_yard",
+    "quarantine": "quarantine",
+    "quarantine establishment": "quarantine",
     "control post": "holding_yard",
     "type ii authorised transporters": "transporter",
     "type i authorised transporters": "transporter",

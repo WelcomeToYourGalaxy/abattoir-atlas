@@ -87,28 +87,44 @@ def load_outlines() -> list:
     return json.loads(f.read_text()) if f.exists() else []
 
 
-# Activities that only ever involve an animal already dead. A plant listed
-# under these and nothing else never sees a live animal, so it is held out of
-# the map by default -- see drop_post_mortem_only below. Nothing is deleted:
-# out/facilities.json.gz still carries every row, and --keep-post-mortem puts
-# them back on the map.
-POST_MORTEM_ONLY = {"cutting", "processing", "minced_meat", "meat_preparations",
-                    "game_handling", "cold_store", "rendering", "casings",
-                    "egg_products"}
+# Activities this map does not draw on their own. Two kinds sit here: places
+# that only ever handle an animal already dead, and places where animals are
+# kept for something other than the food chain. A site listed under these and
+# nothing else is held off the map; a site that also kills stays, which is why
+# a plant listed `SH CP` -- slaughterhouse and cutting line -- is still drawn.
+#
+# This is a scope list, not a data filter. out/facilities.json.gz carries every
+# row either way, the dedup report still counts them, and --keep-excluded draws
+# them. Edit the set to change what the map shows.
+EXCLUDED_ACTIVITIES = {
+    # handled after killing
+    "cutting", "processing", "minced_meat", "meat_preparations",
+    "game_handling", "cold_store", "rendering", "casings", "egg_products",
+    # kept for something other than meat, milk or eggs
+    "experimentation", "zoo", "wildlife", "racing", "rodeo", "entertainment",
+    "pet_breeder", "pet_shop", "agricultural_show",
+    "farm_honey", "farm_wool", "farm_skins",
+}
+
+# The old name, for anything still importing it.
+POST_MORTEM_ONLY = EXCLUDED_ACTIVITIES
 
 
-def drop_post_mortem_only(facilities):
+def drop_excluded(facilities):
     """(kept, dropped). A facility is dropped only when every activity it
-    carries is one of the post-mortem ones AND no registry flagged it as
-    slaughtering. A plant listed `SH CP` kills and cuts, so it stays."""
+    carries is on the excluded list AND no registry flagged it as slaughtering.
+    One qualifying activity anywhere on the record keeps the whole site."""
     kept, dropped = [], []
     for f in facilities:
         acts = set(f.activities or [])
-        if acts and acts <= POST_MORTEM_ONLY and f.slaughter is not True:
+        if acts and acts <= EXCLUDED_ACTIVITIES and f.slaughter is not True:
             dropped.append(f)
         else:
             kept.append(f)
     return kept, dropped
+
+
+drop_post_mortem_only = drop_excluded
 
 
 def shares(facilities) -> dict:
@@ -251,7 +267,7 @@ label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
 .kinds ul{margin:2px 0 0;padding-left:17px;color:var(--dim);font-size:12px;
   line-height:1.6}
 .kinds li b{color:var(--text);font-weight:500}
-.tally{margin-left:auto;color:var(--dim);font-size:11.5px;
+.tally{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap;
   font-variant-numeric:tabular-nums}
 .grp .lede{color:var(--dim);font-size:11px;line-height:1.5;margin:-4px 0 8px}
 .note{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
@@ -348,6 +364,7 @@ const ACTIVITY_LABEL = {
   farm_eggs:'Egg farm', farm_wool:'Wool farm', farm_skins:'Skin and fur farm',
   farm_poultry:'Poultry establishment', transporter:'Authorised transporter',
   insect_rearing:'Isolated bee rearing', germinal_products:'Germinal products',
+  quarantine:'Quarantine establishment',
   farm_honey:'Apiary', hatchery:'Hatchery', saleyard:'Saleyard',
   live_market:'Live animal market', holding_yard:'Holding yard',
   aquaculture:'Aquaculture', experimentation:'Laboratory', zoo:'Zoo',
@@ -371,6 +388,7 @@ const ACTIVITY_NOTE = {
   insect_rearing:'Bumble bees reared in environmental isolation, for pollination rather than honey',
   germinal_products:'Semen, ova or embryos taken from breeding animals. Some are centres where donor animals are kept, some are teams that travel to them', hatchery:'Chicks hatched and sorted by sex',
   saleyard:'Animals bought and sold, usually on the way to a kill floor',
+  quarantine:'Animals held in compulsory isolation before they may move or enter a country',
   live_market:'Animals sold alive, often killed on site',
   holding_yard:'Animals held in transit', aquaculture:'Fish or shellfish farmed',
   experimentation:'Animals used in research', zoo:'Animals held on display',
@@ -402,6 +420,7 @@ const ACTIVITY_FATE = {
   farm_meat:'elsewhere', farm_dairy:'elsewhere', farm_eggs:'elsewhere',
   farm_wool:'elsewhere', farm_skins:'elsewhere', hatchery:'some',
   farm_poultry:'elsewhere', transporter:'transit', insect_rearing:'no',
+  quarantine:'elsewhere',
   germinal_products:'no',
   farm_honey:'no', saleyard:'elsewhere', holding_yard:'elsewhere',
   cutting:'after', processing:'after', minced_meat:'after',
@@ -411,7 +430,7 @@ const ACTIVITY_FATE = {
   rodeo:'some', entertainment:'some', pet_breeder:'some', pet_shop:'some',
   agricultural_show:'no'};
 const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
-  'transporter',
+  'quarantine','transporter',
   'farm_meat','farm_dairy','farm_poultry','farm_eggs','farm_wool','farm_skins',
   'farm_honey',
   'hatchery','aquaculture','insect_rearing','germinal_products','cutting',
@@ -422,7 +441,8 @@ const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
   'pet_breeder','pet_shop','agricultural_show','unknown','_none'];
 const SLAUGHTER_NOTE = {
   1:'A registry field says animals are killed on site',
-  0:'The registry lists activities and none of them is killing',
+  0:'The registry names what the place does and killing is not among it \u2014 '+
+    'a cutting plant, a cold store, a haulier, a fish farm, a hatchery',
   2:'The registry is silent, which is not the same as a no'};
 
 /* ---- project once ----------------------------------------------------
@@ -850,7 +870,13 @@ function group(title,items,set,swatches,lede){
 
     const pct=SHARES[title+'::'+it.key];
     const bits=[];
-    if(pct!==undefined) bits.push('<span class="share">'+pct.toFixed(1)+'%</span> of all');
+    /* Two numbers sat side by side with nothing saying which was which: a live
+       count of what is currently drawn, and a share of the whole dataset. They
+       can disagree wildly and correctly -- a registry can hold a quarter of all
+       the facilities and have a few hundred drawn, because the rest have no
+       address precise enough to place. Both are labelled now. */
+    if(pct!==undefined) bits.push('<span class="share">'+pct.toFixed(1)+'%</span> of all '+
+      (D.n_all||0).toLocaleString());
     if(it.note) bits.push(esc(it.note));
     if(bits.length){ const h=document.createElement('span'); h.className='hint';
       h.innerHTML=bits.join(' &middot; '); body.appendChild(h); }
@@ -937,7 +963,8 @@ function updateTallies(){
     D.dict.source[D.src[i]].forEach(s=>{const k='Registry::'+s;t[k]=(t[k]||0)+1;});
   }
   document.querySelectorAll('.tally').forEach(el=>{
-    const v=t[el.dataset.k]; el.textContent=v?v.toLocaleString():'';
+    const v=t[el.dataset.k];
+    el.textContent = v ? v.toLocaleString()+' drawn' : 'none drawn';
   });
 }
 
@@ -995,7 +1022,7 @@ function updateTallies(){
       'one is on its way to a place where it does. The transporters are the odd '+
       'entry on this map: a licensed haulier is a company, and the address is an '+
       'office rather than somewhere animals are kept.',
-    keys:['saleyard','holding_yard','transporter']},
+    keys:['saleyard','holding_yard','quarantine','transporter']},
    {h:'Where animals are confined and raised',
     p:'Animals live here and are killed elsewhere. A dairy cow is slaughtered '+
       'when her milk yield falls, usually at five or six years against a '+
@@ -1020,6 +1047,17 @@ function updateTallies(){
       'surplus zoo animals, unsold breeding stock.',
     keys:['experimentation','zoo','wildlife','racing','rodeo','entertainment',
           'pet_breeder','pet_shop','agricultural_show']},
+   {h:'What "listed as none" means',
+    p:'A registry that names activities and does not name killing among them. '+
+      'It is a statement, not a silence: the EU registers print a code for '+
+      'every approved activity, so a plant listed CP and CS does cutting and '+
+      'cold storage and would carry SH if it slaughtered. Most of this bucket '+
+      'is the trade around the kill floor rather than anything humane \u2014 '+
+      'cutting plants and processors taking carcasses in, hauliers moving live '+
+      'animals to slaughter, fish farms and hatcheries raising stock that will '+
+      'be killed somewhere else. The animals still die; the registry is saying '+
+      'they do not die at this address.',
+    keys:[]},
    {h:'Where the registry did not say',
     p:'The listing exists and the activity field is empty. Silence is not a '+
       'no, and these are not counted as anything.',
@@ -1033,8 +1071,10 @@ function updateTallies(){
       'they overlap.</p><div class="prov kinds">';
     for(const s of SECTIONS){
       const rows=s.keys.filter(k=>pct(k)!==null);
+      if(!rows.length && s.keys.length) continue;
+      h+='<h4>'+esc(s.h)+'</h4><p>'+esc(s.p)+'</p>';
       if(!rows.length) continue;
-      h+='<h4>'+esc(s.h)+'</h4><p>'+esc(s.p)+'</p><ul>';
+      h+='<ul>';
       for(const k of rows){
         h+='<li><b>'+esc(ACTIVITY_LABEL[k]||k)+'</b> &middot; '+pct(k)+
            ' &middot; '+esc(ACTIVITY_NOTE[k]||'')+'</li>';
@@ -1106,7 +1146,7 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
           keep_post_mortem: bool = False) -> dict:
     dropped = []
     if not keep_post_mortem:
-        facilities, dropped = drop_post_mortem_only(facilities)
+        facilities, dropped = drop_excluded(facilities)
     payload = encode(facilities, sources_meta or {})
     html = (TEMPLATE
             .replace("__TITLE__", title)
@@ -1122,7 +1162,7 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
         "size_mb": round(size_mb, 2),
         "mapped": payload["n_mapped"],
         "unlocated": payload["n_unlocated"],
-        "post_mortem_only_excluded": len(dropped),
+        "excluded_from_map": len(dropped),
         "by_country": dict(Counter(f.country_iso3 for f in facilities).most_common(25)),
         "warning": (
             "Over 12 MB. Most shared hosts will serve this, but Weebly's embed "

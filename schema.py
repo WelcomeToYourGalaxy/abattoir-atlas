@@ -69,6 +69,10 @@ ACTIVITIES = {
     # collection and production teams, processing and storage. Breeding
     # infrastructure rather than a place animals are killed.
     "germinal_products",
+    # TRACES QUR: animals held in isolation before they may move or enter.
+    # Distinct enough from an assembly centre to name separately -- the holding
+    # is compulsory and the animals are under restriction, not in transit.
+    "quarantine",
     "experimentation", "zoo", "wildlife", "racing", "rodeo", "entertainment",
     "pet_breeder", "pet_shop", "agricultural_show", "aquaculture",
     "cutting",          # EU "CP" cutting plant
