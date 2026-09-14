@@ -36,6 +36,7 @@ from pathlib import Path
 
 from cifer import (CATEGORIES, CATEGORY_SETS, CATEGORY_SPECIES,
                    COUNTRY_CODES, iso3_from_name)
+from countries import english_name
 
 URL = "https://ciferquery.singlewindow.cn"
 CHECKPOINT = Path("work/cifer_checkpoint.json")
@@ -56,6 +57,12 @@ PAUSE = (1.2, 2.4)   # overridden by --pause
 # carries a generic placeholder, while #orgNo (overseas registration number)
 # is the field whose placeholder contains 国家. A placeholder match for
 # "country" hits the wrong input and silently searches on nonsense.
+# The two filters are each a pair: a visible autocompleter box holding a name,
+# and a hidden input holding the code that actually gets submitted. Picking from
+# the dropdown is what copies one into the other. That distinction is the whole
+# bug in the first harvest -- see set_filter.
+HIDDEN = {"country": "#country", "category": "#registerType"}
+
 SEL = {
     "category": ["#registerTypeName", "input[name='registerTypeName']"],
     "country":  ["#countryName", "input[name='countryName']"],
@@ -96,6 +103,53 @@ def _rows(page):
     return None
 
 
+def hidden_value(page, field: str) -> str:
+    """What the form will actually submit for this filter."""
+    try:
+        return (page.locator(HIDDEN[field]).first.input_value() or "").strip()
+    except Exception:
+        return ""
+
+
+def set_filter(page, field: str, code: str, label: str | None = None) -> bool:
+    """Apply one filter and prove it applied.
+
+    The first harvest failed here and reported success. It typed an ISO3 code
+    into the box that wants a country *name*, the fuzzy search matched nothing,
+    no dropdown rendered, and the fallback then checked whether the visible box
+    held text -- which it did, because we had just typed into it. So every
+    slice looked applied, every query ran unfiltered, and the same default ten
+    rows came back over and over while 832 slices were marked complete.
+
+    So: write the hidden field directly, which is what the form submits, and
+    read it back. If that does not stick, fall back to driving the
+    autocompleter with a name -- and check the hidden field afterwards either
+    way. Nothing is trusted that cannot be read back.
+    """
+    sel = HIDDEN[field]
+    try:
+        page.eval_on_selector(sel, """(el, v) => {
+            el.value = v;
+            el.dispatchEvent(new Event('input',  {bubbles: true}));
+            el.dispatchEvent(new Event('change', {bubbles: true}));
+        }""", code)
+        if label:
+            try:
+                box = _first(page, field, timeout=4000)
+                box.fill(label)
+            except Exception:
+                pass
+        page.wait_for_timeout(300)
+        if hidden_value(page, field) == code:
+            return True
+    except Exception:
+        pass
+
+    if label and fill_autocomplete(page, field, label):
+        return hidden_value(page, field) != ""
+    return False
+
+
 def fill_autocomplete(page, field: str, value: str) -> bool:
     """Fill one of the two autocompleter boxes.
 
@@ -121,12 +175,13 @@ def fill_autocomplete(page, field: str, value: str) -> bool:
         except Exception:
             continue
 
-    # No list rendered. Fall back to keyboard selection, then verify the box
-    # actually holds something -- an empty box means the filter did not apply.
+    # No list rendered. Fall back to keyboard selection, then check the hidden
+    # field rather than the visible box: the box holds whatever was typed into
+    # it whether or not a suggestion was ever accepted.
     page.keyboard.press("ArrowDown")
     page.keyboard.press("Enter")
     page.wait_for_timeout(500)
-    return bool((box.input_value() or "").strip())
+    return hidden_value(page, field) != ""
 
 
 def open_site(pw, headed: bool = False):
@@ -158,8 +213,16 @@ def open_site(pw, headed: bool = False):
     return browser, ctx, page
 
 
-def run_query(page, country_code: str | None, category_code: str | None) -> bool:
-    """Fill the form and search. Returns whether the category filter applied."""
+def run_query(page, country_code: str | None, category_code: str | None,
+              country_label: str | None = None,
+              category_label: str | None = None) -> dict:
+    """Fill the form and search.
+
+    Returns what actually applied, read back from the hidden fields at the
+    moment of submitting rather than assumed from what we typed. The caller
+    needs that distinction: an unfiltered query still returns rows, and rows
+    from an unfiltered query are not the slice that was asked for.
+    """
     # Status: include suspended registrations as well as active ones. Which
     # plants to count is your call, not the scraper's, so it does not narrow
     # the set here.
@@ -168,22 +231,27 @@ def run_query(page, country_code: str | None, category_code: str | None) -> bool
     except Exception:
         pass
 
-    if country_code:
-        if not fill_autocomplete(page, "country", country_code):
-            raise RuntimeError(f"country {country_code!r} did not resolve in the "
-                               f"autocompleter")
+    if country_code and not set_filter(page, "country", country_code, country_label):
+        raise RuntimeError(f"country {country_code!r} would not stick in the "
+                           f"form; refusing to run an unfiltered query and "
+                           f"call it {country_label or country_code}")
 
-    applied = True
     if category_code:
-        applied = fill_autocomplete(page, "category", category_code)
-        if not applied:
-            print(f"  category {category_code} did not resolve; querying the "
-                  f"country unfiltered", file=sys.stderr)
+        set_filter(page, "category", category_code, category_label)
+
+    # Read the form as it stands, immediately before submitting.
+    state = {"country": hidden_value(page, "country"),
+             "category": hidden_value(page, "category")}
+    state["country_ok"] = (not country_code) or state["country"] == country_code
+    state["category_ok"] = (not category_code) or state["category"] == category_code
+    if category_code and not state["category_ok"]:
+        print(f"  category {category_code} did not apply "
+              f"(form holds {state['category']!r})", file=sys.stderr)
 
     _first(page, "search").click()
     page.wait_for_timeout(1600)
     set_page_size(page)
-    return applied
+    return state
 
 
 def set_page_size(page, want: int = 50) -> None:
@@ -309,10 +377,25 @@ def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
     out_path.parent.mkdir(parents=True, exist_ok=True)
     CHECKPOINT.parent.mkdir(parents=True, exist_ok=True)
 
-    state = {"done": [], "rows": 0}
+    # Bumped when the meaning of "done" changes. The v1 checkpoint recorded 832
+    # slices as complete that had never run a filtered query, so resuming
+    # against it would skip the entire harvest and report success.
+    CHECKPOINT_VERSION = 2
+
+    state = {"v": CHECKPOINT_VERSION, "done": [], "rows": 0}
+    failed: list[str] = []
     if resume and CHECKPOINT.exists():
-        state = json.loads(CHECKPOINT.read_text())
-        print(f"resuming: {len(state['done'])} slices done, {state['rows']:,} rows")
+        prior = json.loads(CHECKPOINT.read_text())
+        if prior.get("v") == CHECKPOINT_VERSION:
+            state = prior
+            state.setdefault("rows", 0)
+            print(f"resuming: {len(state['done'])} slices done, "
+                  f"{state['rows']:,} rows")
+        else:
+            print(f"ignoring a v{prior.get('v', 1)} checkpoint with "
+                  f"{len(prior.get('done', []))} slices: those were recorded "
+                  f"before the filters were verified, so they are not evidence "
+                  f"the slice ran. Starting over.")
 
     seen: set[str] = set()
     if resume and out_path.exists():
@@ -338,16 +421,24 @@ def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
                     try:
                         page.goto(URL, wait_until="domcontentloaded", timeout=90_000)
                         page.wait_for_timeout(1200)
-                        applied = run_query(
+                        state_q = run_query(
                             page,
                             COUNTRY_CODES.get(country, country) if country else None,
-                            cat)
+                            cat,
+                            country_label=english_name(country) if country else None,
+                            category_label=CATEGORIES.get(cat, cat))
+                        applied = state_q["category_ok"]
                         if not applied:
                             print(f"  !! category {cat} did not apply -- these "
                                   f"rows are NOT species-tagged and may not be "
                                   f"meat at all", file=sys.stderr)
+                        if not state_q["country_ok"]:
+                            raise RuntimeError(
+                                f"country filter reads {state_q['country']!r}, "
+                                f"expected {COUNTRY_CODES.get(country)!r}")
                     except Exception as exc:
                         print(f"  query failed: {exc}", file=sys.stderr)
+                        failed.append(slice_id)
                         continue
 
                     got, pages = 0, 0
@@ -380,14 +471,24 @@ def harvest(out_path: Path, countries: list[str] | None, categories: list[str],
                             break
                         time.sleep(pause * random.uniform(0.7, 1.3))
 
-                    state["done"].append(slice_id)
-                    CHECKPOINT.write_text(json.dumps(state))
+                    # A slice counts as done only when the filters verified.
+                    # Marking an unverified slice complete is what turned the
+                    # first harvest into 832 permanent skips over 71 rows.
+                    if state_q["country_ok"] and applied:
+                        state["done"].append(slice_id)
+                        CHECKPOINT.write_text(json.dumps(state))
+                    else:
+                        failed.append(slice_id)
                     time.sleep(pause)
         finally:
             fh.close()
             ctx.close(); browser.close()
 
     print(f"\n{state['rows']:,} rows in {out_path}")
+    if failed:
+        print(f"{len(failed)} slices did not verify and were NOT marked done; "
+              f"re-running with --resume retries exactly those: "
+              + ", ".join(failed[:12]) + ("..." if len(failed) > 12 else ""))
     print(f"next: python run.py parse --source cifer_china --file {out_path.name}")
 
 
@@ -474,9 +575,16 @@ def probe(country: str, category: str, headed: bool):
         browser, ctx, page = open_site(pw, headed)
         Path("work").mkdir(exist_ok=True)
         try:
-            filtered = run_query(page, COUNTRY_CODES.get(country, country), category)
-            if not filtered:
-                print("note: category filter was not applied")
+            st = run_query(page, COUNTRY_CODES.get(country, country), category,
+                           country_label=english_name(country),
+                           category_label=CATEGORIES.get(category, category))
+            print(f"form submitted with country={st['country']!r} "
+                  f"category={st['category']!r}")
+            if not st["country_ok"]:
+                print("!! the country filter did NOT apply. Any rows below are "
+                      "an unfiltered result, not this country.")
+            if not st["category_ok"]:
+                print("!! the category filter did NOT apply.")
             rows = read_page(page)
             page.screenshot(path="work/cifer_probe.png", full_page=True)
             print(f"{len(rows)} rows on page 1\n")
