@@ -346,6 +346,8 @@ const SLAUGHTER_LABEL = {1:'Slaughter confirmed by a registry',
 const ACTIVITY_LABEL = {
   slaughter:'Slaughterhouse', farm_meat:'Meat farm', farm_dairy:'Dairy farm',
   farm_eggs:'Egg farm', farm_wool:'Wool farm', farm_skins:'Skin and fur farm',
+  farm_poultry:'Poultry establishment', transporter:'Authorised transporter',
+  insect_rearing:'Isolated bee rearing', germinal_products:'Germinal products',
   farm_honey:'Apiary', hatchery:'Hatchery', saleyard:'Saleyard',
   live_market:'Live animal market', holding_yard:'Holding yard',
   aquaculture:'Aquaculture', experimentation:'Laboratory', zoo:'Zoo',
@@ -362,8 +364,12 @@ const ACTIVITY_NOTE = {
   farm_meat:'Animals confined and raised to be killed elsewhere',
   farm_dairy:'Cows confined for milk; calves and spent cows go to slaughter',
   farm_eggs:'Hens confined for eggs; male chicks and spent hens are killed',
+  farm_poultry:'Birds confined for breeding or production; the register does not say which',
+  transporter:'A haulier licensed to move live animals on journeys over eight hours. The address is a company office, not a place animals are kept',
   farm_wool:'Sheep confined for wool', farm_skins:'Animals confined for skin or fur',
-  farm_honey:'Bees kept for honey', hatchery:'Chicks hatched and sorted by sex',
+  farm_honey:'Bees kept for honey',
+  insect_rearing:'Bumble bees reared in environmental isolation, for pollination rather than honey',
+  germinal_products:'Semen, ova or embryos taken from breeding animals. Some are centres where donor animals are kept, some are teams that travel to them', hatchery:'Chicks hatched and sorted by sex',
   saleyard:'Animals bought and sold, usually on the way to a kill floor',
   live_market:'Animals sold alive, often killed on site',
   holding_yard:'Animals held in transit', aquaculture:'Fish or shellfish farmed',
@@ -386,6 +392,7 @@ const ACTIVITY_NOTE = {
    floor unless it says so, and a dairy is not a place where nothing dies. */
 const FATE = {
   here:{tag:'killed here',           colour:'#a4635c'},
+  transit:{tag:'animals not kept here', colour:'#6d8b93'},
   elsewhere:{tag:'killed elsewhere', colour:'#a1808d'},
   some:{tag:'some killed',           colour:'#8b8474'},
   after:{tag:'bodies handled here',  colour:'#6d8b93'},
@@ -394,6 +401,8 @@ const ACTIVITY_FATE = {
   slaughter:'here', live_market:'here', aquaculture:'elsewhere',
   farm_meat:'elsewhere', farm_dairy:'elsewhere', farm_eggs:'elsewhere',
   farm_wool:'elsewhere', farm_skins:'elsewhere', hatchery:'some',
+  farm_poultry:'elsewhere', transporter:'transit', insect_rearing:'no',
+  germinal_products:'no',
   farm_honey:'no', saleyard:'elsewhere', holding_yard:'elsewhere',
   cutting:'after', processing:'after', minced_meat:'after',
   meat_preparations:'after', game_handling:'after', cold_store:'after',
@@ -402,8 +411,12 @@ const ACTIVITY_FATE = {
   rodeo:'some', entertainment:'some', pet_breeder:'some', pet_shop:'some',
   agricultural_show:'no'};
 const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
-  'farm_meat','farm_dairy','farm_eggs','farm_wool','farm_skins','farm_honey',
-  'hatchery','aquaculture','cutting','game_handling','processing','minced_meat',
+  'transporter',
+  'farm_meat','farm_dairy','farm_poultry','farm_eggs','farm_wool','farm_skins',
+  'farm_honey',
+  'hatchery','aquaculture','insect_rearing','germinal_products','cutting',
+  'game_handling',
+  'processing','minced_meat',
   'meat_preparations','casings','egg_products','rendering','cold_store',
   'experimentation','zoo','wildlife','racing','rodeo','entertainment',
   'pet_breeder','pet_shop','agricultural_show','unknown','_none'];
@@ -977,10 +990,12 @@ function updateTallies(){
     p:'The kill floor itself, and the markets where animals are sold alive and '+
       'killed on the spot or within the hour.',
     keys:['slaughter','live_market']},
-   {h:'Where animals are held on the way',
+   {h:'Where animals are held or moved on the way',
     p:'No killing happens at these, and almost every animal that passes through '+
-      'one is on its way to a place where it does.',
-    keys:['saleyard','holding_yard']},
+      'one is on its way to a place where it does. The transporters are the odd '+
+      'entry on this map: a licensed haulier is a company, and the address is an '+
+      'office rather than somewhere animals are kept.',
+    keys:['saleyard','holding_yard','transporter']},
    {h:'Where animals are confined and raised',
     p:'Animals live here and are killed elsewhere. A dairy cow is slaughtered '+
       'when her milk yield falls, usually at five or six years against a '+
@@ -988,8 +1003,9 @@ function updateTallies(){
       'fleece thins. Male chicks are killed at the hatchery within a day of '+
       'hatching because they will not lay. None of that happens at the address '+
       'on the map, which is why these are the largest share of it.',
-    keys:['farm_meat','farm_dairy','farm_eggs','farm_wool','farm_skins',
-          'hatchery','aquaculture','farm_honey']},
+    keys:['farm_meat','farm_dairy','farm_poultry','farm_eggs','farm_wool','farm_skins',
+          'hatchery','aquaculture','farm_honey','insect_rearing',
+          'germinal_products']},
    {h:'Where bodies are handled, on a site that also kills',
     p:'A cutting line or a cold store attached to a kill floor. Plants that '+
       'only handle animals already dead -- standalone cutting plants, '+

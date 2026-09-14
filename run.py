@@ -49,6 +49,9 @@ SOURCE_LABELS = {
     "eu_member_states": {"name": "EU member state approved establishments",
                          "short": "EU member state"},
     "uk_fsa": {"name": "UK FSA approved establishments", "short": "UK FSA"},
+    "eu_traces_animal_health": {"name": "EU TRACES animal health register of "
+                                       "approved live-animal establishments",
+                                "short": "EU animal health"},
     "cifer_china": {"name": "China GACC import food enterprise registration",
                     "short": "China CIFER"},
     "ca_cfia": {"name": "CFIA licensed establishments", "short": "Canada CFIA"},
@@ -99,6 +102,10 @@ def cmd_parse(args):
                 f, source_id=sid,
                 id_scheme={"uk_fsa": "UK-APPROVAL"}.get(sid, "EU-APPROVAL"),
                 country_iso3=args.country, snapshot=args.snapshot)
+    elif sid == "eu_traces_animal_health":
+        new = []
+        for f in sorted((RAW / sid).glob("*.csv")):
+            new += parsers.parse_eu_health(f, snapshot=args.snapshot)
     elif sid == "cifer_china":
         new = parsers.parse_cifer(RAW / (args.file or "cifer.jsonl"), args.snapshot)
     elif sid == "farm_transparency":

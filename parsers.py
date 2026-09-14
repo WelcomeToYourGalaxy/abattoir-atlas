@@ -393,6 +393,15 @@ _HEALTH_SECTION_ACTIVITY = {
     "CONF": "zoo",                  # confined establishments, zoos, collections
     "QUR": "holding_yard",          # quarantine
     "COP": "holding_yard",          # control post, transport rest stop
+    "SEM-COL": "germinal_products",       # semen collection centres
+    "EMB-COL": "germinal_products",       # embryo collection teams
+    "EMB-PRO": "germinal_products",       # in vitro embryo production teams
+    "GERM-PRO": "germinal_products",      # germinal product processing
+    "GERM-STO": "germinal_products",      # germinal product storage
+    "GERM-CONF": "germinal_products",     # germinal products, confined animals
+    "BBEEISO-EST": "insect_rearing",      # isolated bumble bee production
+    "REG-TRANS-AUTH-II": "transporter",   # hauliers, journeys over 8 hours
+    "REG-TRANS-AUTH-I": "transporter",    # hauliers, journeys up to 8 hours
     "DCF-SHEL": "pet_shop",         # animal shelters
     "BIRD-EST": "pet_breeder",      # captive birds
 }
@@ -406,7 +415,21 @@ _HEALTH_ACTIVITY_TEXT = {
     "hatchery": "hatchery",
     "quarantine": "holding_yard",
     "control post": "holding_yard",
+    "type ii authorised transporters": "transporter",
+    "type i authorised transporters": "transporter",
 }
+
+
+# Donor species as the germinal sections spell them.
+_HEALTH_SPECIES_WORDS = {"bovine": "bovine", "equine": "equine",
+                         "ovine": "ovine", "caprine": "caprine",
+                         "porcine": "porcine"}
+
+
+def _species_from_text(text: str | None) -> list:
+    low = (text or "").lower()
+    return [v for k, v in _HEALTH_SPECIES_WORDS.items()
+            if re.search(rf"\b{k}\b", low) and v in SPECIES]
 
 
 def parse_eu_health(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
@@ -434,6 +457,11 @@ def parse_eu_health(path: Path, snapshot: str | None = None) -> list[SourceRecor
                         or "unknown")
             species = [sp for sp in (row.get("species") or "").split()
                        if sp in SPECIES]
+            # The germinal sections put the donor species in the activity text
+            # -- "Bovine collection team", "Ovine/caprine production team" --
+            # rather than in the remarks column the other sections use.
+            if not species:
+                species = _species_from_text(row.get("activity"))
             out.append(SourceRecord(
                 source_id="eu_traces_animal_health",
                 source_snapshot=snapshot,

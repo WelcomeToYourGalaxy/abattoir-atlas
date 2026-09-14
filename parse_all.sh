@@ -19,6 +19,11 @@ for dir in eu_traces_third_country eu_member_states uk_fsa; do
   fi
 done
 
+if compgen -G "raw/eu_traces_animal_health/*.csv" > /dev/null 2>&1; then
+  echo "== EU TRACES animal health"
+  python run.py parse --source eu_traces_animal_health --snapshot "$snap"
+fi
+
 if [ -f raw/cifer.jsonl ]; then
   echo "== CIFER"
   python run.py parse --source cifer_china --file cifer.jsonl --snapshot "$snap"

@@ -54,6 +54,21 @@ ACTIVITIES = {
     # anything.
     "farm_meat", "farm_dairy", "farm_eggs", "farm_wool", "farm_skins",
     "farm_honey", "hatchery", "saleyard", "live_market", "holding_yard",
+    # TRACES POU-EST-AP covers breeding flocks and production flocks in one
+    # approval and does not say which. Inventing farm_eggs or farm_meat for
+    # each would be a guess; this records what the register actually states.
+    "farm_poultry",
+    # TRACES REG-TRANS-AUTH-II: a haulier approved for journeys over eight
+    # hours. The listing's address is a company office, not a place animals are
+    # kept, and the activity name says so rather than implying a facility.
+    "transporter",
+    # TRACES BBEEISO-EST: bumble bees reared in environmental isolation, for
+    # pollination rather than honey, so farm_honey would misdescribe them.
+    "insect_rearing",
+    # TRACES germinal-product sections: semen collection centres, embryo
+    # collection and production teams, processing and storage. Breeding
+    # infrastructure rather than a place animals are killed.
+    "germinal_products",
     "experimentation", "zoo", "wildlife", "racing", "rodeo", "entertainment",
     "pet_breeder", "pet_shop", "agricultural_show", "aquaculture",
     "cutting",          # EU "CP" cutting plant
@@ -76,19 +91,9 @@ GEO_PRECISION = {
     "none",       # no coordinate at all
 }
 
-# Precise enough to draw as a facility pin: this is where the site is.
+# Only these two precisions are safe to draw as a facility pin. Anything coarser
+# is a placeholder that would imply a precision the data does not have.
 MAPPABLE_PRECISION = {"rooftop", "street"}
-
-# Town-level only. The register named a locality and no usable street, so the
-# coordinate is the town, not the plant. Drawn -- because a facility in the
-# right town is worth more than a facility nowhere -- but drawn differently,
-# and labelled as such wherever it appears. The map must never imply a
-# precision the source did not give.
-APPROX_PRECISION = {"locality"}
-
-# Coarser than a town (region or country centroid) stays off the map entirely.
-# A country centroid is not a location, it is an average.
-DRAWABLE_PRECISION = MAPPABLE_PRECISION | APPROX_PRECISION
 
 
 # ---------------------------------------------------------------------------
@@ -172,20 +177,12 @@ class Facility:
     review_notes: list[str] = field(default_factory=list)
 
     @property
-    def precise(self) -> bool:
-        """Located to a street or a building."""
-        return (self.lat is not None and self.lon is not None
-                and self.geo_precision in MAPPABLE_PRECISION)
-
-    @property
-    def approximate(self) -> bool:
-        """Located to a town only -- the right settlement, not the right site."""
-        return (self.lat is not None and self.lon is not None
-                and self.geo_precision in APPROX_PRECISION)
-
-    @property
     def mappable(self) -> bool:
-        return self.precise or self.approximate
+        return (
+            self.lat is not None
+            and self.lon is not None
+            and self.geo_precision in MAPPABLE_PRECISION
+        )
 
     def to_dict(self) -> dict:
         return asdict(self)
