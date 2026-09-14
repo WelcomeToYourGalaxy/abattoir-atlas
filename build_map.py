@@ -71,6 +71,79 @@ def _dot_colour(species: list[str]) -> str:
     return SPECIES_COLOUR.get(primary[0], SPECIES_COLOUR["other"])
 
 
+# Climate TRACE's confined-animal-facility asset definition, if a filtered
+# extract has been dropped in. Kept as an overlay rather than parsed into
+# facilities, and the distinction is not cosmetic: every other point on this map
+# comes from a register that licensed a named premises, and these are a model's
+# estimate that a facility exists at a location. Merging them would put modelled
+# points into the dedup matcher and into the facility count, where a reader
+# could not tell the two apart.
+CAFO_PATH = Path("raw/climate_trace_cafo.geojsonl")
+
+
+def load_cafo(path: Path | None = None) -> dict | None:
+    """Point overlay from a GeoJSONL (or GeoJSON) extract.
+
+    Returns None when the file is absent, which is the normal case -- the layer
+    then does not appear at all rather than appearing empty.
+    """
+    f = Path(path) if path else CAFO_PATH
+    if not f.exists():
+        return None
+
+    feats = []
+    text = f.read_text(encoding="utf-8")
+    if f.suffix == ".geojson" or text.lstrip().startswith('{"type": "FeatureCollection"'):
+        try:
+            feats = json.loads(text).get("features", [])
+        except json.JSONDecodeError:
+            feats = []
+    else:
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                feats.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    lat, lon, name, precise, owner, capacity = [], [], [], [], [], []
+    periods = set()
+    for ft in feats:
+        geom = ft.get("geometry") or {}
+        if geom.get("type") != "Point":
+            continue
+        try:
+            x, y = geom["coordinates"][:2]
+            x, y = float(x), float(y)
+        except (TypeError, ValueError, KeyError, IndexError):
+            continue
+        pr = ft.get("properties") or {}
+        if pr.get("x_asset_definition") not in (None, "confined-animal-facility"):
+            continue          # an unfiltered extract would otherwise slip through
+        lon.append(round(x, 5))
+        lat.append(round(y, 5))
+        name.append((pr.get("name") or "").strip())
+        # x_precision records whether a point is a located facility or an
+        # administrative centroid. Anything not explicitly precise is drawn
+        # hollow: a solid dot asserts a position the source did not give.
+        precise.append(1 if str(pr.get("x_precision", "")).lower()
+                       in ("facility", "high", "exact", "point") else 0)
+        owner.append((pr.get("x_owner") or "").strip())
+        cap = pr.get("x_capacity")
+        units = (pr.get("x_capacity_units") or "").strip()
+        capacity.append(f"{cap} {units}".strip() if cap not in (None, "") else "")
+        if pr.get("x_period"):
+            periods.add(str(pr["x_period"]))
+
+    if not lat:
+        return None
+    return {"lat": lat, "lon": lon, "name": name, "precise": precise,
+            "owner": owner, "capacity": capacity,
+            "periods": sorted(periods), "n": len(lat)}
+
+
 def load_outlines() -> list:
     """Simplified country outlines, embedded rather than fetched.
 
@@ -212,6 +285,7 @@ def encode(facilities, sources_meta: dict) -> dict:
         "sources_meta": sources_meta,
         "unlocated_by_country": dict(
             Counter(f.country_iso3 or "—" for f in unlocated).most_common()),
+        "cafo": load_cafo(),
         "outlines": load_outlines(),
     }
 
@@ -1059,9 +1133,107 @@ function updateTallies(){
     D.dict.source[D.src[i]].forEach(s=>{const k='Registry::'+s;t[k]=(t[k]||0)+1;});
   }
   document.querySelectorAll('.tally').forEach(el=>{
+    if(!el.dataset.k) return;      /* static counts, e.g. the CAFO overlay */
     const v=t[el.dataset.k];
     el.textContent = v ? v.toLocaleString()+' drawn' : 'none drawn';
   });
+}
+
+/* ---- Climate TRACE confined animal facilities -------------------------- */
+/* Drawn on their own canvas, under the registry points and over the basemap,
+   so nothing here can be mistaken for a licensed premises. Uniform radius on
+   purpose: the archive carries an emissions value, and sizing a dot by it would
+   say "this one matters more", which is not what a locations layer is for. */
+const CAFO = D.cafo || null;
+let SHOW_CAFO = false;
+
+const CafoLayer = L.Layer.extend({
+  onAdd(m){
+    this._c = L.DomUtil.create('canvas','leaflet-zoom-animated');
+    this._ctx = this._c.getContext('2d');
+    m.getPanes().overlayPane.appendChild(this._c);
+    m.on('moveend zoomend resize',this.draw,this);
+    if(m.options.zoomAnimation) m.on('zoomanim',this._anim,this);
+    this.draw();
+  },
+  _anim(e){
+    const s=this._map.getZoomScale(e.zoom), o=this._map._latLngToNewLayerPoint(
+      this._map.getBounds().getNorthWest(), e.zoom, e.center);
+    L.DomUtil.setTransform(this._c,o,s);
+  },
+  draw(){
+    const m=this._map; if(!m || !CAFO) return;
+    const size=m.getSize(), dpr=window.devicePixelRatio||1;
+    const tl=m.containerPointToLayerPoint([0,0]);
+    L.DomUtil.setPosition(this._c,tl);
+    this._c.width=size.x*dpr; this._c.height=size.y*dpr;
+    this._c.style.width=size.x+'px'; this._c.style.height=size.y+'px';
+    const ctx=this._ctx; ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,size.x,size.y);
+    if(!SHOW_CAFO) return;
+
+    const z=m.getZoom(), S=256*Math.pow(2,z), o=m.getPixelOrigin();
+    const offX=o.x+tl.x, offY=o.y+tl.y, w=size.x, h=size.y;
+    const r = z<5 ? 1.6 : (z<8 ? 2.4 : (z<11 ? 3.2 : 4.2));
+    ctx.lineWidth = 1;
+    for(let i=0;i<CAFO.n;i++){
+      const wx=(CAFO.lon[i]+180)/360;
+      const sn=Math.sin(CAFO.lat[i]*Math.PI/180);
+      const wy=0.5 - Math.log((1+sn)/(1-sn))/(4*Math.PI);
+      const x=wx*S-offX, y=wy*S-offY;
+      if(x<-10||x>w+10||y<-10||y>h+10) continue;
+      ctx.beginPath(); ctx.arc(x,y,r,0,TAU);
+      if(CAFO.precise[i]){
+        ctx.globalAlpha=.7; ctx.fillStyle='#7B6A4E'; ctx.fill();
+      }else{
+        /* Hollow: the source gave an area, not a position. */
+        ctx.globalAlpha=.8; ctx.strokeStyle='#7B6A4E'; ctx.stroke();
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+});
+const cafoLayer = CAFO ? new CafoLayer() : null;
+
+if(CAFO){
+  map.attributionControl.addAttribution(
+    'Confined animal facilities: <a href="https://climatetrace.org/">Climate '+
+    'TRACE</a>, CC BY 4.0 &mdash; modelled, not a permit register');
+  (function(){
+    const g=document.createElement('div'); g.className='grp';
+    g.innerHTML='<h2>Confined animal facilities</h2>';
+    const p=document.createElement('p'); p.className='lede';
+    p.textContent='Climate TRACE model these from satellite imagery and census '+
+      'data. Nothing here has necessarily been visited, licensed or confirmed '+
+      'by any authority, which is what separates them from every other point '+
+      'on this map.';
+    g.appendChild(p);
+    const l=document.createElement('label'); l.className='row';
+    const cb=document.createElement('input'); cb.type='checkbox';
+    cb.onchange=function(){ SHOW_CAFO=cb.checked; cafoLayer.draw(); };
+    l.appendChild(cb);
+    const body=document.createElement('div'); body.className='rowbody';
+    const top=document.createElement('div'); top.className='rowtop';
+    const t=document.createElement('span'); t.className='lbl';
+    t.textContent='Show modelled facilities';
+    const n=document.createElement('span'); n.className='tally';
+    n.textContent=CAFO.n.toLocaleString()+' points';
+    top.appendChild(t); top.appendChild(n); body.appendChild(top);
+    const hollow=CAFO.precise.reduce((a,b)=>a+b,0);
+    const h=document.createElement('span'); h.className='hint';
+    h.innerHTML=(CAFO.periods.length===1
+        ? 'One month of data, '+esc(CAFO.periods[0])+'. '
+        : '')+
+      '<span class="share">'+(CAFO.n-hollow).toLocaleString()+'</span> of these '+
+      'are drawn hollow because the source gave an administrative area rather '+
+      'than a position.';
+    body.appendChild(h);
+    const f=document.createElement('span'); f.className='fate';
+    f.textContent='modelled, not licensed'; f.style.color='#8b8474';
+    body.appendChild(f);
+    l.appendChild(body); g.appendChild(l);
+    F.appendChild(g);
+  })();
 }
 
 /* ---- livestock density toggle ----------------------------------------- */
@@ -1282,6 +1454,7 @@ document.addEventListener('keydown',function(e){
 
 rebuildVis();
 coarse.addTo(map);        /* under the points, over the basemap */
+if(cafoLayer) cafoLayer.addTo(map);
 layer.addTo(map);
 
 })();
