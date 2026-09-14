@@ -2,10 +2,10 @@
 
 Generated 2026-09-14
 
-- Input rows: **184,059**
-- Facilities after clustering: **168,572**
-- Rows absorbed into a multi-source facility: **15,487**
-- Flagged for review, not merged: **42,934 pairs**
+- Input rows: **189,923**
+- Facilities after clustering: **173,551**
+- Rows absorbed into a multi-source facility: **16,372**
+- Flagged for review, not merged: **48,727 pairs**
 
 ## Rows per source
 
@@ -15,33 +15,40 @@ Generated 2026-09-14
 - EU / EFTA member states: 22,112
 - Non-EU (EU-approved): 15,390
 - USDA FSIS: 7,241
+- Brazil SIF: 3,147
+- OpenStreetMap: 2,717
 - NZ MPI: 1,641
 - Canada CFIA: 952
 - China CIFER: 71
 
 ## What joined the merges
 
-- `addr`: 3,462 clusters
-- `geo`: 2,662 clusters
+- `addr`: 3,536 clusters
+- `geo`: 3,151 clusters
 - `id`: 1,364 clusters
 
 ## Cluster sizes
 
-- 1 source record: 161,399 facilities
-- 2 source records: 6,209 facilities
-- 3 source records: 682 facilities
-- 4 source records: 159 facilities
-- 5 source records: 69 facilities
-- 6 source records: 13 facilities
-- 7 source records: 7 facilities
-- 8 source records: 5 facilities
-- 9 source records: 3 facilities
-- 10 source records: 1 facilities
+- 1 source record: 165,869 facilities
+- 2 source records: 6,555 facilities
+- 3 source records: 779 facilities
+- 4 source records: 184 facilities
+- 5 source records: 84 facilities
+- 6 source records: 20 facilities
+- 7 source records: 13 facilities
+- 8 source records: 10 facilities
+- 9 source records: 5 facilities
+- 10 source records: 2 facilities
+- 11 source records: 1 facilities
+- 12 source records: 1 facilities
 - 13 source records: 1 facilities
+- 14 source records: 1 facilities
+- 18 source records: 1 facilities
 - 19 source records: 1 facilities
 - 20 source records: 1 facilities
 - 21 source records: 1 facilities
 - 22 source records: 1 facilities
+- 29 source records: 1 facilities
 - 33 source records: 20 facilities
 
 Nothing was discarded. Every input row is inside exactly one facility above, and `out/facilities.json` carries all of them verbatim.
