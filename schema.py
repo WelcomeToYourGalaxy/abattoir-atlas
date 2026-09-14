@@ -95,6 +95,14 @@ GEO_PRECISION = {
 # is a placeholder that would imply a precision the data does not have.
 MAPPABLE_PRECISION = {"rooftop", "street"}
 
+# The wider set dedup.py uses when attaching a coordinate to a facility, as
+# opposed to when deciding whether two records are the same site. A town
+# centroid is worth carrying and labelling; it is not worth matching on, since
+# every plant in one town shares it and a proximity test would merge them all.
+# Facility.mappable still gates on MAPPABLE_PRECISION, so a locality coordinate
+# reaches the published data without ever being drawn as a pin.
+DRAWABLE_PRECISION = {"rooftop", "street", "locality"}
+
 
 # ---------------------------------------------------------------------------
 # Source record: one row, as one registry published it
