@@ -638,6 +638,52 @@ const imagery = L.tileLayer(
      'Earthstar Geographics, USDA FSA, USGS, Aerogrid, IGN, IGP and the GIS '+
      'user community'});
 
+/* ---- FAO Gridded Livestock of the World -------------------------------- */
+/* A modelled raster, and the only layer on this map that is not a place.
+   Subnational census totals downscaled to a grid by a Random Forest model, so a
+   pixel is an estimate of animals in that cell rather than animals counted
+   there. No owner, no company, no farm behind any pixel. It sits under the
+   points, because the points are evidence and this is context.
+
+   Two things about the published tile template are unverified, and both fail
+   quietly rather than loudly. FAO's catalogue maps TileCol={y} and TileRow={x},
+   which is the reverse of the usual convention -- get it wrong and every tile
+   still returns 200, you just get a transposed world. And the mapset serves one
+   species without saying which. So the toggle ships with an axis swap next to
+   it: turn the layer on, look at a coastline, and if the pattern does not sit
+   on the land, hit swap. */
+const GLW_ATTRIB =
+  'Livestock density: FAO, <a href="https://data.apps.fao.org/catalog/iso/'+
+  '9d1e149b-d63f-4213-978b-317a8eb42d02">Gridded Livestock of the World 4</a> '+
+  '(2020), CC BY 4.0 &mdash; modelled, not counted';
+const GLW_BASE = 'https://data.apps.fao.org/map/wmts/wmts'+
+  '?layer=fao-gismgr/GLW4-2020/mapsets/D-DA'+
+  '&tilematrixset=EPSG:3857&Service=WMTS&request=GetTile&Version=1.0.0'+
+  '&Format=image/png&layertype=Image';
+
+let glwLayer = null, glwSwapped = false;
+
+function glwUrl(swapped){
+  /* As published: TileCol={y}, TileRow={x}. Swapped is the conventional
+     reading. One of the two is right and a coastline says which. */
+  return GLW_BASE + '&TileMatrix={z}' +
+    (swapped ? '&TileCol={x}&TileRow={y}' : '&TileCol={y}&TileRow={x}');
+}
+
+function setLivestock(on, swapped){
+  glwSwapped = (swapped === undefined) ? glwSwapped : swapped;
+  if(glwLayer){ map.removeLayer(glwLayer); glwLayer = null; }
+  if(!on) return;
+  glwLayer = L.tileLayer(glwUrl(glwSwapped), {
+    opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
+    attribution: GLW_ATTRIB,
+    /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
+       It would be needed only to read their pixels back out of a canvas. */
+  });
+  glwLayer.addTo(map);
+  if(map.hasLayer(layer)) layer.bringToFront();
+}
+
 function setBasemap(kind){
   SATELLITE = (kind==='satellite');
   if(SATELLITE){
@@ -1017,6 +1063,58 @@ function updateTallies(){
     el.textContent = v ? v.toLocaleString()+' drawn' : 'none drawn';
   });
 }
+
+/* ---- livestock density toggle ----------------------------------------- */
+(function(){
+  const g=document.createElement('div'); g.className='grp';
+  g.innerHTML='<h2>Livestock density</h2>';
+  const p=document.createElement('p'); p.className='lede';
+  p.textContent='The one layer here that is not a place. FAO model subnational '+
+    'census totals down onto a grid, so a cell is an estimate of how many '+
+    'animals are in it, not a count of animals seen there.';
+  g.appendChild(p);
+
+  const l=document.createElement('label'); l.className='row';
+  const cb=document.createElement('input'); cb.type='checkbox';
+  l.appendChild(cb);
+  const body=document.createElement('div'); body.className='rowbody';
+  const top=document.createElement('div'); top.className='rowtop';
+  const t=document.createElement('span'); t.className='lbl';
+  t.textContent='Show FAO livestock grid';
+  top.appendChild(t); body.appendChild(top);
+  const h=document.createElement('span'); h.className='hint';
+  h.innerHTML='Head per km&sup2;, reference year 2020. FAO advise against '+
+    'drawing this in lat/long: at this projection a northern cell covers far '+
+    'less ground than an equatorial one, so Canada and Siberia read heavier '+
+    'than they are against the tropics.';
+  body.appendChild(h);
+  const f=document.createElement('span'); f.className='fate';
+  f.textContent='modelled, not counted'; f.style.color='#8b8474';
+  body.appendChild(f);
+  l.appendChild(body); g.appendChild(l);
+
+  /* Only useful once the layer is on, so it stays hidden until then. */
+  const swapRow=document.createElement('label'); swapRow.className='row';
+  swapRow.style.display='none';
+  const sw=document.createElement('input'); sw.type='checkbox';
+  swapRow.appendChild(sw);
+  const sbody=document.createElement('div'); sbody.className='rowbody';
+  const stop=document.createElement('div'); stop.className='rowtop';
+  const st=document.createElement('span'); st.className='lbl';
+  st.textContent='Swap tile axes';
+  stop.appendChild(st); sbody.appendChild(stop);
+  const sh=document.createElement('span'); sh.className='hint';
+  sh.textContent='If the grid does not sit on the coastlines, the row and '+
+    'column parameters are the wrong way round. This flips them.';
+  sbody.appendChild(sh); swapRow.appendChild(sbody); g.appendChild(swapRow);
+
+  cb.onchange=function(){
+    swapRow.style.display = cb.checked ? '' : 'none';
+    setLivestock(cb.checked, sw.checked);
+  };
+  sw.onchange=function(){ if(cb.checked) setLivestock(true, sw.checked); };
+  F.appendChild(g);
+})();
 
 /* ---- unplaced-facility layer toggle ----------------------------------- */
 (function(){
