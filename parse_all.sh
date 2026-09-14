@@ -24,6 +24,21 @@ if compgen -G "raw/eu_traces_animal_health/*.csv" > /dev/null 2>&1; then
   python run.py parse --source eu_traces_animal_health --snapshot "$snap"
 fi
 
+if [ -f raw/eu_ied.csv ]; then
+  echo "== EU IED installations"
+  python run.py parse --source eu_industrial_emissions --file eu_ied.csv --snapshot "$snap"
+fi
+
+if [ -f raw/ca_cfia.csv ]; then
+  echo "== Canada CFIA"
+  python run.py parse --source ca_cfia --file ca_cfia.csv --snapshot "$snap"
+fi
+
+if [ -f raw/nz_mpi.csv ]; then
+  echo "== New Zealand MPI"
+  python run.py parse --source nz_mpi --file nz_mpi.csv --snapshot "$snap"
+fi
+
 if [ -f raw/br_sif.csv ]; then
   echo "== Brazil SIF"
   python run.py parse --source br_sif --file br_sif.csv --snapshot "$snap"

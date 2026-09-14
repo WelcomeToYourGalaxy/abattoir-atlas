@@ -487,6 +487,308 @@ def parse_eu_health(path: Path, snapshot: str | None = None) -> list[SourceRecor
 
 
 # ---------------------------------------------------------------------------
+# EU Industrial Emissions Directive installations
+# ---------------------------------------------------------------------------
+#
+# The EU Registry's installation table, filtered to the IED Annex I activities
+# that involve animals. Every row carries a coordinate the operator reported to
+# a regulator, which makes this the only European source in the pipeline that
+# does not need geocoding -- and a way to check the geocoder's work against
+# something authoritative.
+#
+# Two things it is not. It is a permit register, so nothing below the IED
+# capacity threshold appears at all: a slaughterhouse under 50 tonnes of
+# carcass a day is invisible here however many animals it kills. And an
+# installation is a permitted unit rather than a company, so one site can hold
+# several.
+#
+# 6.6 is the find. Intensive rearing above the thresholds -- 40,000 poultry
+# places, 2,000 production pigs, 750 sows -- is 26,559 installations with
+# coordinates, an order of magnitude more than the abattoirs.
+
+_IED_ACTIVITY = {
+    "6.4(a)": ("slaughter", [], True),       # slaughterhouses >50 t carcass/day
+    "6.5":    ("rendering", [], None),       # disposal or recycling of carcases
+    "6.6(a)": ("farm_poultry", ["poultry"], None),
+    "6.6(b)": ("farm_meat", ["porcine"], None),   # production pigs over 30 kg
+    "6.6(c)": ("farm_meat", ["porcine"], None),   # sows
+    "6.4(b)(i)": ("processing", [], None),
+    "6.4(b)(ii)": ("processing", [], None),
+    "6.4(b)(iii)": ("processing", [], None),
+    "6.4(c)": ("processing", [], None),      # milk only
+    "6.3":    ("processing", [], None),      # tanning of hides and skins
+}
+
+
+def parse_eu_ied(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """EU Registry IED installations, animal activities only.
+
+    Status is carried through rather than filtered on. A disused installation
+    is still a place that operated, and which plants to count is not the
+    parser's call -- installationStatus rides along in raw.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    out = []
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh)):
+            code = (row.get("IEDAnnexIMainActivity") or "").strip()
+            mapped = _IED_ACTIVITY.get(code)
+            if mapped is None:
+                continue
+            activity, species, kills = mapped
+
+            try:
+                lat = float(row["Latitude"])
+                lon = float(row["Longitude"])
+                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                    lat = lon = None
+            except (TypeError, ValueError, KeyError):
+                lat = lon = None
+
+            name = (row.get("installationName") or "").strip()
+            iid = (row.get("InstallationInspireId") or "").strip()
+            if not name and not iid:
+                continue
+
+            out.append(SourceRecord(
+                source_id="eu_industrial_emissions",
+                source_snapshot=snapshot,
+                source_row_id=iid or f"row{i}",
+                name=name or iid,
+                country_iso3=(to_iso3(row.get("CountryName"))
+                              or country_at(lat, lon) or ""),
+                national_id=iid or None,
+                id_scheme="EU-INSPIRE",
+                locality=(row.get("City_of_Facility") or "").strip() or None,
+                species=[sp for sp in species if sp in SPECIES],
+                activities=[activity],
+                slaughter=kills,
+                src_lat=lat, src_lon=lon,
+                raw={k: v for k, v in row.items() if v},
+            ))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Canada CFIA
+# ---------------------------------------------------------------------------
+#
+# The federally registered meat establishment list. Its ten code columns are
+# not ten kinds of code: each column is one facility type from the search
+# form's Facility Type panel, in the order that panel lists them, and the
+# letters inside a column are that type's sub-options. So CODES_31 holding "fx"
+# means boning and cutting of poultry meat and red meat, not a code "fx".
+#
+# Ritual slaughter and Trichina treatment are absent from the numbered columns
+# because the export carries them separately -- TRICHINA1 is its own field.
+#
+# The column-to-type mapping is read off the search form, not from CFIA's
+# function-code document, which is a separate download. It is consistent with
+# the counts (97 establishments slaughter, 607 do other processing, 238 are
+# storage only) but it is an inference, so the raw codes are kept on every
+# record and _CA_UNMAPPED reports any letter the species table does not know.
+
+_CA_COLUMNS = [
+    ("CODES_11",  "slaughter",   True),   # Slaughter
+    ("CODES_21",  "processing",  False),  # Canning
+    ("CODES_31",  "cutting",     False),  # Boning and cutting
+    ("CODE_41",   "rendering",   False),  # Edible rendering
+    ("CODE_51",   "casings",     False),  # Casing preparation
+    ("CODES_61",  "processing",  False),  # Other processing
+    ("CODE_71",   "processing",  False),  # Packaging, labelling and storing
+    ("CODE_81",   "rendering",   False),  # Inedible rendering
+    ("CODES_91",  "cold_store",  False),  # Detained / imported product inspection
+    ("CODES_101", "cold_store",  False),  # Storage only: A cold, B dry
+]
+
+# Slaughter species, in the order the search form lists them. Letters beyond
+# this are left unmapped rather than guessed at.
+_CA_SLAUGHTER_SPECIES = {
+    "a": "bovine",      # cattle
+    "b": "bovine",      # calves
+    "c": "ovine",       # sheep, lambs and goats -- the form groups them
+    "d": "porcine",     # swine
+    "e": "equine",      # horses
+    "f": "poultry",
+    "g": "lagomorph",   # rabbits
+}
+
+
+def parse_ca_cfia(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """Canada's federally registered meat establishments.
+
+    Federal registration only. Provincially inspected plants, which serve the
+    domestic market in most provinces, are licensed separately and are absent.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    out = []
+    unmapped: set = set()
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh)):
+            est = (row.get("EST_NUM1") or "").strip()
+            name = (row.get("NAME1") or "").strip()
+            if not name:
+                continue
+
+            acts, species = set(), set()
+            for col, activity, is_slaughter in _CA_COLUMNS:
+                val = (row.get(col) or "").strip()
+                if not val:
+                    continue
+                acts.add(activity)
+                if is_slaughter:
+                    for ch in re.findall(r"[A-Za-z]", val):
+                        sp = _CA_SLAUGHTER_SPECIES.get(ch.lower())
+                        if sp:
+                            species.add(sp)
+                        else:
+                            unmapped.add(ch.lower())
+
+            street = ", ".join(x for x in ((row.get("LOC_ADD11") or "").strip(),
+                                           (row.get("LOC_ADD21") or "").strip(),
+                                           (row.get("LOC_ADD31") or "").strip()) if x)
+            out.append(SourceRecord(
+                source_id="ca_cfia",
+                source_snapshot=snapshot,
+                source_row_id=est or f"row{i}",
+                name=name,
+                country_iso3="CAN",
+                national_id=est or None,
+                id_scheme="CA-EST",
+                address=street or None,
+                locality=(row.get("LOC_CITY1") or "").strip() or None,
+                admin1=(row.get("LOC_PROV1") or "").strip() or None,
+                postcode=(row.get("LOC_PC1") or "").strip() or None,
+                species=sorted(sp for sp in species if sp in SPECIES),
+                activities=sorted(acts) or ["unknown"],
+                slaughter=True if "slaughter" in acts else None,
+                operator=(row.get("ADB_NAME1") or "").strip() or None,
+                raw={k: v for k, v in row.items() if v},
+            ))
+    if unmapped:
+        print(f"  ca_cfia: slaughter letters not in the species table: "
+              f"{', '.join(sorted(unmapped))} -- check them against CFIA's "
+              f"function-code document", flush=True)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# New Zealand MPI
+# ---------------------------------------------------------------------------
+#
+# The Animal Products Act register of Risk Management Programmes, exported from
+# MPI as a Risk Measure Data Extract. Every row carries a physical address and a
+# town, which is rare in this pipeline, and the Primary and Secondary Process
+# columns name what the premises does in MPI's own vocabulary.
+#
+# "Slaughter" and "Dressing" are the two words that mean an animal is killed
+# here. Dressing without slaughter is a plant that takes carcasses in, but MPI
+# lists the pair together often enough that both are checked and only Slaughter
+# sets the flag.
+
+_NZ_PROCESS = [
+    ("slaughter", "slaughter"),
+    ("dual operator butcher", "cutting"),
+    ("boning/cutting", "cutting"),
+    ("dressing", "cutting"),
+    ("refrigeration", "cold_store"),
+    ("rendering", "rendering"),
+    ("chicken producer", "farm_meat"),
+    ("farm dairy", "farm_dairy"),
+    ("candling", "egg_products"),
+    ("grading", "egg_products"),
+    ("filleting", "processing"),
+    ("gutting", "processing"),
+    ("shucking", "processing"),
+    ("size reduction", "processing"),
+    ("thermal", "processing"),
+    ("smoking", "processing"),
+    ("salting/curing/brining", "processing"),
+    ("formulation", "processing"),
+    ("packing", "processing"),
+]
+_NZ_PROGRAMME = [
+    ("micro abattoir", "slaughter"),
+    ("dual operator butcher", "cutting"),
+    ("stores", "cold_store"),
+    ("transport and storage", "cold_store"),
+    ("bee products", "farm_honey"),
+    ("farm dairies", "farm_dairy"),
+    ("chicken producers", "farm_meat"),
+    ("eggs", "egg_products"),
+]
+_NZ_SPECIES = [
+    (r"\bcattle|\bbovine|\bbobby calf", "bovine"),
+    (r"\bfarmed pigs|\bpigs\b|\bporcine", "porcine"),
+    (r"\bsheep|\blamb|\bovine\b", "ovine"),
+    (r"\bgoats?\b|\bcaprine", "caprine"),
+    (r"\bdeer\b|\bvenison", "cervid"),
+    (r"\bpoultry|\bchicken|\bbroiler|\bduck|\bturkey", "poultry"),
+    (r"\bhorse|\bequine", "equine"),
+    (r"\brabbit|\bhare\b", "lagomorph"),
+    (r"\bfish\b|\bseafood|\bshellfish|\bmollusc", "other"),
+]
+
+
+def parse_nz_mpi(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """New Zealand MPI Risk Measure Data Extract.
+
+    The register covers every registered animal-product operation, so most rows
+    are honey packers, cold stores and egg graders rather than abattoirs. That
+    is the point: the extract says which is which, in a field, rather than
+    leaving it to be guessed from a company name.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    out, seen = [], set()
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh)):
+            rid = (row.get("MPI ID Number") or "").strip()
+            name = ((row.get("Operator Trading Name") or "").strip()
+                    or (row.get("Operator Business Name") or "").strip())
+            if not name:
+                continue
+            if rid and rid in seen:
+                continue
+            seen.add(rid)
+
+            proc = " ".join([(row.get("Primary") or ""),
+                             (row.get("Secondary Process") or "")]).lower()
+            prog = (row.get("Programme Type") or "").lower()
+            acts = {a for needle, a in _NZ_PROCESS if needle in proc}
+            acts |= {a for needle, a in _NZ_PROGRAMME if needle in prog}
+
+            material = (row.get("Product/Material") or "").lower()
+            if "layer" in material or "rearer" in material:
+                acts.add("farm_eggs")
+            species = [v for pat, v in _NZ_SPECIES
+                       if re.search(pat, material) and v in SPECIES]
+
+            out.append(SourceRecord(
+                source_id="nz_mpi",
+                source_snapshot=snapshot,
+                source_row_id=rid or f"row{i}",
+                name=name,
+                country_iso3="NZL",
+                national_id=rid or None,
+                id_scheme="NZ-MPI",
+                address=(row.get("Physical Address") or "").strip() or None,
+                locality=(row.get("Physical Town/City") or "").strip() or None,
+                admin1=((row.get("Location Local Authority") or "").strip()
+                        or (row.get("Operator Local Authority") or "").strip()
+                        or None),
+                species=species,
+                activities=sorted(acts) or ["unknown"],
+                # Only the word Slaughter. Dressing on its own is a plant that
+                # takes carcasses in, and the register distinguishes them.
+                slaughter=True if "slaughter" in proc or "micro abattoir" in prog
+                          else None,
+                operator=(row.get("Operator Business Name") or "").strip() or None,
+                raw={k: v for k, v in row.items() if v},
+            ))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Brazil SIF
 # ---------------------------------------------------------------------------
 #
