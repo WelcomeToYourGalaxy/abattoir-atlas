@@ -62,6 +62,11 @@ jobs:
             --title "${{ inputs.title || 'Commercial Slaughter' }}"
           mkdir -p docs
           cp out/atlas.html docs/index.html
+          # The page fetches its data from a sibling file, so the data has to
+          # travel with it. Without these two lines the map loads to an empty
+          # frame and a "data file did not load" message.
+          cp out/atlas.data.json docs/atlas.data.json
+          cp out/atlas.data.json.gz docs/atlas.data.json.gz
           cp out/dedup_report.md docs/dedup_report.md
           ls -lh docs/
 
