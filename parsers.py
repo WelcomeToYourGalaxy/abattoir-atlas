@@ -367,6 +367,97 @@ def parse_eu_list(path: Path, *, source_id: str, id_scheme: str,
 
 
 # ---------------------------------------------------------------------------
+# TRACES animal health register
+# ---------------------------------------------------------------------------
+#
+# A second EU register, separate from the food-hygiene one above. That one
+# lists plants approved to handle meat; this lists premises approved to hold
+# live animals. No section in it has a slaughter concept, so nothing here is
+# ever flagged as killing -- these are the places animals are held and raised
+# before they reach one that does.
+
+_HEALTH_SECTION_ACTIVITY = {
+    "ASC-UNG": "holding_yard",      # assembly centre, ungulates
+    "ASC-POU": "holding_yard",      # assembly centre, poultry
+    "ASC-DCF": "holding_yard",      # assembly centre, dogs, cats, ferrets
+    "POU-EST-AP": "farm_poultry",   # breeding or productive poultry
+    "HATCH-AP": "hatchery",
+    "AQUA-EST-AP": "aquaculture",
+    "AQUA-EST-AP-GR": "aquaculture",
+    # Approved to take in and kill farmed aquatic animals from waters under a
+    # disease restriction. The only section in this register where killing is
+    # part of the approval, and the rows carry the same generic "Aquaculture
+    # establishment" activity text as an ordinary farm -- so the section code,
+    # not the row text, is what tells them apart.
+    "AQUA-EST-DISEASE": "slaughter",
+    "CONF": "zoo",                  # confined establishments, zoos, collections
+    "QUR": "holding_yard",          # quarantine
+    "COP": "holding_yard",          # control post, transport rest stop
+    "DCF-SHEL": "pet_shop",         # animal shelters
+    "BIRD-EST": "pet_breeder",      # captive birds
+}
+# Sections whose approval includes killing animals on site.
+_HEALTH_SLAUGHTER_SECTIONS = {"AQUA-EST-DISEASE"}
+
+_HEALTH_ACTIVITY_TEXT = {
+    "assembly center": "holding_yard",
+    "assembly centre": "holding_yard",
+    "poultry establishment": "farm_poultry",
+    "hatchery": "hatchery",
+    "quarantine": "holding_yard",
+    "control post": "holding_yard",
+}
+
+
+def parse_eu_health(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """TRACES animal-health establishment listing, converted by
+    traces_health_paste.py.
+
+    The section code decides what a premises is, with the row's activity text
+    as the fallback. The section comes from the block header and cannot be
+    shifted by a lost pipe, and it is the more specific of the two: every
+    aquaculture row says "Aquaculture establishment" whether it is an ordinary
+    farm or one approved to kill stock out of a disease-restricted zone.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    out = []
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh)):
+            approval = (row.get("approval_number") or "").strip()
+            name = (row.get("name") or "").strip()
+            if not name and not approval:
+                continue
+            section = (row.get("section") or "").strip().upper()
+            act_text = (row.get("activity") or "").split("|")[0].strip().lower()
+            activity = (_HEALTH_SECTION_ACTIVITY.get(section)
+                        or _HEALTH_ACTIVITY_TEXT.get(act_text)
+                        or "unknown")
+            species = [sp for sp in (row.get("species") or "").split()
+                       if sp in SPECIES]
+            out.append(SourceRecord(
+                source_id="eu_traces_animal_health",
+                source_snapshot=snapshot,
+                source_row_id=approval or f"row{i}",
+                name=name or approval,
+                country_iso3=to_iso3(row.get("country")) or "",
+                national_id=approval or None,
+                id_scheme="TRACES-AH",
+                address=(row.get("address") or "").strip() or None,
+                locality=(row.get("city") or "").strip() or None,
+                admin1=clean_region(row.get("region")) or None,
+                postcode=(row.get("postcode") or "").strip() or None,
+                species=species,
+                activities=[activity],
+                # Not "unstated": the register lists what each premises is
+                # approved for. Killing is among the options in exactly one
+                # section, so one section is flagged and the rest are denied.
+                slaughter=(section in _HEALTH_SLAUGHTER_SECTIONS),
+                raw={k: v for k, v in row.items() if v},
+            ))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # China GACC / CIFER
 # ---------------------------------------------------------------------------
 
