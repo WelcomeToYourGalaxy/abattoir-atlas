@@ -94,13 +94,22 @@ sources:
     coverage_bias: Great Britain and Northern Ireland approved establishments.
 
   ca_cfia:
-    name: CFIA licensed establishments (Safe Food for Canadians)
+    name: Federally registered meat establishments and their licensed operators
     authority: Canadian Food Inspection Agency
-    url: https://www.inspection.canada.ca/
-    url_status: needs_check
-    format: web_query
-    id_scheme: CA-SFC
-    parser: generic_tabular
+    url: https://apps.inspection.canada.ca/webapps/MeatList/
+    download: https://apps.inspection.canada.ca/webapps/MeatList/Home/GetAllOperators
+    url_status: verified_manual
+    format: csv
+    id_scheme: CA-EST
+    parser: ca_cfia
+    note: >
+      The ten numbered code columns are ten facility types, in the order the
+      search form's Facility Type panel lists them, and the letters inside a
+      column are that type's sub-options. Ritual slaughter and Trichina
+      treatment are not among them; TRICHINA1 is a separate field.
+    coverage_bias: >
+      Federal registration only. Provincially inspected plants, which serve the
+      domestic market in most provinces, are licensed separately and absent.
 
   br_sif:
     name: Estabelecimentos Registrados no SIF (SIGSIF)
@@ -131,13 +140,23 @@ sources:
       level (PrimeSafe in Victoria, NSW Food Authority, etc.) and are absent.
 
   nz_mpi:
-    name: Registered risk management programmes
+    name: Registered Risk Management Programmes (Animal Product)
     authority: New Zealand Ministry for Primary Industries
-    url: https://www.mpi.govt.nz/
-    url_status: needs_check
-    format: xlsx
+    url: https://catalogue.data.govt.nz/dataset/registered-risk-management-programmes-animal-product
+    url_status: verified_manual
+    format: csv (Risk Measure Data Extract), exported from the register
     id_scheme: NZ-MPI
-    parser: generic_tabular
+    parser: nz_mpi
+    note: >
+      Every row carries a physical address and a town, which most registries in
+      this pipeline do not. Primary and Secondary Process name what the premises
+      does; "Slaughter" is the word that means an animal is killed there, and
+      "Dressing" on its own is a plant taking carcasses in.
+    coverage_bias: >
+      All registered animal-product operations, so most rows are honey packers,
+      cold stores and egg graders rather than abattoirs. Fishing vessels under
+      limited processing and export-approved non-food premises are separate
+      registers and are absent.
 
   # ----------------------------------------------------- emissions attachment
   # These do not add facilities. They attach measured pollutant data to
