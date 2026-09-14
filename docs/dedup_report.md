@@ -3,9 +3,9 @@
 Generated 2026-09-14
 
 - Input rows: **189,923**
-- Facilities after clustering: **173,551**
-- Rows absorbed into a multi-source facility: **16,372**
-- Flagged for review, not merged: **48,727 pairs**
+- Facilities after clustering: **173,392**
+- Rows absorbed into a multi-source facility: **16,531**
+- Flagged for review, not merged: **48,919 pairs**
 
 ## Rows per source
 
@@ -24,15 +24,15 @@ Generated 2026-09-14
 ## What joined the merges
 
 - `addr`: 3,536 clusters
-- `geo`: 3,151 clusters
+- `geo`: 3,293 clusters
 - `id`: 1,364 clusters
 
 ## Cluster sizes
 
-- 1 source record: 165,869 facilities
-- 2 source records: 6,555 facilities
-- 3 source records: 779 facilities
-- 4 source records: 184 facilities
+- 1 source record: 165,575 facilities
+- 2 source records: 6,669 facilities
+- 3 source records: 797 facilities
+- 4 source records: 187 facilities
 - 5 source records: 84 facilities
 - 6 source records: 20 facilities
 - 7 source records: 13 facilities
