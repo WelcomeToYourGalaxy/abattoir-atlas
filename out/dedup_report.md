@@ -2,14 +2,14 @@
 
 Generated 2026-09-14
 
-- Input rows: **180,578**
+- Input rows: **149,201**
 - Facilities after clustering: **134,826**
-- Rows absorbed into a multi-source facility: **45,752**
+- Rows absorbed into a multi-source facility: **14,375**
 - Flagged for review, not merged: **39,686 pairs**
 
 ## Rows per source
 
-- Farm Transparency: 106,659
+- Farm Transparency: 75,282
 - EU animal health: 29,105
 - EU / EFTA member states: 22,112
 - Non-EU (EU-approved): 15,390
