@@ -55,7 +55,9 @@ SOURCE_LABELS = {
     "cifer_china": {"name": "China GACC import food enterprise registration",
                     "short": "China CIFER"},
     "ca_cfia": {"name": "CFIA licensed establishments", "short": "Canada CFIA"},
-    "br_sif": {"name": "Serviço de Inspeção Federal", "short": "Brazil SIF"},
+    "br_sif": {"name": "Serviço de Inspeção Federal (federal inspection only; "
+                       "state and municipal plants are separate registers)",
+               "short": "Brazil SIF"},
     "au_daff": {"name": "Australian export-registered establishments", "short": "Australia DAFF"},
     "nz_mpi": {"name": "NZ registered risk management programmes", "short": "NZ MPI"},
     "osm_overpass": {"name": "OpenStreetMap", "short": "OpenStreetMap"},
@@ -102,6 +104,8 @@ def cmd_parse(args):
                 f, source_id=sid,
                 id_scheme={"uk_fsa": "UK-APPROVAL"}.get(sid, "EU-APPROVAL"),
                 country_iso3=args.country, snapshot=args.snapshot)
+    elif sid == "br_sif":
+        new = parsers.parse_br_sif(RAW / (args.file or "br_sif.csv"), args.snapshot)
     elif sid == "eu_traces_animal_health":
         new = []
         for f in sorted((RAW / sid).glob("*.csv")):

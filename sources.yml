@@ -103,13 +103,17 @@ sources:
     parser: generic_tabular
 
   br_sif:
-    name: Serviço de Inspeção Federal establishment list
+    name: Estabelecimentos Registrados no SIF (SIGSIF)
     authority: Ministério da Agricultura e Pecuária (MAPA)
-    url: https://www.gov.br/agricultura/
-    url_status: needs_check
-    format: xlsx / csv
+    url: https://dados.agricultura.gov.br/dataset/062166e3-b515-4274-8e7d-68aadd64b820/resource/97277e92-264a-4dc0-9aea-f87b8ea93798/download/sigsifestabelecimentosregistradosnosif.csv
+    url_status: verified
+    format: csv, semicolon-delimited, UTF-8
     id_scheme: BR-SIF
-    parser: generic_tabular
+    parser: br_sif
+    note: >
+      One row per habilitation event rather than per plant, so a large abattoir
+      appears a dozen times. CATEGORIA_CLASSE carries the plant type, the
+      species and the throughput band in one string.
     coverage_bias: >
       Federal inspection only. State (SIE) and municipal (SIM) inspected plants
       are separate registries and are the majority by count in Brazil.
@@ -143,17 +147,39 @@ sources:
   eu_industrial_emissions:
     name: European Industrial Emissions Portal (EU Registry + E-PRTR)
     authority: European Environment Agency
-    url: https://industry.eea.europa.eu/download
-    url_status: verified
+    url: https://industry.eea.europa.eu/industrial-emissions/dataset
+    catalogue: https://sdi.eea.europa.eu/catalogue/srv/eng/catalog.search#/metadata/9405f714-8015-4b5b-a63c-280b82861b3d
+    url_status: page_verified_download_not_verified
     format: zipped csv / sqlite, full series 2007-2023
     role: emissions_join
     match_on: [coordinates, name]
+    activity_codes:
+      # The code that means "this is an abattoir" differs between the two
+      # dataflows, and picking the wrong one collects food factories instead.
+      ied_annex_i: "6.4(a) — operating slaughterhouses with a carcass
+        production capacity greater than 50 tonnes per day. 6.4(b) is the
+        treatment and processing of raw materials into food products, which is
+        a different set of plants."
+      eprtr: "8(a) — slaughterhouses, same 50 t/day carcass threshold, under
+        E-PRTR activity 8, animal and vegetable products from the food and
+        beverage sector."
     coverage_bias: >
-      IED Annex I 6.4(b) treatment and processing of animal raw materials,
-      above the capacity threshold. Large abattoirs only. Covers EU Member
-      States plus Iceland, Liechtenstein, Norway, Serbia, Switzerland, UK.
-      Carries facility coordinates, so doubles as a geocode validator.
+      Large abattoirs only, and only above the 50 t/day carcass threshold.
+      Covers EU Member States plus Iceland, Liechtenstein, Norway, Serbia,
+      Switzerland; from reporting year 2020 the UK reports only Northern
+      Ireland. Carries facility coordinates, so doubles as a geocode validator.
+      Scale check from the 2018 BREF scoping study: E-PRTR listed 472 facilities
+      under activity 8(a) for 2015 and only about a tenth reported above
+      threshold, while permit data for IED 6.4(a) and 6.5 counted 1,259
+      installations — so this register is a floor on large EU abattoirs, not a
+      count of them.
     parser: eprtr
+    note: >
+      The download sits behind the EEA SDI catalogue, a JavaScript GeoNetwork
+      page, so there is no direct file URL to fetch unattended. Open the
+      catalogue link, take the current Industrial Reporting dataset, and put it
+      in raw/. No fetcher is wired for this on purpose: a guessed URL that
+      silently returns an error page is worse than an honest manual step.
 
   # ------------------------------------------------------------- crowd / fill
 

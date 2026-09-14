@@ -24,6 +24,11 @@ if compgen -G "raw/eu_traces_animal_health/*.csv" > /dev/null 2>&1; then
   python run.py parse --source eu_traces_animal_health --snapshot "$snap"
 fi
 
+if [ -f raw/br_sif.csv ]; then
+  echo "== Brazil SIF"
+  python run.py parse --source br_sif --file br_sif.csv --snapshot "$snap"
+fi
+
 if [ -f raw/cifer.jsonl ]; then
   echo "== CIFER"
   python run.py parse --source cifer_china --file cifer.jsonl --snapshot "$snap"

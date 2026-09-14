@@ -487,6 +487,117 @@ def parse_eu_health(path: Path, snapshot: str | None = None) -> list[SourceRecor
 
 
 # ---------------------------------------------------------------------------
+# Brazil SIF
+# ---------------------------------------------------------------------------
+#
+# MAPA publishes the federal register as one semicolon-delimited CSV, and it is
+# richer than any other national list in this pipeline: CATEGORIA_CLASSE names
+# the kind of plant, the species and the throughput band in one string --
+# "ABATEDOURO FRIGORÍFICO - C15 / AB2 - BOVINO - mais de 80/h".
+#
+# One row per habilitation event, not per plant. A single abattoir appears once
+# for every export approval it has ever been granted or lost, so JBS Mozarlândia
+# runs to a dozen rows. Rows are folded on the SIF number and the CNPJ, and the
+# activities and species of every row for a plant are unioned -- a plant listed
+# once as a slaughterhouse and once as a cutting plant is both.
+
+_BR_ACTIVITY = [
+    ("ABATEDOURO", "slaughter"),
+    ("ABATE", "slaughter"),
+    ("UNIDADE DE BENEF. DE CARNE", "processing"),
+    ("UNIDADE DE BENEFICIAMENTO DE CARNE", "processing"),
+    ("UNIDADE DE BENEF. DE PESCADO", "processing"),
+    ("UNIDADE DE BENEFICIAMENTO DE PESCADO", "processing"),
+    ("PRODUTOS DE ABELHAS", "farm_honey"),
+    ("ENTREPOSTO", "cold_store"),
+    ("GRANJA", "farm_eggs"),
+    ("UNIDADE DE BENEF. DE OVOS", "egg_products"),
+    ("OVOS", "egg_products"),
+    ("LEITE", "farm_dairy"),
+    ("CHARQUE", "processing"),
+    ("CONSERVAS", "processing"),
+]
+# Matched on word boundaries, not substrings: "BOVINO" contains "OVIN", and a
+# plain substring test filed every cattle abattoir in Brazil as sheep as well.
+_BR_SPECIES = [
+    (r"\bBOVIN|\bBUBALIN|\bBUFAL", "bovine"),
+    (r"\bSU[IÍ]N|\bSUID", "porcine"),
+    (r"\bAVES?\b|\bFRANGO|\bPERU\b", "poultry"),
+    (r"\bOVIN", "ovine"),
+    (r"\bCAPRIN", "caprine"),
+    (r"\bEQU[IÍ]N|\bEQU[IÍ]D", "equine"),
+    (r"\bCOELH|\bLAGOMORF", "lagomorph"),
+    (r"\bPESCADO|\bPEIXE|\bRÃ\b", "other"),
+]
+
+
+def parse_br_sif(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """Brazilian federal register (SIGSIF). Federal inspection only.
+
+    State (SIE) and municipal (SIM) inspected plants are separate registries
+    and are the majority of Brazilian abattoirs by count. Nothing here says so
+    on a per-record basis, so the gap belongs in the source note rather than in
+    a flag that would imply this list is complete.
+    """
+    snapshot = snapshot or date.today().isoformat()
+    by_plant: dict = {}
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh, delimiter=";")):
+            sif = (row.get("NR_SIF") or "").strip()
+            cnpj = (row.get("CPF_CNPJ") or "").strip()
+            name = (row.get("RAZAO_SOCIAL") or "").strip()
+            if not (sif or cnpj) or not name:
+                continue
+            key = f"{sif}|{cnpj}"
+            klass = ((row.get("CATEGORIA_CLASSE") or "") + " "
+                     + (row.get("AREA_CATEGORIA") or "")).upper()
+            acts = {a for needle, a in _BR_ACTIVITY if needle in klass}
+            sp = {v for pat, v in _BR_SPECIES if re.search(pat, klass)}
+
+            entry = by_plant.get(key)
+            if entry is None:
+                by_plant[key] = entry = {
+                    "row": row, "i": i, "acts": set(), "species": set(),
+                    "classes": set(),
+                }
+            entry["acts"] |= acts
+            entry["species"] |= sp
+            if klass.strip():
+                entry["classes"].add((row.get("CATEGORIA_CLASSE") or "").strip())
+
+    out = []
+    for key, e in by_plant.items():
+        row = e["row"]
+        sif = (row.get("NR_SIF") or "").strip()
+        street = ", ".join(x for x in ((row.get("LOGRADOURO") or "").strip(),
+                                       (row.get("BAIRRO") or "").strip()) if x)
+        out.append(SourceRecord(
+            source_id="br_sif",
+            source_snapshot=snapshot,
+            source_row_id=key,
+            name=(row.get("RAZAO_SOCIAL") or "").strip(),
+            country_iso3="BRA",
+            national_id=sif or None,
+            id_scheme="BR-SIF",
+            address=street or None,
+            locality=(row.get("MUNICIPIO") or "").strip() or None,
+            admin1=(row.get("UF") or "").strip() or None,
+            postcode=(row.get("CEP") or "").strip() or None,
+            species=sorted(sp for sp in e["species"] if sp in SPECIES),
+            activities=sorted(e["acts"]) or ["unknown"],
+            # "ABATEDOURO" in the class is the register saying animals are
+            # killed here. Anything else is left unstated rather than denied:
+            # the class names what the plant is approved for, and a cold store
+            # approval is not a statement that nothing dies on the site.
+            slaughter=True if "slaughter" in e["acts"] else None,
+            operator=(row.get("NOME_FANTASIA") or "").strip() or None,
+            raw={k: v for k, v in row.items() if v}
+                | {"classes": " | ".join(sorted(e["classes"]))},
+        ))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # China GACC / CIFER
 # ---------------------------------------------------------------------------
 

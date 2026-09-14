@@ -204,6 +204,37 @@ def fetch_osm(attempts: int = 3) -> None:
 
 # ---------------------------------------------------------------------------
 
+# MAPA publishes the whole federal register as one CSV on the open-data portal.
+# Verified live: semicolon-delimited, UTF-8, one row per habilitation event.
+BR_SIF_URL = ("https://dados.agricultura.gov.br/dataset/"
+              "062166e3-b515-4274-8e7d-68aadd64b820/resource/"
+              "97277e92-264a-4dc0-9aea-f87b8ea93798/download/"
+              "sigsifestabelecimentosregistradosnosif.csv")
+
+
+def fetch_br_sif() -> None:
+    """Brazil's federal register, in one request.
+
+    Written only once the body parses as the CSV we expect. A portal that
+    answers a download with an HTML error page still answers with HTTP 200,
+    and a raw/ file full of markup parses as zero establishments -- which
+    reads downstream as "Brazil has no abattoirs" rather than as a failure.
+    """
+    RAW.mkdir(exist_ok=True)
+    print("downloading the SIGSIF register")
+    out = _get(BR_SIF_URL, timeout=600)
+    head = out[:400].decode("utf-8", "replace")
+    if "NR_SIF" not in head or ";" not in head:
+        raise RuntimeError("that download was not the SIGSIF CSV. First bytes: "
+                           + head[:160])
+    (RAW / "br_sif.csv").write_bytes(out)
+    rows = out.count(b"\n")
+    print(f"  raw/br_sif.csv  {len(out)/1e6:.1f} MB, roughly {rows:,} rows "
+          f"(one per habilitation, not per plant)")
+
+
+# ---------------------------------------------------------------------------
+
 MANUAL = {
     "eu_traces_third_country": (
         "EU authorised establishments in non-EU countries",
@@ -219,6 +250,14 @@ MANUAL = {
         "One list per member state, one layout per member state. Convert to "
         "CSV into raw/eu_member_states/. Start with the large producers: "
         "DE, FR, ES, PL, IT, NL, DK."),
+    "eu_industrial_emissions": (
+        "European Industrial Emissions Portal (EU Registry + E-PRTR)",
+        "https://sdi.eea.europa.eu/catalogue/srv/eng/catalog.search"
+        "#/metadata/9405f714-8015-4b5b-a63c-280b82861b3d",
+        "The download is behind the EEA SDI catalogue, which is a JavaScript "
+        "page with no stable file URL. Take the Industrial Reporting dataset "
+        "from there into raw/. Abattoirs are IED Annex I 6.4(a) and E-PRTR "
+        "activity 8(a) -- not 6.4(b), which is food processing."),
     "cifer_china": (
         "China GACC CIFER",
         "https://ciferquery.singlewindow.cn",
@@ -231,7 +270,7 @@ MANUAL = {
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["fsis", "osm", "all", "list"])
+    p.add_argument("what", choices=["fsis", "osm", "br_sif", "all", "list"])
     a = p.parse_args()
 
     if a.what == "list":
@@ -244,6 +283,8 @@ def main():
         jobs.append(("FSIS", fetch_fsis))
     if a.what in ("osm", "all"):
         jobs.append(("OpenStreetMap", fetch_osm))
+    if a.what in ("br_sif", "all"):
+        jobs.append(("Brazil SIF", fetch_br_sif))
 
     ok, failed = [], []
     for label, fn in jobs:
