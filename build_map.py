@@ -34,6 +34,7 @@ silent filter.
 
 from __future__ import annotations
 
+import gzip
 import json
 from collections import Counter
 from datetime import date
@@ -302,6 +303,11 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
   padding:7px 0 7px 13px;cursor:pointer}
 .pick:hover{border-left-color:var(--live)}
 
+#boot{position:absolute;inset:0;z-index:1200;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:40px;background:var(--ink);
+  color:var(--dim);font-size:13px;line-height:1.6}
+#boot.failed{color:var(--text)}
+#boot .dim{color:var(--dim);font-size:11.5px}
 #hover{position:absolute;z-index:620;pointer-events:none;background:var(--panel);
   border:1px solid var(--rule);padding:6px 9px;font-size:12px;max-width:250px;
   display:none;line-height:1.35}
@@ -341,11 +347,55 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 </aside>
 
 <div id="hover"></div>
+<div id="boot">Loading&#8230;</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script id="atlas-data" type="application/json">__DATA__</script>
+<script id="atlas-data" type="application/json"__DATA_SRC__>__DATA__</script>
 <script>
-const D = JSON.parse(document.getElementById('atlas-data').textContent);
+(async function(){
+
+/* The data can travel inside this file or beside it. Inline keeps the atlas a
+   single self-contained document that works from a USB stick; split keeps the
+   first paint fast, because the browser gets a 40 KB page instead of thirteen
+   megabytes of JSON it has to parse before drawing anything. Split needs the
+   page served over http -- fetch cannot read a sibling file from disk -- so
+   the inline build stays available for offline use and for embedding. */
+async function loadAtlasData(){
+  const el = document.getElementById('atlas-data');
+  const src = el.getAttribute('data-src');
+  if(!src) return JSON.parse(el.textContent);
+
+  /* Prefer the gzipped copy and unpack it here, so the transfer is a couple of
+     megabytes whether or not the host compresses on the fly. GitHub Pages
+     does; plenty of embed hosts do not. */
+  if(typeof DecompressionStream === 'function'){
+    try{
+      const r = await fetch(src + '.gz');
+      if(r.ok && r.body){
+        const stream = r.body.pipeThrough(new DecompressionStream('gzip'));
+        return JSON.parse(await new Response(stream).text());
+      }
+    }catch(e){ /* fall through to the plain file */ }
+  }
+  const r = await fetch(src);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.json();
+}
+
+let D;
+try{
+  D = await loadAtlasData();
+}catch(err){
+  const b = document.getElementById('boot');
+  b.innerHTML = '<span><b>The data file did not load.</b><br>It has to sit '+
+    'next to this page, and the page has to be served over http rather than '+
+    'opened from disk.<br><span class="dim">' +
+    String((err && err.message) || err) + '</span></span>';
+  b.className = 'failed';
+  throw err;
+}
+document.getElementById('boot').remove();
+
 const N = D.lat.length, TAU = Math.PI*2;
 
 const SPECIES_LABEL = {bovine:'Cattle',porcine:'Pigs',poultry:'Poultry',ovine:'Sheep',
@@ -1135,6 +1185,8 @@ document.addEventListener('keydown',function(e){
 rebuildVis();
 coarse.addTo(map);        /* under the points, over the basemap */
 layer.addTo(map);
+
+})();
 </script>
 </body>
 </html>
@@ -1143,30 +1195,64 @@ layer.addTo(map);
 
 def build(facilities, out_path: str, *, title: str, subtitle: str,
           sources_meta: dict | None = None,
-          keep_post_mortem: bool = False) -> dict:
+          keep_post_mortem: bool = False, inline: bool = False) -> dict:
+    """Write the atlas, and by default write its data beside it.
+
+    The single-file build was right when the payload was a few megabytes. At
+    thirteen it costs a phone a long blank screen before the first pin appears,
+    because the browser must download and parse the whole document before it
+    renders anything at all. Splitting the JSON out drops the page itself to
+    around 40 KB, so the map frame and the panel are up immediately and the
+    data arrives behind a loading line.
+
+    inline=True restores the old behaviour. It is the build to use for anything
+    that has to work from disk or travel as one file: fetch cannot read a
+    sibling file over file://, so a split build opened by double-clicking shows
+    the failure message rather than a map.
+    """
     dropped = []
     if not keep_post_mortem:
         facilities, dropped = drop_excluded(facilities)
     payload = encode(facilities, sources_meta or {})
-    html = (TEMPLATE
+    blob = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+
+    out = Path(out_path)
+    data_path = data_gz = None
+    if inline:
+        html = TEMPLATE.replace("__DATA_SRC__", "").replace("__DATA__", blob)
+    else:
+        data_path = out.with_suffix(".data.json")
+        data_path.write_text(blob, encoding="utf-8")
+        data_gz = Path(str(data_path) + ".gz")
+        with gzip.open(data_gz, "wt", encoding="utf-8") as fh:
+            fh.write(blob)
+        html = (TEMPLATE
+                .replace("__DATA_SRC__", f' data-src="{data_path.name}"')
+                .replace("__DATA__", ""))
+
+    html = (html
             .replace("__TITLE__", title)
             .replace("__SUBTITLE_BLOCK__",
-                     f'<p class="sub">{subtitle}</p>' if subtitle.strip() else "")
-            .replace("__DATA__", json.dumps(payload, separators=(",", ":"),
-                                            ensure_ascii=False)))
-    Path(out_path).write_text(html, encoding="utf-8")
+                     f'<p class="sub">{subtitle}</p>' if subtitle.strip() else ""))
+    out.write_text(html, encoding="utf-8")
 
-    size_mb = Path(out_path).stat().st_size / 1e6
-    return {
+    size_mb = out.stat().st_size / 1e6
+    result = {
         "path": out_path,
         "size_mb": round(size_mb, 2),
         "mapped": payload["n_mapped"],
         "unlocated": payload["n_unlocated"],
         "excluded_from_map": len(dropped),
         "by_country": dict(Counter(f.country_iso3 for f in facilities).most_common(25)),
-        "warning": (
-            "Over 12 MB. Most shared hosts will serve this, but Weebly's embed "
-            "path may not. Split the payload out if so."
-            if size_mb > 12 else None
-        ),
     }
+    if data_path is not None:
+        result["data_path"] = str(data_path)
+        result["data_mb"] = round(data_path.stat().st_size / 1e6, 2)
+        result["data_gz_mb"] = round(data_gz.stat().st_size / 1e6, 2)
+        result["note"] = ("Split build: the page needs its .data.json beside it "
+                          "and must be served over http. Use --inline for a "
+                          "single self-contained file.")
+    elif size_mb > 12:
+        result["warning"] = ("Over 12 MB in one file. Drop --inline to split "
+                             "the payload out.")
+    return result

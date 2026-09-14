@@ -250,10 +250,12 @@ def cmd_build(args):
         facilities, str(OUT / (args.out or "abattoir_atlas.html")),
         title=args.title, subtitle=args.subtitle,
         sources_meta=SOURCE_LABELS,
-        keep_post_mortem=args.keep_post_mortem)
+        keep_post_mortem=args.keep_post_mortem,
+        inline=args.inline)
     print(json.dumps(report, indent=2))
-    if report["warning"]:
-        print("\n" + report["warning"])
+    for key in ("warning", "note"):
+        if report.get(key):
+            print("\n" + report[key])
 
 
 # ---------------------------------------------------------------- selftest
@@ -391,6 +393,10 @@ def main():
 
     d = sub.add_parser("build"); d.set_defaults(fn=cmd_build)
     d.add_argument("--out")
+    d.add_argument("--inline", action="store_true",
+                   help="put the data inside the HTML instead of beside it. "
+                        "One self-contained file that works from disk, at the "
+                        "cost of a slow first paint")
     d.add_argument("--keep-post-mortem", action="store_true",
                    help="also draw plants that only handle animals already "
                         "dead -- cutting, processing, cold store, rendering. "
