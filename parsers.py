@@ -19,7 +19,7 @@ import re
 from datetime import date
 from pathlib import Path
 
-from countries import to_iso3
+from countries import country_at, to_iso3
 from schema import SPECIES, SourceRecord
 from traces_paste import clean_region, recover_species
 
@@ -597,7 +597,12 @@ def parse_osm(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
             source_snapshot=snapshot,
             source_row_id=f"{el['type']}/{el['id']}",
             name=name,
-            country_iso3=to_iso3(tags.get("addr:country")) or "",
+            # addr:country is present on a small minority of OSM elements, and
+            # a blank country puts every one of them in the same dedup block
+            # and outside every country filter. The coordinate is always there,
+            # so it answers the question instead.
+            country_iso3=(to_iso3(tags.get("addr:country"))
+                          or country_at(lat, lon) or ""),
             national_id=None,
             id_scheme="OSM",
             address=street or None,

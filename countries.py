@@ -887,6 +887,97 @@ def english_name(iso3: str | None) -> str | None:
     return entry[1] if entry else None
 
 
+# ---------------------------------------------------------------------------
+# Country from a coordinate
+# ---------------------------------------------------------------------------
+#
+# OpenStreetMap carries a coordinate for everything and addr:country for very
+# little of it. Left empty, country_iso3 breaks two things at once: dedup blocks
+# candidate pairs by country, so a blank puts every OSM site in one giant block,
+# and the map's country filter cannot place them. The outlines already shipped
+# for the background carry ISO3 codes, so the answer is in the repository
+# already -- it just needs a point-in-polygon test.
+#
+# The outlines are Natural Earth 110m, which is coarse: a point can sit a few
+# kilometres outside its own coastline. So a miss falls back to the nearest
+# outline within a degree, and anything further out resolves to nothing rather
+# than to a guess.
+
+_OUTLINES: list | None = None
+
+
+def _load_outlines() -> list:
+    """[(iso3, [(minx, miny, maxx, maxy, ring), ...]), ...]"""
+    global _OUTLINES
+    if _OUTLINES is not None:
+        return _OUTLINES
+    import json
+    from pathlib import Path as _P
+    f = _P(__file__).parent / "world_outlines.json"
+    _OUTLINES = []
+    if not f.exists():
+        return _OUTLINES
+    for entry in json.loads(f.read_text()):
+        if isinstance(entry, dict):
+            iso3, rings = entry.get("iso3"), entry.get("r") or []
+        else:
+            continue                      # v1 outlines carry no identity
+        packed = []
+        for ring in rings:
+            xs = [p[0] for p in ring]
+            ys = [p[1] for p in ring]
+            packed.append((min(xs), min(ys), max(xs), max(ys), ring))
+        if iso3 and packed:
+            _OUTLINES.append((iso3, packed))
+    return _OUTLINES
+
+
+def _in_ring(x: float, y: float, ring: list) -> bool:
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > y) != (yj > y):
+            if x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+                inside = not inside
+        j = i
+    return inside
+
+
+def country_at(lat: float | None, lon: float | None) -> str | None:
+    """ISO3 for a coordinate, or None.
+
+    Even-odd counting across all of a country's rings, so islands add and
+    enclaves subtract without needing to know which ring is which.
+    """
+    if lat is None or lon is None:
+        return None
+    x, y = float(lon), float(lat)
+    for iso3, rings in _load_outlines():
+        hit = False
+        for minx, miny, maxx, maxy, ring in rings:
+            if minx <= x <= maxx and miny <= y <= maxy and _in_ring(x, y, ring):
+                hit = not hit
+        if hit:
+            return iso3
+
+    # Coastline slack. A plant on a spit or a reclaimed dock can sit outside a
+    # 110m outline by a few kilometres; a degree is generous enough to catch
+    # that and tight enough not to reach across a sea to the wrong country.
+    best, best_d2 = None, 1.0 ** 2
+    for iso3, rings in _load_outlines():
+        for minx, miny, maxx, maxy, ring in rings:
+            if not (minx - 1 <= x <= maxx + 1 and miny - 1 <= y <= maxy + 1):
+                continue
+            for px, py in ring:
+                d2 = (px - x) ** 2 + (py - y) ** 2
+                if d2 < best_d2:
+                    best, best_d2 = iso3, d2
+    return best
+
+
 def unresolved() -> dict[str, int]:
     """Country strings seen this run that the table could not place."""
     return dict(sorted(_unresolved.items(), key=lambda kv: -kv[1]))

@@ -150,17 +150,56 @@ out center tags;
 """
 
 
-def fetch_osm() -> None:
-    """A global Overpass query. It is a heavy one and the public instance may
-    refuse it at busy times -- that is a queue, not an error, so retry later
-    rather than narrowing the query."""
+# The main instance and a mirror that runs the same software and the same data.
+# A global query is heavy enough that the public endpoint refuses it outright at
+# busy times, and a refusal there is a queue rather than a fault -- so the right
+# response is to wait and to ask somewhere else, not to narrow the query.
+OVERPASS_ENDPOINTS = [
+    OVERPASS,
+    "https://overpass.kumi.systems/api/interpreter",
+]
+
+
+def fetch_osm(attempts: int = 3) -> None:
+    """A global Overpass query, retried across endpoints.
+
+    Every failure mode here is transient: a 429 when the instance is busy, a
+    504 when the query outruns its slot, a truncated body when a slot is
+    reclaimed mid-write. So each endpoint gets its turn, twice over, with a
+    widening wait -- and the file on disk is only replaced once a response has
+    parsed as JSON with elements in it. A half-written raw/osm.json that the
+    parser reads as "no facilities" is worse than no file at all.
+    """
     RAW.mkdir(exist_ok=True)
-    print("querying Overpass (global, expect several minutes)")
     body = urllib.parse.urlencode({"data": OVERPASS_QUERY}).encode()
-    out = _get(OVERPASS, data=body, timeout=1200)
-    (RAW / "osm.json").write_bytes(out)
-    n = out.count(b'"type"')
-    print(f"  raw/osm.json  {len(out)/1e6:.1f} MB, roughly {n:,} elements")
+    last = None
+    for attempt in range(attempts):
+        for endpoint in OVERPASS_ENDPOINTS:
+            host = urllib.parse.urlparse(endpoint).netloc
+            print(f"querying Overpass at {host} "
+                  f"(global, expect several minutes)", flush=True)
+            try:
+                out = _get(endpoint, data=body, timeout=1200)
+                import json as _json
+                elements = _json.loads(out.decode("utf-8")).get("elements", [])
+                if not elements:
+                    raise RuntimeError("response parsed but held no elements")
+                (RAW / "osm.json").write_bytes(out)
+                placed = sum(1 for e in elements
+                             if e.get("lat") is not None or e.get("center"))
+                print(f"  raw/osm.json  {len(out)/1e6:.1f} MB, "
+                      f"{len(elements):,} elements, {placed:,} with a "
+                      f"coordinate", flush=True)
+                return
+            except Exception as exc:
+                last = exc
+                print(f"  {host}: {exc}", flush=True)
+        if attempt < attempts - 1:
+            wait = 60 * (attempt + 1)
+            print(f"  every endpoint refused; waiting {wait}s", flush=True)
+            time.sleep(wait)
+    raise RuntimeError(f"Overpass would not answer after {attempts} rounds "
+                       f"across {len(OVERPASS_ENDPOINTS)} endpoints: {last}")
 
 
 # ---------------------------------------------------------------------------
