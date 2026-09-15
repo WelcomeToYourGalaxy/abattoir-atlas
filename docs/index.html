@@ -84,20 +84,9 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 .pick:hover{border-left-color:var(--live)}
 
 /* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
-   rather than fighting it, and only while the atlas basemap is on. */
-#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
-/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
-   stopped in a hard line across the southern ocean. Masked rather than
-   stretched: stretching would distort the border art, cropping would lose it. */
-.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  -webkit-mask-size:100% 100%;mask-size:100% 100%;
-  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-/* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
-   rather than fighting it, and only while an imagery basemap is on. */
-#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
+   rather than fighting it -- plain satellite only. The painted atlas sets its
+   own filter from script, because it pushes the imagery the other way. */
+#map.atlas:not(.painted) .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
 /* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
    stopped in a hard line across the southern ocean. Masked rather than
    stretched: stretching would distort the border art, cropping would lose it. */
@@ -492,6 +481,164 @@ function plateBlend(){
   plateImg.setOpacity(1-t);
 }
 
+/* ---- the painted atlas's satellite: composite, never replace ------------ */
+/* Ported from the Pre-Birth Rights map, where the reasoning is written out in
+   full. In short: satellite imagery's photographic look is carried by its hue
+   and its usefulness -- coastlines, terrain, where the trees stop -- by its
+   luminance. So the imagery stays exactly where it is and supplies the light,
+   washes shift the colour, and a hillshade puts the sculpting back. Every
+   coastline on screen is still Esri's.
+
+   Only in the painted-atlas basemap. Plain satellite keeps its dimmed imagery
+   and the outlines basemap has no imagery to treat.
+
+   Panes, bottom to top:
+     tilePane 200   imagery + Esri places (filter applied here)
+     satSea   205   screen      the water
+     satWash  210   soft-light  green over land
+     satWarm  214   overlay     sunlight
+     satShade 220   multiply    Esri World Hillshade
+     livestock 230  FAO GLW, above the washes so it is not recoloured
+     satLabels 240  CARTO labels
+     plate    250   the painted chart, which covers all of this until z3-5
+     overlay  400   the facilities                                          */
+const SAT_TUNE = {
+  sat:   1.15,  /* imagery saturation above 1, so surfaces stay different   */
+  con:   1.05,
+  bright:1.06,
+  hue:  -6,     /* degrees; warms the greens off satellite's blue-green      */
+  green: 0.30,  /* soft-light green over land: tints, does not flatten       */
+  warm:  0.22,  /* overlay: the sunlit look                                  */
+  sea:   0.55,
+  shade: 0.45   /* relief                                                    */
+};
+const SAT_FAILS_ALLOWED = 12;
+let PAINTED = false, satShadeFailed = false;
+
+function satPane(name, z, blend){
+  if(!map.getPane(name)) map.createPane(name);
+  const el = map.getPane(name);
+  el.style.zIndex = z;
+  el.style.pointerEvents = 'none';
+  if(blend) el.style.mixBlendMode = blend;
+  el.style.display = 'none';
+  return el;
+}
+satPane('livestock', 230).style.display = '';
+
+/* A fill inside a Leaflet pane moves with the map, so a fixed-size box runs
+   out and leaves a hard edge across the view. These carry no geography, so
+   each is repositioned against the map pane's offset on every move and always
+   covers the screen. */
+const satFills = [];
+function satCover(){
+  if(!PAINTED) return;
+  const mp = map.getPanes().mapPane;
+  const o = L.DomUtil.getPosition(mp) || {x:0, y:0};
+  const sz = map.getSize(), m = 400;
+  for(const d of satFills){
+    d.style.left = (-o.x - m) + 'px';  d.style.top = (-o.y - m) + 'px';
+    d.style.width = (sz.x + m*2) + 'px'; d.style.height = (sz.y + m*2) + 'px';
+  }
+}
+function satFill(name, z, blend, colour, opacity){
+  const el = satPane(name, z, blend);
+  const d = document.createElement('div');
+  d.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
+                    'background:' + colour + ';opacity:' + opacity + ';';
+  el.appendChild(d);
+  satFills.push(d);
+  return {el, fill:d};
+}
+/* Water first, so the land washes above soften it. */
+const satSea   = satFill('satSea',  205, 'screen',     '#0f3b52', SAT_TUNE.sea);
+const satGreen = satFill('satWash', 210, 'soft-light', '#5f8f3a', SAT_TUNE.green);
+const satWarm  = satFill('satWarm', 214, 'overlay',    '#f0c073', SAT_TUNE.warm);
+const satShadeEl = satPane('satShade', 220, 'multiply');
+const satLabelEl = satPane('satLabels', 240);
+
+const satShade = L.tileLayer(
+  'https://services.arcgisonline.com/arcgis/rest/services/Elevation/' +
+  'World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+  {pane:'satShade', opacity:SAT_TUNE.shade, maxZoom:22, maxNativeZoom:16,
+   noWrap:true, bounds:[[-85.05,-180],[85.05,180]],
+   updateWhenZooming:false, keepBuffer:2,
+   attribution:'Hillshade &copy; Esri'});
+const satLabels = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/' +
+  '{z}/{x}/{y}{r}.png',
+  {pane:'satLabels', opacity:0.92, maxZoom:22, maxNativeZoom:18, noWrap:true,
+   bounds:[[-85.05,-180],[85.05,180]], subdomains:'abcd',
+   updateWhenZooming:false, keepBuffer:2,
+   attribution:'Labels &copy; CARTO, &copy; OpenStreetMap contributors'});
+
+function satFilter(){
+  const sp = map.getPane('tilePane');
+  sp.style.filter = PAINTED && !satShadeFailed
+    ? 'saturate(' + SAT_TUNE.sat + ') contrast(' + SAT_TUNE.con +
+      ') brightness(' + SAT_TUNE.bright + ') hue-rotate(' + SAT_TUNE.hue + 'deg)'
+    : '';
+}
+
+/* Tints ease off as you zoom in -- wide out they do the work, close in they
+   cover the sheds somebody zoomed in to see. Relief does the reverse. */
+function satRamp(){
+  if(!PAINTED) return;
+  const z = map.getZoom();
+  const t = z <= 6 ? 1 : z >= 13 ? 0.45 : 1 - (z - 6) * (0.55 / 7);
+  satGreen.fill.style.opacity = SAT_TUNE.green * t;
+  satWarm.fill.style.opacity  = SAT_TUNE.warm  * t;
+  satSea.fill.style.opacity   = SAT_TUNE.sea   * (z <= 6 ? 1 : 0.7);
+  satShade.setOpacity(z <= 4 ? SAT_TUNE.shade * 0.8 : SAT_TUNE.shade);
+}
+
+/* Without relief the washes are only a colour cast on a photograph. If the
+   hillshade keeps failing it is dropped along with them, and the painted mode
+   falls back to plain satellite's treatment -- the one the dot colours were
+   chosen against -- rather than to raw imagery. */
+let satShadeErrors = 0;
+satShade.on('tileerror', function(){
+  if(++satShadeErrors !== SAT_FAILS_ALLOWED) return;
+  satShadeFailed = true;
+  console.warn('[map] hillshade failed ' + satShadeErrors + ' times; the ' +
+               'painted atlas is falling back to plain satellite imagery');
+  if(PAINTED) setPainted(true);
+});
+let satLabelErrors = 0;
+satLabels.on('tileerror', function(){
+  if(++satLabelErrors !== SAT_FAILS_ALLOWED) return;
+  console.warn('[map] CARTO labels failed ' + satLabelErrors + ' times; dropped');
+  if(map.hasLayer(satLabels)) map.removeLayer(satLabels);
+});
+
+function setPainted(on){
+  PAINTED = !!on;
+  const mapEl = document.getElementById('map');
+  const washes = PAINTED && !satShadeFailed;
+  mapEl.classList.toggle('painted', washes);
+  for(const el of [satSea.el, satGreen.el, satWarm.el, satShadeEl])
+    el.style.display = washes ? '' : 'none';
+  satLabelEl.style.display = PAINTED ? '' : 'none';
+  if(washes){ if(!map.hasLayer(satShade)) satShade.addTo(map); }
+  else if(map.hasLayer(satShade)) map.removeLayer(satShade);
+  if(PAINTED && satLabelErrors < SAT_FAILS_ALLOWED){
+    if(!map.hasLayer(satLabels)) satLabels.addTo(map);
+  }else if(map.hasLayer(satLabels)) map.removeLayer(satLabels);
+  satFilter(); satCover(); satRamp();
+}
+map.on('zoomend', satRamp);
+map.on('move zoom zoomend moveend resize viewreset', satCover);
+
+/* Colour is a judgement and judgements want a knob, not a rebuild:
+     atlasSatTune({green:0.4, warm:0.3, shade:0.5, sat:1.3})
+     atlasSatTune()   prints the current values                             */
+window.atlasSatTune = function(next){
+  if(!next){ console.log('[map] satellite tune', JSON.stringify(SAT_TUNE)); return SAT_TUNE; }
+  for(const k of Object.keys(next)) if(k in SAT_TUNE) SAT_TUNE[k] = next[k];
+  satFilter(); satRamp();
+  return SAT_TUNE;
+};
+
 /* ---- FAO Gridded Livestock of the World -------------------------------- */
 /* A modelled raster, and the only layer on this map that is not a place.
    Subnational census totals downscaled to a grid by a Random Forest model, so a
@@ -552,6 +699,7 @@ function setLivestock(on, variant){
 
   glwTried = glwOk = 0;
   glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
+    pane: 'livestock',
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
@@ -570,7 +718,10 @@ function setLivestock(on, variant){
       : 'No tiles are loading. FAO may have changed the layer address.';
   }
   glwLayer.addTo(map);
-  if(map.hasLayer(layer)) layer.bringToFront();
+  /* No bringToFront: the points are a canvas in overlayPane (400) and the
+     raster has its own pane at 230, so the order is fixed by the panes. The
+     call that stood here threw on every switch-on, because the point layer is
+     a custom L.Layer with no bringToFront method. */
 }
 
 function setBasemap(kind){
@@ -590,15 +741,20 @@ function setBasemap(kind){
       map.removeLayer(plateImg); plateImg = null;
     }
     plateBlend();
+    setPainted(kind==='atlas');
   }else{
     if(map.hasLayer(imagery)) map.removeLayer(imagery);
     if(map.hasLayer(places)) map.removeLayer(places);
     if(plateImg){ map.off('zoomend', plateBlend);
       map.removeLayer(plateImg); plateImg = null; }
+    setPainted(false);
     mapEl.classList.remove('atlas');
     if(!map.hasLayer(outlineBase)) outlineBase.addTo(map);
   }
-  layer.draw();
+  /* The page picks its basemap on load, before the points are on the map, and
+     draw() reads the map from the layer. Unguarded, that threw and stopped the
+     script before a single facility was added. */
+  if(map.hasLayer(layer)) layer.draw();
 }
 
 /* ---- coarse layer: the facilities that cannot be placed --------------- */
@@ -908,8 +1064,9 @@ function group(title,items,set,swatches,lede){
   const opts=[];
   if(D.plate) opts.push({k:'atlas',label:'Painted atlas',
     note:'A drawn world chart at this scale, dissolving into satellite imagery '+
-         'as you zoom in. By the time one plant fills the screen the drawing '+
-         'is gone and you are looking at the sheds and the lagoons.'});
+         'as you zoom in. The imagery is recoloured -- a green and warm wash '+
+         'with Esri hillshade for relief -- but not redrawn: every coastline '+
+         'and shed is still Esri\'s photograph.'});
   opts.push(
     {k:'satellite',label:'Satellite imagery',
      note:'Esri World Imagery with coastlines and place names over it, and no '+
