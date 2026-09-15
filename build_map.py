@@ -256,6 +256,11 @@ def shares(facilities) -> dict:
     c: Counter = Counter()
     for f in facilities:
         for a in (f.activities or ["_none"]):
+            # An excluded activity is not a layer on this map. A site that also
+            # kills is still drawn -- it is drawn as a slaughterhouse, and the
+            # cutting line it also holds is not a filter of its own.
+            if a in EXCLUDED_ACTIVITIES:
+                continue
             c["What happens here::" + a] += 1
         for sp in (f.species or ["_none"]):
             c["Species::" + sp] += 1
@@ -302,6 +307,7 @@ def encode(facilities, sources_meta: dict) -> dict:
 
     return {
         "shares": shares(facilities),
+        "excluded_activities": sorted(EXCLUDED_ACTIVITIES),
         "n_all": len(facilities),
         "generated": date.today().isoformat(),
         "n_mapped": len(mappable),
@@ -658,9 +664,12 @@ function rebuildVis(){
                          : sp.some(s=>active.species.has(s));
     }
     if(ok){
-      const ac = (D.dict.activity&&D.act) ? D.dict.activity[D.act[i]] : null;
-      if(ac) ok = ac.length===0 ? active.activity.has('_none')
-                                : ac.some(a=>active.activity.has(a));
+      let ac = (D.dict.activity&&D.act) ? D.dict.activity[D.act[i]] : null;
+      if(ac){
+        ac = ac.filter(a=>!EXCLUDED_ACT.has(a));
+        ok = ac.length===0 ? active.activity.has('_none')
+                           : ac.some(a=>active.activity.has(a));
+      }
     }
     if(ok) ok = D.dict.source[D.src[i]].some(s=>active.source.has(s));
     VIS[i] = ok?1:0;
@@ -788,28 +797,44 @@ const GLW_ATTRIB =
 const GLW_BASE = 'https://data.apps.fao.org/map/wmts/wmts'+
   '?layer=fao-gismgr/GLW4-2020/mapsets/D-DA'+
   '&tilematrixset=EPSG:3857&Service=WMTS&request=GetTile&Version=1.0.0'+
+  /* style is mandatory and FAO's own published template leaves it out. The
+     service answers a request without it with
+     {"detail":"Missing 'GetTile' parameters: {'style'}"} rather than an image,
+     which is why the layer drew nothing whichever axis order it was given. */
+  '&style=default'+
   '&Format=image/png&layertype=Image';
 
-let glwLayer = null, glwSwapped = false;
+/* Confirmed against the service: standard OGC axis order, bare zoom level as
+   the matrix identifier. FAO's catalogue prints TileCol and TileRow the other
+   way round; that is a mistake in the catalogue, not a quirk of the server. */
+const GLW_TILES = '&TileMatrix={z}&TileCol={x}&TileRow={y}';
 
-function glwUrl(swapped){
-  /* OGC order: TileCol is a column, so {x}; TileRow is a row, so {y}. FAO's
-     catalogue prints the pair the other way round and that version drew
-     nothing, so it is the fallback rather than the default. */
-  return GLW_BASE + '&TileMatrix={z}' +
-    (swapped ? '&TileCol={y}&TileRow={x}' : '&TileCol={x}&TileRow={y}');
-}
+let glwLayer = null, glwTried = 0, glwOk = 0;
 
-function setLivestock(on, swapped){
-  glwSwapped = (swapped === undefined) ? glwSwapped : swapped;
+function setLivestock(on){
   if(glwLayer){ map.removeLayer(glwLayer); glwLayer = null; }
-  if(!on) return;
-  glwLayer = L.tileLayer(glwUrl(glwSwapped), {
+  const status = document.getElementById('glwStatus');
+  if(!on){ if(status) status.textContent=''; return; }
+
+  glwTried = glwOk = 0;
+  glwLayer = L.tileLayer(GLW_BASE + GLW_TILES, {
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
        It would be needed only to read their pixels back out of a canvas. */
   });
+  /* A WMTS that rejects the request answers with an error image or a 404, and
+     Leaflet reports that per tile. Counting them is the difference between
+     "this variant is wrong" and "there is no livestock here". */
+  glwLayer.on('tileload', function(){ glwTried++; glwOk++; report(); });
+  glwLayer.on('tileerror', function(){ glwTried++; report(); });
+  /* Silent while it works. It speaks up only if FAO change the address under
+     us, which is the failure this layer is most exposed to. */
+  function report(){
+    if(!status) return;
+    status.textContent = (glwOk || glwTried < 4) ? ''
+      : 'No tiles are loading. FAO may have changed the layer address.';
+  }
   glwLayer.addTo(map);
   if(map.hasLayer(layer)) layer.bringToFront();
 }
@@ -1150,7 +1175,9 @@ function group(title,items,set,swatches,lede){
 })();
 
 /* ---- what kind of place ----------------------------------------------- */
+const EXCLUDED_ACT=new Set(D.excluded_activities||[]);
 const actPresent=[...new Set((D.dict.activity||[]).flat())]
+  .filter(a=>!EXCLUDED_ACT.has(a))
   .sort((a,b)=>{
     const ia=ACTIVITY_ORDER.indexOf(a), ib=ACTIVITY_ORDER.indexOf(b);
     return (ia<0?99:ia)-(ib<0?99:ib);
@@ -1186,7 +1213,7 @@ function updateTallies(){
     if(sp.length===0) t['Species::_none']=(t['Species::_none']||0)+1;
     else sp.forEach(s=>{const k='Species::'+s;t[k]=(t[k]||0)+1;});
     if(D.dict.activity&&D.act){
-      const ac=D.dict.activity[D.act[i]];
+      const ac=D.dict.activity[D.act[i]].filter(a=>!EXCLUDED_ACT.has(a));
       if(ac.length===0) t['What happens here::_none']=(t['What happens here::_none']||0)+1;
       else ac.forEach(a=>{const k='What happens here::'+a;t[k]=(t[k]||0)+1;});
     }
@@ -1326,27 +1353,10 @@ if(CAFO){
   body.appendChild(f);
   l.appendChild(body); g.appendChild(l);
 
-  /* Only useful once the layer is on, so it stays hidden until then. */
-  const swapRow=document.createElement('label'); swapRow.className='row';
-  swapRow.style.display='none';
-  const sw=document.createElement('input'); sw.type='checkbox';
-  swapRow.appendChild(sw);
-  const sbody=document.createElement('div'); sbody.className='rowbody';
-  const stop=document.createElement('div'); stop.className='rowtop';
-  const st=document.createElement('span'); st.className='lbl';
-  st.textContent='Swap tile axes';
-  stop.appendChild(st); sbody.appendChild(stop);
-  const sh=document.createElement('span'); sh.className='hint';
-  sh.textContent='Falls back to the row and column order FAO print in their '+
-    'catalogue, which is the reverse of the OGC one. Try this if the grid is '+
-    'missing or sits in the wrong place.';
-  sbody.appendChild(sh); swapRow.appendChild(sbody); g.appendChild(swapRow);
+  const stat=document.createElement('span'); stat.className='hint';
+  stat.id='glwStatus'; body.appendChild(stat);
 
-  cb.onchange=function(){
-    swapRow.style.display = cb.checked ? '' : 'none';
-    setLivestock(cb.checked, sw.checked);
-  };
-  sw.onchange=function(){ if(cb.checked) setLivestock(true, sw.checked); };
+  cb.onchange=function(){ setLivestock(cb.checked); };
   F.appendChild(g);
 })();
 
@@ -1415,12 +1425,14 @@ if(CAFO){
     keys:['farm_meat','farm_dairy','farm_poultry','farm_eggs','farm_wool','farm_skins',
           'hatchery','aquaculture','farm_honey','insect_rearing',
           'germinal_products']},
-   {h:'Where bodies are handled, on a site that also kills',
-    p:'A cutting line or a cold store attached to a kill floor. Plants that '+
-      'only handle animals already dead -- standalone cutting plants, '+
-      'processors, cold stores, renderers -- are held off this map, because a '+
-      'dot on them says nothing about where the animal died. They are still in '+
-      'the published dataset.',
+   {h:'What this map leaves out',
+    p:'Places that only ever handle an animal already dead -- cutting plants, '+
+      'processors, cold stores, renderers, casings and egg-product plants -- '+
+      'and places where animals are kept for something other than the food '+
+      'chain: laboratories, zoos, racing, rodeo, pet breeding, wool, fur and '+
+      'bee rearing. None of them is drawn and none has a filter of its own. A '+
+      'site that also kills is still here, drawn as a slaughterhouse. All of '+
+      'it remains in the published dataset.',
     keys:['cutting','processing','minced_meat','meat_preparations',
           'game_handling','cold_store','rendering','casings','egg_products']},
    {h:'Where animals are used other ways',
