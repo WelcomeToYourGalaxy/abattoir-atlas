@@ -1,10 +1,10 @@
 # Deduplication report
 
-Generated 2026-09-14
+Generated 2026-09-15
 
 - Input rows: **189,923**
-- Facilities after clustering: **173,392**
-- Rows absorbed into a multi-source facility: **16,531**
+- Facilities after clustering: **173,391**
+- Rows absorbed into a multi-source facility: **16,532**
 - Flagged for review, not merged: **48,919 pairs**
 
 ## Rows per source
@@ -24,13 +24,13 @@ Generated 2026-09-14
 ## What joined the merges
 
 - `addr`: 3,536 clusters
-- `geo`: 3,293 clusters
+- `geo`: 3,294 clusters
 - `id`: 1,364 clusters
 
 ## Cluster sizes
 
-- 1 source record: 165,575 facilities
-- 2 source records: 6,669 facilities
+- 1 source record: 165,573 facilities
+- 2 source records: 6,670 facilities
 - 3 source records: 797 facilities
 - 4 source records: 187 facilities
 - 5 source records: 84 facilities
