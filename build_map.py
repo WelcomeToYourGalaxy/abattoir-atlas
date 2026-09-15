@@ -52,12 +52,54 @@ SPECIES_COLOUR = {
     "farmed_game": "#8b8474",
     "wild_game": "#8b8474",
     "other": "#8b8474",
+    "fish": "#6d8b93",
+    "crustacean": "#6d8b93",
+    "camelid": "#8b8474",
+    "canine": "#8b8474",
+    "mustelid": "#8b8474",
+    "reptile": "#8b8474",
+    "insect": "#7e8e6c",
     "_mixed": "#8f8d7e",
     "_unstated": "#5e6a66",
 }
 
+# The palette above is built for a flat dark field: mid-tone, low-chroma, so a
+# dense cluster reads as depth rather than glare. Over satellite imagery every
+# one of those colours lands on ground of roughly its own value and disappears.
+# This is the same hue for each species, lifted well above the imagery in
+# lightness, and it is only used while the imagery basemap is on.
+SPECIES_COLOUR_SATELLITE = {
+    "bovine": "#F2A99F",
+    "porcine": "#F0BFD2",
+    "poultry": "#D9E7BE",
+    "ovine": "#A9DCEA",
+    "caprine": "#A9DCEA",
+    "equine": "#EDE0C4",
+    "cervid": "#EDE0C4",
+    "lagomorph": "#EDE0C4",
+    "farmed_game": "#EDE0C4",
+    "wild_game": "#EDE0C4",
+    "other": "#EDE0C4",
+    "fish": "#A9DCEA",
+    "crustacean": "#A9DCEA",
+    "camelid": "#EDE0C4",
+    "canine": "#EDE0C4",
+    "mustelid": "#EDE0C4",
+    "reptile": "#EDE0C4",
+    "insect": "#D9E7BE",
+    "_mixed": "#EFEADB",
+    "_unstated": "#CBD8D3",
+}
+
+# Dark-field colour -> imagery colour, so a palette entry can be translated
+# without knowing which species produced it.
+_SAT_OF = {SPECIES_COLOUR[k]: SPECIES_COLOUR_SATELLITE[k]
+           for k in SPECIES_COLOUR if k in SPECIES_COLOUR_SATELLITE}
+
 SPECIES_ORDER = ["bovine", "porcine", "poultry", "ovine", "caprine",
-                 "equine", "cervid", "lagomorph", "farmed_game", "wild_game", "other"]
+                 "equine", "cervid", "lagomorph", "fish", "crustacean",
+                 "camelid", "canine", "mustelid", "reptile", "insect",
+                 "farmed_game", "wild_game", "other"]
 
 
 def _dot_colour(species: list[str]) -> str:
@@ -272,9 +314,12 @@ def encode(facilities, sources_meta: dict) -> dict:
             "tier": [list(t) for t in inv(tier_combos)],
         },
         "palette": inv(palette),
+        # Same order as palette, so one index looks up either.
+        "palette_satellite": [_SAT_OF.get(c, c) for c in inv(palette)],
         "colour": {s: SPECIES_COLOUR[s] for s in SPECIES_ORDER}
                   | {"_mixed": SPECIES_COLOUR["_mixed"],
                      "_unstated": SPECIES_COLOUR["_unstated"]},
+        "colour_satellite": dict(SPECIES_COLOUR_SATELLITE),
         "lat": lat, "lon": lon, "name": name,
         "c": c_i, "sp": sp_i, "act": act_i, "src": src_i, "tier": tier_i, "sl": sl,
         "ci": ci, "uid": uid, "ids": ids,
@@ -472,8 +517,13 @@ document.getElementById('boot').remove();
 
 const N = D.lat.length, TAU = Math.PI*2;
 
+/* Every key in schema.SPECIES needs an entry. A missing one renders as the raw
+   key and sorts to the top of the list, which is how "fish", "camelid",
+   "canine" and "reptile" ended up above cattle in the rail. */
 const SPECIES_LABEL = {bovine:'Cattle',porcine:'Pigs',poultry:'Poultry',ovine:'Sheep',
   caprine:'Goats',equine:'Horses',cervid:'Deer and elk',lagomorph:'Rabbits',
+  fish:'Fish',crustacean:'Crustaceans and shellfish',camelid:'Camels and llamas',
+  canine:'Dogs',mustelid:'Mink and ferrets',reptile:'Reptiles',insect:'Insects',
   farmed_game:'Farmed game',wild_game:'Wild game',other:'Other'};
 const SLAUGHTER_LABEL = {1:'Slaughter confirmed by a registry',
   0:'Registry lists no slaughter activity', 2:'No registry stated either way'};
@@ -582,7 +632,10 @@ for(let i=0;i<N;i++){
 }
 
 /* ---- pre-group by colour so fillStyle is set a handful of times ------- */
-const GROUPS = D.palette.map(col=>({colour:col, idx:[]}));
+const GROUPS = D.palette.map((col,i)=>({
+  colour:col,
+  colourSat:(D.palette_satellite||[])[i] || col,
+  idx:[]}));
 for(let i=0;i<N;i++) GROUPS[D.ci[i]].idx.push(i);
 for(const g of GROUPS) g.idx = Int32Array.from(g.idx);
 
@@ -719,13 +772,15 @@ const imagery = L.tileLayer(
    there. No owner, no company, no farm behind any pixel. It sits under the
    points, because the points are evidence and this is context.
 
-   Two things about the published tile template are unverified, and both fail
-   quietly rather than loudly. FAO's catalogue maps TileCol={y} and TileRow={x},
-   which is the reverse of the usual convention -- get it wrong and every tile
-   still returns 200, you just get a transposed world. And the mapset serves one
-   species without saying which. So the toggle ships with an axis swap next to
-   it: turn the layer on, look at a coastline, and if the pattern does not sit
-   on the land, hit swap. */
+   FAO's catalogue prints TileCol={y} and TileRow={x}, the reverse of the OGC
+   order, and shipping their version drew nothing at all. The conventional
+   order is the default now; the catalogue's own stays one click away, because
+   FAO are the publisher and may be describing a real quirk of their service.
+
+   tilematrixset=EPSG:3857 is right rather than a guess: the same FAO endpoint
+   returns an empty layer under EPSG:4326 and starts working once the matrix set
+   matches the map's own projection. What the mapset serves when no species is
+   named is still unverified. */
 const GLW_ATTRIB =
   'Livestock density: FAO, <a href="https://data.apps.fao.org/catalog/iso/'+
   '9d1e149b-d63f-4213-978b-317a8eb42d02">Gridded Livestock of the World 4</a> '+
@@ -738,10 +793,11 @@ const GLW_BASE = 'https://data.apps.fao.org/map/wmts/wmts'+
 let glwLayer = null, glwSwapped = false;
 
 function glwUrl(swapped){
-  /* As published: TileCol={y}, TileRow={x}. Swapped is the conventional
-     reading. One of the two is right and a coastline says which. */
+  /* OGC order: TileCol is a column, so {x}; TileRow is a row, so {y}. FAO's
+     catalogue prints the pair the other way round and that version drew
+     nothing, so it is the fallback rather than the default. */
   return GLW_BASE + '&TileMatrix={z}' +
-    (swapped ? '&TileCol={x}&TileRow={y}' : '&TileCol={y}&TileRow={x}');
+    (swapped ? '&TileCol={y}&TileRow={x}' : '&TileCol={x}&TileRow={y}');
 }
 
 function setLivestock(on, swapped){
@@ -867,16 +923,20 @@ const Layer = L.Layer.extend({
     else if(z<10){ r=2.7; alpha=.82; useRect=false; }
     else { r=4.3; alpha=.92; useRect=false; ring=true; }
     /* Over imagery the background is bright and busy rather than flat and
-       dark, so the same alpha reads as a smudge. */
-    if(SATELLITE){ alpha=Math.min(1,alpha+.2); r+=.3; }
+       dark, so the same alpha reads as a smudge. The dots also switch to the
+       lighter palette and get a dark outline at every zoom, not just close in:
+       a light fill with a dark edge is the one combination that holds against
+       both a pale ploughed field and dark woodland. */
+    if(SATELLITE){ alpha=Math.min(1,alpha+.2); r+=.5; ring=true; }
 
     let count=0;
     const d=r*2, wrap = z<6 ? S : 0;   // second world copy near the dateline
 
     for(const g of GROUPS){
       const arr=g.idx, n=arr.length;
-      ctx.fillStyle=g.colour; ctx.globalAlpha=alpha;
-      if(useRect){
+      ctx.fillStyle = SATELLITE ? (g.colourSat || g.colour) : g.colour;
+      ctx.globalAlpha=alpha;
+      if(useRect && !SATELLITE){
         for(let k=0;k<n;k++){
           const i=arr[k]; if(!VIS[i]) continue;
           let x=WX[i]*S-offX;
@@ -898,8 +958,9 @@ const Layer = L.Layer.extend({
         }
         ctx.fill();
         if(ring){
-          ctx.globalAlpha=SATELLITE?.85:.7; ctx.lineWidth=1;
-          ctx.strokeStyle=SATELLITE?'rgba(255,255,255,.75)':'rgba(23,29,27,.9)';
+          ctx.globalAlpha=SATELLITE?.9:.7;
+          ctx.lineWidth=SATELLITE?1.2:1;
+          ctx.strokeStyle=SATELLITE?'rgba(18,20,16,.85)':'rgba(23,29,27,.9)';
           ctx.stroke();
         }
       }
@@ -1276,8 +1337,9 @@ if(CAFO){
   st.textContent='Swap tile axes';
   stop.appendChild(st); sbody.appendChild(stop);
   const sh=document.createElement('span'); sh.className='hint';
-  sh.textContent='If the grid does not sit on the coastlines, the row and '+
-    'column parameters are the wrong way round. This flips them.';
+  sh.textContent='Falls back to the row and column order FAO print in their '+
+    'catalogue, which is the reverse of the OGC one. Try this if the grid is '+
+    'missing or sits in the wrong place.';
   sbody.appendChild(sh); swapRow.appendChild(sbody); g.appendChild(swapRow);
 
   cb.onchange=function(){
