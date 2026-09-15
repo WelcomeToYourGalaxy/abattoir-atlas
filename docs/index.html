@@ -43,8 +43,6 @@ label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
 .hint .share{color:var(--text);font-variant-numeric:tabular-nums}
 .fate{display:inline-block;margin-top:3px;font-size:10.5px;line-height:1.5;
   padding:0 6px;border:1px solid currentColor;border-radius:9px;opacity:.85}
-#kindsNote{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
-  border-top:1px solid var(--rule)}
 .kinds h4{font-size:12px;color:var(--text);margin:16px 0 2px;font-weight:600}
 .kinds p{color:var(--dim);font-size:12px;line-height:1.6;margin:0 0 4px}
 .kinds ul{margin:2px 0 0;padding-left:17px;color:var(--dim);font-size:12px;
@@ -85,6 +83,30 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
   padding:7px 0 7px 13px;cursor:pointer}
 .pick:hover{border-left-color:var(--live)}
 
+/* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
+   rather than fighting it, and only while the atlas basemap is on. */
+#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
+/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
+   stopped in a hard line across the southern ocean. Masked rather than
+   stretched: stretching would distort the border art, cropping would lose it. */
+.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
+   rather than fighting it, and only while an imagery basemap is on. */
+#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
+/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
+   stopped in a hard line across the southern ocean. Masked rather than
+   stretched: stretching would distort the border art, cropping would lose it. */
+.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 #boot{position:absolute;inset:0;z-index:1200;display:flex;align-items:center;
   justify-content:center;text-align:center;padding:40px;background:var(--ink);
   color:var(--dim);font-size:13px;line-height:1.6}
@@ -119,7 +141,6 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
   
   <div class="count"><b id="shown">0</b><span id="shownNote">facilities in view</span></div>
   <div id="filters"></div>
-  <div id="kindsNote"></div>
   <div class="note" id="unlocatedNote"></div>
 </aside>
 
@@ -216,18 +237,24 @@ const ACTIVITY_LABEL = {
 const ACTIVITY_NOTE = {
   slaughter:'Animals are killed here',
   farm_meat:'Animals confined and raised to be killed elsewhere',
-  farm_dairy:'Cows confined for milk; calves and spent cows go to slaughter',
-  farm_eggs:'Hens confined for eggs; male chicks and spent hens are killed',
+  farm_dairy:'Cows confined for milk. A dairy cow is slaughtered when her '+
+    'yield falls, usually at five or six years against a natural twenty; her '+
+    'calves go to slaughter too',
+  farm_eggs:'Hens confined for eggs. A laying hen is slaughtered when she '+
+    'moults, and the male chicks were killed at the hatchery',
   farm_poultry:'Birds confined for breeding or production; the register does not say which',
   transporter:'A haulier licensed to move live animals on journeys over eight hours. The address is a company office, not a place animals are kept',
   farm_wool:'Sheep confined for wool', farm_skins:'Animals confined for skin or fur',
   farm_honey:'Bees kept for honey',
   insect_rearing:'Bumble bees reared in environmental isolation, for pollination rather than honey',
-  germinal_products:'Semen, ova or embryos taken from breeding animals. Some are centres where donor animals are kept, some are teams that travel to them', hatchery:'Chicks hatched and sorted by sex',
-  saleyard:'Animals bought and sold, usually on the way to a kill floor',
+  germinal_products:'Semen, ova or embryos taken from breeding animals. Some are centres where donor animals are kept, some are teams that travel to them', hatchery:'Chicks hatched and sorted by sex. The males are killed within a '+
+    'day of hatching because they will not lay',
+  saleyard:'Animals bought and sold. Almost every animal that passes through '+
+    'one is on its way to a place where it is killed',
   quarantine:'Animals held in compulsory isolation before they may move or enter a country',
   live_market:'Animals sold alive, often killed on site',
-  holding_yard:'Animals held in transit', aquaculture:'Fish or shellfish farmed',
+  holding_yard:'Animals held in transit. Almost every animal that passes '+
+    'through one is on its way to a place where it is killed', aquaculture:'Fish or shellfish farmed',
   experimentation:'Animals used in research', zoo:'Animals held on display',
   wildlife:'Wild animals held or handled', racing:'Animals raced',
   rodeo:'Animals used in rodeo', entertainment:'Animals used in performance',
@@ -279,7 +306,7 @@ const ACTIVITY_ORDER = ['slaughter','live_market','saleyard','holding_yard',
 const SLAUGHTER_NOTE = {
   1:'A registry field says animals are killed on site',
   0:'The registry names what the place does and killing is not among it \u2014 '+
-    'a cutting plant, a cold store, a haulier, a fish farm, a hatchery',
+    'a cutting plant, a cold store, a haulier, a hatchery',
   2:'The registry is silent, which is not the same as a no'};
 
 /* ---- project once ----------------------------------------------------
@@ -316,7 +343,7 @@ function rebuildVis(){
   for(let i=0;i<N;i++){
     let ok = active.slaughter.has(D.sl[i]);
     if(ok){
-      const sp = D.dict.species[D.sp[i]];
+      const sp = D.dict.species[D.sp[i]].filter(s=>!EXCLUDED_SPECIES.has(s));
       ok = sp.length===0 ? active.species.has('_none')
                          : sp.some(s=>active.species.has(s));
     }
@@ -334,8 +361,11 @@ function rebuildVis(){
   updateTallies();
 }
 
-const map = L.map('map',{worldCopyJump:true,zoomControl:true,
+const map = L.map('map',{worldCopyJump:true,zoomControl:false,
   attributionControl:true}).setView([26,8],3);
+/* Top right: the left is where the rail opens from on a narrow screen, and the
+   zoom buttons sat under it. */
+L.control.zoom({position:'topright'}).addTo(map);
 map.attributionControl.addAttribution(
   'Facility records from national and EU/China export registries &middot; '+
   'outlines from <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
@@ -426,10 +456,41 @@ outlineBase.addTo(map);
 let SATELLITE = false;
 const imagery = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {maxNativeZoom:19, maxZoom:22,
+  {noWrap:true, bounds:[[-85.05,-180],[85.05,180]],
+   maxNativeZoom:19, maxZoom:22, updateWhenZooming:false, keepBuffer:2,
    attribution:'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, '+
      'Earthstar Geographics, USDA FSA, USGS, Aerogrid, IGN, IGP and the GIS '+
      'user community'});
+
+/* Coastlines, borders and place names over the imagery. Without them the world
+   view is a photograph with nothing to read a location against. */
+const places = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/'+
+  'World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+  {noWrap:true, bounds:[[-85.05,-180],[85.05,180]],
+   opacity:.6, maxNativeZoom:16, maxZoom:22, updateWhenZooming:false,
+   keepBuffer:2});
+
+/* The painted plate: a drawn world chart reprojected to Web Mercator so it
+   registers against this map's CRS, in its own pane over the tiles and under
+   the vectors, taking no clicks. It dissolves into the imagery beneath it as
+   you zoom, so the map is a drawing until imagery starts saying something a
+   drawing cannot. */
+const PLATE = D.plate || null;
+let plateImg = null;
+if(PLATE){
+  map.createPane('plate');
+  const pp = map.getPane('plate');
+  pp.style.zIndex = 250;                 /* tiles 200, vectors 400 */
+  pp.style.pointerEvents = 'none';
+}
+
+function plateBlend(){
+  if(!plateImg) return;
+  const z = map.getZoom();
+  const t = Math.max(0, Math.min(1, (z-PLATE.fin)/(PLATE.fout-PLATE.fin)));
+  plateImg.setOpacity(1-t);
+}
 
 /* ---- FAO Gridded Livestock of the World -------------------------------- */
 /* A modelled raster, and the only layer on this map that is not a place.
@@ -461,20 +522,36 @@ const GLW_BASE = 'https://data.apps.fao.org/map/wmts/wmts'+
   '&style=default'+
   '&Format=image/png&layertype=Image';
 
-/* Confirmed against the service: standard OGC axis order, bare zoom level as
-   the matrix identifier. FAO's catalogue prints TileCol and TileRow the other
-   way round; that is a mistake in the catalogue, not a quirk of the server. */
-const GLW_TILES = '&TileMatrix={z}&TileCol={x}&TileRow={y}';
+/* style=default got tiles out of the service. Where they land is a second
+   question, and the first answer put the grid in the sea off every coast --
+   which is what a row axis counted from the wrong end looks like. WMTS numbers
+   rows from the top, TMS from the bottom, and a server can advertise one while
+   serving the other. Leaflet writes the bottom-up form as {-y}.
 
-let glwLayer = null, glwTried = 0, glwOk = 0;
+   So the alternatives are back, narrowed to the four ways the two axes can be
+   read. Pick the one that puts cattle on land. */
+const GLW_VARIANTS = [
+  {label:'Rows from top', qs:'&TileMatrix={z}&TileCol={x}&TileRow={y}',
+   note:'WMTS convention'},
+  {label:'Rows from bottom', qs:'&TileMatrix={z}&TileCol={x}&TileRow={-y}',
+   note:'TMS convention, the row axis flipped'},
+  {label:'Axes swapped', qs:'&TileMatrix={z}&TileCol={y}&TileRow={x}',
+   note:'Column and row as FAO print them'},
+  {label:'Axes swapped, rows from bottom',
+   qs:'&TileMatrix={z}&TileCol={-y}&TileRow={x}',
+   note:'Both of the above together'},
+];
 
-function setLivestock(on){
+let glwLayer = null, glwVariant = 0, glwTried = 0, glwOk = 0;
+
+function setLivestock(on, variant){
+  if(variant !== undefined) glwVariant = variant;
   if(glwLayer){ map.removeLayer(glwLayer); glwLayer = null; }
   const status = document.getElementById('glwStatus');
   if(!on){ if(status) status.textContent=''; return; }
 
   glwTried = glwOk = 0;
-  glwLayer = L.tileLayer(GLW_BASE + GLW_TILES, {
+  glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
@@ -497,12 +574,28 @@ function setLivestock(on){
 }
 
 function setBasemap(kind){
-  SATELLITE = (kind==='satellite');
+  SATELLITE = (kind!=='outlines');       /* both imagery modes light the dots */
+  const mapEl = document.getElementById('map');
   if(SATELLITE){
     if(map.hasLayer(outlineBase)) map.removeLayer(outlineBase);
     if(!map.hasLayer(imagery)) imagery.addTo(map);
+    if(!map.hasLayer(places)) places.addTo(map);
+    mapEl.classList.add('atlas');
+    if(kind==='atlas' && PLATE && !plateImg){
+      plateImg = L.imageOverlay(PLATE.src, [[PLATE.s,-180],[PLATE.n,180]],
+        {pane:'plate', interactive:false, className:'plate-img'}).addTo(map);
+      map.on('zoomend', plateBlend);
+    }else if(kind!=='atlas' && plateImg){
+      map.off('zoomend', plateBlend);
+      map.removeLayer(plateImg); plateImg = null;
+    }
+    plateBlend();
   }else{
     if(map.hasLayer(imagery)) map.removeLayer(imagery);
+    if(map.hasLayer(places)) map.removeLayer(places);
+    if(plateImg){ map.off('zoomend', plateBlend);
+      map.removeLayer(plateImg); plateImg = null; }
+    mapEl.classList.remove('atlas');
     if(!map.hasLayer(outlineBase)) outlineBase.addTo(map);
   }
   layer.draw();
@@ -788,8 +881,11 @@ function group(title,items,set,swatches,lede){
        can disagree wildly and correctly -- a registry can hold a quarter of all
        the facilities and have a few hundred drawn, because the rest have no
        address precise enough to place. Both are labelled now. */
-    if(pct!==undefined) bits.push('<span class="share">'+pct.toFixed(1)+'%</span> of all '+
-      (D.n_all||0).toLocaleString());
+    /* The count above is what is drawn right now; this is the share of every
+       facility on file, including the ones with no usable address. The two
+       differ by about 19,000, and "of all" left that gap unexplained. */
+    if(pct!==undefined) bits.push('<span class="share">'+pct.toFixed(1)+'%</span> of the '+
+      (D.n_all||0).toLocaleString()+' listed');
     if(it.note) bits.push(esc(it.note));
     if(bits.length){ const h=document.createElement('span'); h.className='hint';
       h.innerHTML=bits.join(' &middot; '); body.appendChild(h); }
@@ -809,16 +905,22 @@ function group(title,items,set,swatches,lede){
 (function(){
   const g=document.createElement('div'); g.className='grp';
   g.innerHTML='<h2>Basemap</h2>';
-  const opts=[
-    {k:'outlines',label:'Country outlines',
-     note:'Embedded in this file. No tile server, nothing to expire, works offline.'},
+  const opts=[];
+  if(D.plate) opts.push({k:'atlas',label:'Painted atlas',
+    note:'A drawn world chart at this scale, dissolving into satellite imagery '+
+         'as you zoom in. By the time one plant fills the screen the drawing '+
+         'is gone and you are looking at the sheds and the lagoons.'});
+  opts.push(
     {k:'satellite',label:'Satellite imagery',
-     note:'Esri World Imagery, free and keyless. Loads tiles over the network; '+
-          'deep zoom shows the sheds, lagoons and stockyards themselves.'}];
+     note:'Esri World Imagery with coastlines and place names over it, and no '+
+          'painted layer at any zoom.'},
+    {k:'outlines',label:'Country outlines',
+     note:'Embedded in this file. No tile server, nothing to expire, works offline.'});
+  const firstKind = opts[0].k;
   for(const o of opts){
     const l=document.createElement('label'); l.className='row';
     const rb=document.createElement('input'); rb.type='radio'; rb.name='basemap';
-    rb.checked=(o.k==='outlines');
+    rb.checked=(o.k===firstKind);
     rb.onchange=function(){ if(rb.checked) setBasemap(o.k); };
     l.appendChild(rb);
     const body=document.createElement('div'); body.className='rowbody';
@@ -833,6 +935,11 @@ function group(title,items,set,swatches,lede){
 
 /* ---- what kind of place ----------------------------------------------- */
 const EXCLUDED_ACT=new Set(D.excluded_activities||[]);
+/* Species belonging to a kind of place this map no longer draws. Fish and
+   shellfish are here because aquaculture is: a fish farm with nothing else on
+   it is already off the map, and leaving the species filter behind would offer
+   a toggle that selects almost nothing. */
+const EXCLUDED_SPECIES=new Set(['fish','crustacean']);
 const actPresent=[...new Set((D.dict.activity||[]).flat())]
   .filter(a=>!EXCLUDED_ACT.has(a))
   .sort((a,b)=>{
@@ -843,13 +950,14 @@ if(actPresent.length){
   group('What happens here', actPresent.map(a=>({key:a,
     label:ACTIVITY_LABEL[a]||a, note:ACTIVITY_NOTE[a]||'',
     fate:ACTIVITY_FATE[a]})), active.activity,
-    false, 'What each registry says the place does, and whether the animals '+
+    false, 'Each registry says what the place does, and whether the animals '+
     'there are killed. A facility can be listed under several of these, so the '+
     'percentages overlap and do not sum to 100.');
 }
 
 const order=Object.keys(SPECIES_LABEL);
 const speciesPresent=[...new Set(D.dict.species.flat())]
+  .filter(sp=>!EXCLUDED_SPECIES.has(sp))
   .sort((a,b)=>order.indexOf(a)-order.indexOf(b));
 group('Species', speciesPresent.map(s=>({key:s,label:SPECIES_LABEL[s]||s,
   colour:D.colour[s]})).concat([{key:'_none',label:'Not stated',
@@ -866,7 +974,7 @@ function updateTallies(){
   const t={};
   for(let i=0;i<N;i++){
     if(!VIS[i]) continue;
-    const sp=D.dict.species[D.sp[i]];
+    const sp=D.dict.species[D.sp[i]].filter(s=>!EXCLUDED_SPECIES.has(s));
     if(sp.length===0) t['Species::_none']=(t['Species::_none']||0)+1;
     else sp.forEach(s=>{const k='Species::'+s;t[k]=(t[k]||0)+1;});
     if(D.dict.activity&&D.act){
@@ -986,9 +1094,9 @@ if(CAFO){
   const g=document.createElement('div'); g.className='grp';
   g.innerHTML='<h2>Livestock density</h2>';
   const p=document.createElement('p'); p.className='lede';
-  p.textContent='The one layer here that is not a place. FAO model subnational '+
-    'census totals down onto a grid, so a cell is an estimate of how many '+
-    'animals are in it, not a count of animals seen there.';
+  p.textContent='FAO model subnational census totals down onto a grid, so a '+
+    'cell is an estimate of how many animals are in it, not a count of animals '+
+    'seen there.';
   g.appendChild(p);
 
   const l=document.createElement('label'); l.className='row';
@@ -1000,20 +1108,40 @@ if(CAFO){
   t.textContent='Show FAO livestock grid';
   top.appendChild(t); body.appendChild(top);
   const h=document.createElement('span'); h.className='hint';
-  h.innerHTML='Head per km&sup2;, reference year 2020. FAO advise against '+
-    'drawing this in lat/long: at this projection a northern cell covers far '+
-    'less ground than an equatorial one, so Canada and Siberia read heavier '+
-    'than they are against the tropics.';
+  h.innerHTML='Animals per square kilometre, 2020. Compare within a region '+
+    'rather than across the map: this projection stretches everything far from '+
+    'the equator, so the same shade covers less real ground in Canada or '+
+    'Siberia than it does in Kenya, and the north looks fuller than it is.';
   body.appendChild(h);
   const f=document.createElement('span'); f.className='fate';
   f.textContent='modelled, not counted'; f.style.color='#8b8474';
   body.appendChild(f);
   l.appendChild(body); g.appendChild(l);
 
+  const box=document.createElement('div');
+  box.style.display='none'; box.style.padding='2px 0 0 18px';
+  const sel=document.createElement('select');
+  sel.style.cssText='width:100%;background:transparent;color:var(--text);'+
+    'border:1px solid var(--rule);border-radius:4px;padding:4px 6px;'+
+    'font:inherit;font-size:12px';
+  GLW_VARIANTS.forEach((v,i)=>{
+    const o=document.createElement('option'); o.value=String(i);
+    o.textContent=v.label; sel.appendChild(o);
+  });
+  box.appendChild(sel);
+  const vh=document.createElement('span'); vh.className='hint';
+  vh.textContent='If the grid sits offshore rather than on land, the tile row '+
+    'axis is being counted from the wrong end. Try the next option.';
+  box.appendChild(vh);
   const stat=document.createElement('span'); stat.className='hint';
-  stat.id='glwStatus'; body.appendChild(stat);
+  stat.id='glwStatus'; box.appendChild(stat);
 
-  cb.onchange=function(){ setLivestock(cb.checked); };
+  cb.onchange=function(){
+    box.style.display = cb.checked ? '' : 'none';
+    setLivestock(cb.checked, Number(sel.value));
+  };
+  sel.onchange=function(){ if(cb.checked) setLivestock(true, Number(sel.value)); };
+  g.appendChild(box);
   F.appendChild(g);
 })();
 
@@ -1038,122 +1166,26 @@ if(CAFO){
   t.textContent='Show as country shading';
   top.appendChild(t); body.appendChild(top);
   const h=document.createElement('span'); h.className='hint';
-  h.innerHTML='<span class="share">'+total.toLocaleString()+'</span> facilities, '+
-    'deepest where the most are missing';
+  h.innerHTML='<span class="share">'+total.toLocaleString()+'</span> facilities '+
+    'with a registry listing but no address precise enough to place. None is '+
+    'drawn &mdash; no dot, no circle, no town centre standing in for a street. '+
+    '<button class="link" id="showUnplaced">See the list</button>';
   body.appendChild(h); l.appendChild(body); g.appendChild(l);
   F.appendChild(g);
 })();
 
-/* ---- what kind of places these are ----------------------------------- */
-/* The commonest way to misread this map is to take every dot as a kill floor.
-   Most are not. The panel below says which are, which feed one, and which do
-   not lead to a killing at all, using the registries' own categories rather
-   than a judgement laid over them. */
-(function(){
-  const pct = k => { const v=SHARES['What happens here::'+k];
-    return v===undefined ? null : v.toFixed(1)+'%'; };
-  const kill = pct('slaughter');
-  document.getElementById('kindsNote').innerHTML =
-    'Not every dot is a slaughterhouse. '+
-    (kill ? kill+' of the facilities here are places where animals are killed; '
-          : '')+
-    'the rest are where animals are raised, held or traded before they get '+
-    'there. Plants that only handle animals already dead are not drawn. '+
-    '<button class="link" id="showKinds">What each kind is</button>';
-
-  const SECTIONS = [
-   {h:'Where animals are killed',
-    p:'The kill floor itself, and the markets where animals are sold alive and '+
-      'killed on the spot or within the hour.',
-    keys:['slaughter','live_market']},
-   {h:'Where animals are held or moved on the way',
-    p:'No killing happens at these, and almost every animal that passes through '+
-      'one is on its way to a place where it does. The transporters are the odd '+
-      'entry on this map: a licensed haulier is a company, and the address is an '+
-      'office rather than somewhere animals are kept.',
-    keys:['saleyard','holding_yard','quarantine','transporter']},
-   {h:'Where animals are confined and raised',
-    p:'Animals live here and are killed elsewhere. A dairy cow is slaughtered '+
-      'when her milk yield falls, usually at five or six years against a '+
-      'natural twenty; a laying hen when she moults; a wool sheep when her '+
-      'fleece thins. Male chicks are killed at the hatchery within a day of '+
-      'hatching because they will not lay. None of that happens at the address '+
-      'on the map, which is why these are the largest share of it.',
-    keys:['farm_meat','farm_dairy','farm_poultry','farm_eggs','farm_wool','farm_skins',
-          'hatchery','aquaculture','farm_honey','insect_rearing',
-          'germinal_products']},
-   {h:'What this map leaves out',
-    p:'Places that only ever handle an animal already dead -- cutting plants, '+
-      'processors, cold stores, renderers, casings and egg-product plants -- '+
-      'and places where animals are kept for something other than the food '+
-      'chain: laboratories, zoos, racing, rodeo, pet breeding, wool, fur and '+
-      'bee rearing. None of them is drawn and none has a filter of its own. A '+
-      'site that also kills is still here, drawn as a slaughterhouse. All of '+
-      'it remains in the published dataset.',
-    keys:['cutting','processing','minced_meat','meat_preparations',
-          'game_handling','cold_store','rendering','casings','egg_products']},
-   {h:'Where animals are used other ways',
-    p:'Killing is not the purpose here, but it is a common ending: laboratory '+
-      'animals at the end of a study, racing animals when they stop winning, '+
-      'surplus zoo animals, unsold breeding stock.',
-    keys:['experimentation','zoo','wildlife','racing','rodeo','entertainment',
-          'pet_breeder','pet_shop','agricultural_show']},
-   {h:'What "listed as none" means',
-    p:'A registry that names activities and does not name killing among them. '+
-      'It is a statement, not a silence: the EU registers print a code for '+
-      'every approved activity, so a plant listed CP and CS does cutting and '+
-      'cold storage and would carry SH if it slaughtered. Most of this bucket '+
-      'is the trade around the kill floor rather than anything humane \u2014 '+
-      'cutting plants and processors taking carcasses in, hauliers moving live '+
-      'animals to slaughter, fish farms and hatcheries raising stock that will '+
-      'be killed somewhere else. The animals still die; the registry is saying '+
-      'they do not die at this address.',
-    keys:[]},
-   {h:'Where the registry did not say',
-    p:'The listing exists and the activity field is empty. Silence is not a '+
-      'no, and these are not counted as anything.',
-    keys:['unknown','_none']}];
-
-  document.getElementById('showKinds').onclick=function(){
-    let h='<h3>What kind of places these are</h3>'+
-      '<p class="where">Every category below is the registry&rsquo;s own. '+
-      'Percentages are the share of all '+(D.n_all||0).toLocaleString()+
-      ' facilities, located or not; a facility can be listed under several, so '+
-      'they overlap.</p><div class="prov kinds">';
-    for(const s of SECTIONS){
-      const rows=s.keys.filter(k=>pct(k)!==null);
-      if(!rows.length && s.keys.length) continue;
-      h+='<h4>'+esc(s.h)+'</h4><p>'+esc(s.p)+'</p>';
-      if(!rows.length) continue;
-      h+='<ul>';
-      for(const k of rows){
-        h+='<li><b>'+esc(ACTIVITY_LABEL[k]||k)+'</b> &middot; '+pct(k)+
-           ' &middot; '+esc(ACTIVITY_NOTE[k]||'')+'</li>';
-      }
-      h+='</ul>';
-    }
-    h+='<h4>What this map is not</h4><p>These are registry listings, not a '+
-       'census. A plant appears because some authority licensed it, and most '+
-       'authorities license only what exports or what falls above a size '+
-       'threshold. Where the map is empty, that is usually a gap in who keeps '+
-       'records rather than a place where animals are not killed.</p>';
-    h+='</div>';
-    body.innerHTML=h; drawer.classList.add('open');
-  };
-})();
-
 /* ---- unlocated ------------------------------------------------------- */
 const u=D.unlocated||[];
+/* The rail's last word, rather than a note about the dataset's gaps: what the
+   map is a record of, and what its empty regions actually mean. */
 document.getElementById('unlocatedNote').innerHTML =
-  u.length
-  ? u.length.toLocaleString()+' facilities have a registry listing but no address '+
-    'precise enough to place. They are not on the map at all &mdash; no dot, no '+
-    'circle, no town centre standing in for a street. They are listed here and '+
-    'carried in full in the published dataset. '+
-    '<button class="link" id="showUn">See the list</button>'
-  : 'Every facility in this dataset has a located address.';
+  '<b>What this map is not.</b> These are registry listings, not a census. A '+
+  'plant appears because some authority licensed it, and most authorities '+
+  'license only what exports or what falls above a size threshold. Where the '+
+  'map is empty, that is usually a gap in who keeps records rather than a '+
+  'place where animals are not killed.';
 if(u.length){
-  document.getElementById('showUn').onclick=function(){
+  document.getElementById('showUnplaced').onclick=function(){
     let h='<h3>Facilities without a usable location</h3>';
     h+='<p class="where">'+u.length.toLocaleString()+' records. Listed by a registry, '+
        'but with an address too coarse to geocode to a street or building. They '+
@@ -1182,6 +1214,25 @@ document.getElementById('toggleRail').onclick=function(){
   document.getElementById('rail').classList.toggle('open');};
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape') drawer.classList.remove('open');});
+
+/* The rail is assembled in whatever order these blocks happen to run, which is
+   not the order it reads best in. Sorting once here, after every group exists,
+   keeps the code grouped by subject and the panel grouped by use. */
+(function(){
+  const ORDER=['Basemap','What happens here','Confined animal facilities',
+    'Livestock density','Species','Slaughter activity','Unplaced facilities',
+    'Registry'];
+  const groups=[...F.querySelectorAll('.grp')];
+  groups.sort((a,b)=>{
+    const ia=ORDER.indexOf(a.querySelector('h2').textContent);
+    const ib=ORDER.indexOf(b.querySelector('h2').textContent);
+    return (ia<0?99:ia)-(ib<0?99:ib);
+  });
+  for(const g of groups) F.appendChild(g);
+})();
+
+/* The painted atlas is the default when its plate shipped; outlines otherwise. */
+setBasemap(D.plate ? 'atlas' : 'outlines');
 
 rebuildVis();
 coarse.addTo(map);        /* under the points, over the basemap */
