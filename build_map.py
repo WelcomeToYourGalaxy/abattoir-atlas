@@ -68,49 +68,58 @@ SPECIES_COLOUR = {
 # one of those colours lands on ground of roughly its own value and disappears.
 # This is the same hue for each species, lifted well above the imagery in
 # lightness, and it is only used while the imagery basemap is on.
+# Over the painted atlas and over imagery the earth palette above turns to mud:
+# every hue in it is a shade of the ground it is sitting on. These are spread
+# around the wheel instead, so a species is told apart by hue rather than by a
+# difference in brown, and each one is light enough to hold against dark
+# woodland and saturated enough to hold against a pale field.
 SPECIES_COLOUR_SATELLITE = {
-    "bovine": "#F2A99F",
-    "porcine": "#F0BFD2",
-    "poultry": "#D9E7BE",
-    "ovine": "#A9DCEA",
-    "caprine": "#A9DCEA",
-    "equine": "#EDE0C4",
-    "cervid": "#EDE0C4",
-    "lagomorph": "#EDE0C4",
-    "farmed_game": "#EDE0C4",
-    "wild_game": "#EDE0C4",
-    "other": "#EDE0C4",
-    "fish": "#A9DCEA",
-    "crustacean": "#A9DCEA",
-    "camelid": "#EDE0C4",
-    "canine": "#EDE0C4",
-    "mustelid": "#EDE0C4",
-    "reptile": "#EDE0C4",
-    "insect": "#D9E7BE",
-    "_mixed": "#EFEADB",
-    "_unstated": "#CBD8D3",
+    "bovine": "#FF5C5C",      # red
+    "porcine": "#FF7BD3",     # pink
+    "poultry": "#FFD23F",     # yellow
+    "ovine": "#4DD0E1",       # cyan
+    "caprine": "#7CE38B",     # green
+    "equine": "#B98CFF",      # violet
+    "cervid": "#FF9F45",      # orange
+    "lagomorph": "#FF8FA3",   # rose
+    "farmed_game": "#C6E84F", # lime
+    "wild_game": "#5CC8FF",   # sky
+    "other": "#E0E0E0",       # grey
+    "fish": "#4DD0E1",
+    "crustacean": "#4DD0E1",
+    "camelid": "#FFC08A",
+    "canine": "#D9A066",
+    "mustelid": "#C9B6FF",
+    "reptile": "#7CE38B",
+    "insect": "#C6E84F",
+    "_mixed": "#FFFFFF",      # more than one species
+    "_unstated": "#9FB4C7",   # none named
 }
 
 # Dark-field colour -> imagery colour, so a palette entry can be translated
 # without knowing which species produced it.
-_SAT_OF = {SPECIES_COLOUR[k]: SPECIES_COLOUR_SATELLITE[k]
-           for k in SPECIES_COLOUR if k in SPECIES_COLOUR_SATELLITE}
-
 SPECIES_ORDER = ["bovine", "porcine", "poultry", "ovine", "caprine",
                  "equine", "cervid", "lagomorph", "fish", "crustacean",
                  "camelid", "canine", "mustelid", "reptile", "insect",
                  "farmed_game", "wild_game", "other"]
 
 
-def _dot_colour(species: list[str]) -> str:
+def _dot_key(species: list[str]) -> str:
+    """Which palette entry a facility's dot uses.
+
+    The species key, not the colour. Keying on the colour collapsed every
+    species that shares a shade in the dark palette into one entry, so the
+    imagery palette could only ever show as many hues as the dark one had --
+    six species arrived on the map as the same green.
+    """
     if not species:
-        return SPECIES_COLOUR["_unstated"]
+        return "_unstated"
     primary = [s for s in SPECIES_ORDER if s in species]
     if not primary:
-        return SPECIES_COLOUR["_unstated"]
+        return "_unstated"
     if len(primary) > 2:
-        return SPECIES_COLOUR["_mixed"]
-    return SPECIES_COLOUR.get(primary[0], SPECIES_COLOUR["other"])
+        return "_mixed"
+    return primary[0] if primary[0] in SPECIES_COLOUR else "other"
 
 
 # Climate TRACE's confined-animal-facility asset definition, if a filtered
@@ -159,7 +168,13 @@ def load_cafo(path: Path | None = None) -> dict | None:
             except json.JSONDecodeError:
                 continue
 
-    lat, lon, name, precise, owner, capacity = [], [], [], [], [], []
+    # One row per facility per month. The archive runs 2021-01 to 2026-06, so an
+    # extract that keeps every month carries the same site 66 times and would
+    # draw it 66 times in the same pixel -- invisible on the map and wrong in
+    # the count. Folded on the coordinate and the name, keeping the latest
+    # month, so a single-month extract behaves identically and an all-months one
+    # behaves sensibly.
+    best: dict = {}
     periods = set()
     for ft in feats:
         geom = ft.get("geometry") or {}
@@ -173,26 +188,36 @@ def load_cafo(path: Path | None = None) -> dict | None:
         pr = ft.get("properties") or {}
         if pr.get("x_asset_definition") not in (None, "confined-animal-facility"):
             continue          # an unfiltered extract would otherwise slip through
-        lon.append(round(x, 5))
-        lat.append(round(y, 5))
-        name.append((pr.get("name") or "").strip())
-        # x_precision records whether a point is a located facility or an
-        # administrative centroid. Anything not explicitly precise is drawn
-        # hollow: a solid dot asserts a position the source did not give.
-        precise.append(1 if str(pr.get("x_precision", "")).lower()
-                       in ("facility", "high", "exact", "point") else 0)
-        owner.append((pr.get("x_owner") or "").strip())
+        nm = (pr.get("name") or "").strip()
+        period = str(pr.get("x_period") or "")
+        if period:
+            periods.add(period)
+        key = (round(x, 5), round(y, 5), nm)
+        if key in best and period <= best[key][0]:
+            continue
         cap = pr.get("x_capacity")
         units = (pr.get("x_capacity_units") or "").strip()
-        capacity.append(f"{cap} {units}".strip() if cap not in (None, "") else "")
-        if pr.get("x_period"):
-            periods.add(str(pr["x_period"]))
+        best[key] = (period, {
+            "lon": round(x, 5), "lat": round(y, 5), "name": nm,
+            # x_precision records whether a point is a located facility or an
+            # administrative centroid. Anything not explicitly precise is drawn
+            # hollow: a solid dot asserts a position the source did not give.
+            "precise": 1 if str(pr.get("x_precision", "")).lower()
+                       in ("facility", "high", "exact", "point") else 0,
+            "owner": (pr.get("x_owner") or "").strip(),
+            "capacity": f"{cap} {units}".strip() if cap not in (None, "") else "",
+        })
 
-    if not lat:
+    rows = [v for _, v in best.values()]
+    if not rows:
         return None
-    return {"lat": lat, "lon": lon, "name": name, "precise": precise,
-            "owner": owner, "capacity": capacity,
-            "periods": sorted(periods), "n": len(lat)}
+    return {"lat": [r["lat"] for r in rows], "lon": [r["lon"] for r in rows],
+            "name": [r["name"] for r in rows],
+            "precise": [r["precise"] for r in rows],
+            "owner": [r["owner"] for r in rows],
+            "capacity": [r["capacity"] for r in rows],
+            "periods": sorted(periods), "n": len(rows),
+            "rows_read": len(feats)}
 
 
 def load_outlines() -> list:
@@ -307,7 +332,7 @@ def encode(facilities, sources_meta: dict) -> dict:
         tier_i.append(idx(tier_combos, tuple(f.match_tiers)))
         sl.append({True: 1, False: 0, None: 2}[f.slaughter])
         uid.append(f.uid)
-        ci.append(idx(palette, _dot_colour(f.species)))
+        ci.append(idx(palette, _dot_key(f.species)))
         ids.append([f"{m['source']}|{m.get('id_scheme') or ''}|{m.get('national_id') or ''}"
                     for m in f.members])
 
@@ -328,9 +353,9 @@ def encode(facilities, sources_meta: dict) -> dict:
             "source": [list(t) for t in inv(source_combos)],
             "tier": [list(t) for t in inv(tier_combos)],
         },
-        "palette": inv(palette),
-        # Same order as palette, so one index looks up either.
-        "palette_satellite": [_SAT_OF.get(c, c) for c in inv(palette)],
+        "palette": [SPECIES_COLOUR[k] for k in inv(palette)],
+        # Same order, so one index looks up either.
+        "palette_satellite": [SPECIES_COLOUR_SATELLITE[k] for k in inv(palette)],
         "colour": {s: SPECIES_COLOUR[s] for s in SPECIES_ORDER}
                   | {"_mixed": SPECIES_COLOUR["_mixed"],
                      "_unstated": SPECIES_COLOUR["_unstated"]},
@@ -403,7 +428,9 @@ label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
 .tally{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap;
   font-variant-numeric:tabular-nums}
 .grp .lede{color:var(--dim);font-size:11px;line-height:1.5;margin:-4px 0 8px}
-.note{padding:12px 20px;color:var(--dim);font-size:11.5px;line-height:1.55;
+/* Leaflet's attribution strip is pinned to the bottom of the map and sits over
+   whatever the rail ends with, which was cutting this note off mid-sentence. */
+.note{padding:12px 20px 34px;color:var(--dim);font-size:11.5px;line-height:1.55;
   border-top:1px solid var(--rule)}
 button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12px;
   padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
@@ -413,10 +440,15 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
   transform:translateX(100%);transition:transform .22s ease;overflow-y:auto}
 #drawer.open{transform:none}
 @media (prefers-reduced-motion:reduce){#drawer{transition:none}}
-#drawer .close{position:absolute;top:12px;right:14px;background:none;border:0;
-  color:var(--dim);font-size:20px;line-height:1;cursor:pointer;padding:4px}
+/* Big enough to hit, and pushed down clear of the zoom buttons, which sit at
+   the top right of the map and would otherwise land on top of it. */
+#drawer .close{position:absolute;top:62px;right:12px;z-index:2;width:30px;
+  height:30px;border-radius:50%;background:var(--ink);
+  border:1px solid var(--rule);color:var(--text);font-size:17px;line-height:1;
+  cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+#drawer .close:hover{border-color:var(--live)}
 #drawer h3{font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.25;
-  margin:0;padding:22px 46px 6px 20px}
+  margin:0;padding:22px 56px 6px 20px}
 #drawer .where{padding:0 20px 16px;color:var(--dim);font-size:12.5px;line-height:1.5}
 .facts{padding:0 20px 18px;border-bottom:1px solid var(--rule)}
 .fact{display:flex;gap:12px;padding:5px 0;font-size:13px}
@@ -436,9 +468,20 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 .pick:hover{border-left-color:var(--live)}
 
 /* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
-   rather than fighting it -- plain satellite only. The painted atlas sets its
-   own filter from script, because it pushes the imagery the other way. */
-#map.atlas:not(.painted) .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
+   rather than fighting it, and only while the atlas basemap is on. */
+#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
+/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
+   stopped in a hard line across the southern ocean. Masked rather than
+   stretched: stretching would distort the border art, cropping would lose it. */
+.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
+    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
+   rather than fighting it, and only while an imagery basemap is on. */
+#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
 /* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
    stopped in a hard line across the southern ocean. Masked rather than
    stretched: stretching would distort the border art, cropping would lose it. */
@@ -763,7 +806,8 @@ const Base = L.Layer.extend({
     L.DomUtil.setTransform(this._c,o,s);
   },
   draw(){
-    const m=this._map, size=m.getSize(), dpr=window.devicePixelRatio||1;
+    const m=this._map; if(!m) return;
+    const size=m.getSize(), dpr=window.devicePixelRatio||1;
     const tl=m.containerPointToLayerPoint([0,0]);
     L.DomUtil.setPosition(this._c,tl);
     this._c.width=size.x*dpr; this._c.height=size.y*dpr;
@@ -833,164 +877,6 @@ function plateBlend(){
   plateImg.setOpacity(1-t);
 }
 
-/* ---- the painted atlas's satellite: composite, never replace ------------ */
-/* Ported from the Pre-Birth Rights map, where the reasoning is written out in
-   full. In short: satellite imagery's photographic look is carried by its hue
-   and its usefulness -- coastlines, terrain, where the trees stop -- by its
-   luminance. So the imagery stays exactly where it is and supplies the light,
-   washes shift the colour, and a hillshade puts the sculpting back. Every
-   coastline on screen is still Esri's.
-
-   Only in the painted-atlas basemap. Plain satellite keeps its dimmed imagery
-   and the outlines basemap has no imagery to treat.
-
-   Panes, bottom to top:
-     tilePane 200   imagery + Esri places (filter applied here)
-     satSea   205   screen      the water
-     satWash  210   soft-light  green over land
-     satWarm  214   overlay     sunlight
-     satShade 220   multiply    Esri World Hillshade
-     livestock 230  FAO GLW, above the washes so it is not recoloured
-     satLabels 240  CARTO labels
-     plate    250   the painted chart, which covers all of this until z3-5
-     overlay  400   the facilities                                          */
-const SAT_TUNE = {
-  sat:   1.15,  /* imagery saturation above 1, so surfaces stay different   */
-  con:   1.05,
-  bright:1.06,
-  hue:  -6,     /* degrees; warms the greens off satellite's blue-green      */
-  green: 0.30,  /* soft-light green over land: tints, does not flatten       */
-  warm:  0.22,  /* overlay: the sunlit look                                  */
-  sea:   0.55,
-  shade: 0.45   /* relief                                                    */
-};
-const SAT_FAILS_ALLOWED = 12;
-let PAINTED = false, satShadeFailed = false;
-
-function satPane(name, z, blend){
-  if(!map.getPane(name)) map.createPane(name);
-  const el = map.getPane(name);
-  el.style.zIndex = z;
-  el.style.pointerEvents = 'none';
-  if(blend) el.style.mixBlendMode = blend;
-  el.style.display = 'none';
-  return el;
-}
-satPane('livestock', 230).style.display = '';
-
-/* A fill inside a Leaflet pane moves with the map, so a fixed-size box runs
-   out and leaves a hard edge across the view. These carry no geography, so
-   each is repositioned against the map pane's offset on every move and always
-   covers the screen. */
-const satFills = [];
-function satCover(){
-  if(!PAINTED) return;
-  const mp = map.getPanes().mapPane;
-  const o = L.DomUtil.getPosition(mp) || {x:0, y:0};
-  const sz = map.getSize(), m = 400;
-  for(const d of satFills){
-    d.style.left = (-o.x - m) + 'px';  d.style.top = (-o.y - m) + 'px';
-    d.style.width = (sz.x + m*2) + 'px'; d.style.height = (sz.y + m*2) + 'px';
-  }
-}
-function satFill(name, z, blend, colour, opacity){
-  const el = satPane(name, z, blend);
-  const d = document.createElement('div');
-  d.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
-                    'background:' + colour + ';opacity:' + opacity + ';';
-  el.appendChild(d);
-  satFills.push(d);
-  return {el, fill:d};
-}
-/* Water first, so the land washes above soften it. */
-const satSea   = satFill('satSea',  205, 'screen',     '#0f3b52', SAT_TUNE.sea);
-const satGreen = satFill('satWash', 210, 'soft-light', '#5f8f3a', SAT_TUNE.green);
-const satWarm  = satFill('satWarm', 214, 'overlay',    '#f0c073', SAT_TUNE.warm);
-const satShadeEl = satPane('satShade', 220, 'multiply');
-const satLabelEl = satPane('satLabels', 240);
-
-const satShade = L.tileLayer(
-  'https://services.arcgisonline.com/arcgis/rest/services/Elevation/' +
-  'World_Hillshade/MapServer/tile/{z}/{y}/{x}',
-  {pane:'satShade', opacity:SAT_TUNE.shade, maxZoom:22, maxNativeZoom:16,
-   noWrap:true, bounds:[[-85.05,-180],[85.05,180]],
-   updateWhenZooming:false, keepBuffer:2,
-   attribution:'Hillshade &copy; Esri'});
-const satLabels = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/' +
-  '{z}/{x}/{y}{r}.png',
-  {pane:'satLabels', opacity:0.92, maxZoom:22, maxNativeZoom:18, noWrap:true,
-   bounds:[[-85.05,-180],[85.05,180]], subdomains:'abcd',
-   updateWhenZooming:false, keepBuffer:2,
-   attribution:'Labels &copy; CARTO, &copy; OpenStreetMap contributors'});
-
-function satFilter(){
-  const sp = map.getPane('tilePane');
-  sp.style.filter = PAINTED && !satShadeFailed
-    ? 'saturate(' + SAT_TUNE.sat + ') contrast(' + SAT_TUNE.con +
-      ') brightness(' + SAT_TUNE.bright + ') hue-rotate(' + SAT_TUNE.hue + 'deg)'
-    : '';
-}
-
-/* Tints ease off as you zoom in -- wide out they do the work, close in they
-   cover the sheds somebody zoomed in to see. Relief does the reverse. */
-function satRamp(){
-  if(!PAINTED) return;
-  const z = map.getZoom();
-  const t = z <= 6 ? 1 : z >= 13 ? 0.45 : 1 - (z - 6) * (0.55 / 7);
-  satGreen.fill.style.opacity = SAT_TUNE.green * t;
-  satWarm.fill.style.opacity  = SAT_TUNE.warm  * t;
-  satSea.fill.style.opacity   = SAT_TUNE.sea   * (z <= 6 ? 1 : 0.7);
-  satShade.setOpacity(z <= 4 ? SAT_TUNE.shade * 0.8 : SAT_TUNE.shade);
-}
-
-/* Without relief the washes are only a colour cast on a photograph. If the
-   hillshade keeps failing it is dropped along with them, and the painted mode
-   falls back to plain satellite's treatment -- the one the dot colours were
-   chosen against -- rather than to raw imagery. */
-let satShadeErrors = 0;
-satShade.on('tileerror', function(){
-  if(++satShadeErrors !== SAT_FAILS_ALLOWED) return;
-  satShadeFailed = true;
-  console.warn('[map] hillshade failed ' + satShadeErrors + ' times; the ' +
-               'painted atlas is falling back to plain satellite imagery');
-  if(PAINTED) setPainted(true);
-});
-let satLabelErrors = 0;
-satLabels.on('tileerror', function(){
-  if(++satLabelErrors !== SAT_FAILS_ALLOWED) return;
-  console.warn('[map] CARTO labels failed ' + satLabelErrors + ' times; dropped');
-  if(map.hasLayer(satLabels)) map.removeLayer(satLabels);
-});
-
-function setPainted(on){
-  PAINTED = !!on;
-  const mapEl = document.getElementById('map');
-  const washes = PAINTED && !satShadeFailed;
-  mapEl.classList.toggle('painted', washes);
-  for(const el of [satSea.el, satGreen.el, satWarm.el, satShadeEl])
-    el.style.display = washes ? '' : 'none';
-  satLabelEl.style.display = PAINTED ? '' : 'none';
-  if(washes){ if(!map.hasLayer(satShade)) satShade.addTo(map); }
-  else if(map.hasLayer(satShade)) map.removeLayer(satShade);
-  if(PAINTED && satLabelErrors < SAT_FAILS_ALLOWED){
-    if(!map.hasLayer(satLabels)) satLabels.addTo(map);
-  }else if(map.hasLayer(satLabels)) map.removeLayer(satLabels);
-  satFilter(); satCover(); satRamp();
-}
-map.on('zoomend', satRamp);
-map.on('move zoom zoomend moveend resize viewreset', satCover);
-
-/* Colour is a judgement and judgements want a knob, not a rebuild:
-     atlasSatTune({green:0.4, warm:0.3, shade:0.5, sat:1.3})
-     atlasSatTune()   prints the current values                             */
-window.atlasSatTune = function(next){
-  if(!next){ console.log('[map] satellite tune', JSON.stringify(SAT_TUNE)); return SAT_TUNE; }
-  for(const k of Object.keys(next)) if(k in SAT_TUNE) SAT_TUNE[k] = next[k];
-  satFilter(); satRamp();
-  return SAT_TUNE;
-};
-
 /* ---- FAO Gridded Livestock of the World -------------------------------- */
 /* A modelled raster, and the only layer on this map that is not a place.
    Subnational census totals downscaled to a grid by a Random Forest model, so a
@@ -1051,7 +937,6 @@ function setLivestock(on, variant){
 
   glwTried = glwOk = 0;
   glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
-    pane: 'livestock',
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
@@ -1070,10 +955,7 @@ function setLivestock(on, variant){
       : 'No tiles are loading. FAO may have changed the layer address.';
   }
   glwLayer.addTo(map);
-  /* No bringToFront: the points are a canvas in overlayPane (400) and the
-     raster has its own pane at 230, so the order is fixed by the panes. The
-     call that stood here threw on every switch-on, because the point layer is
-     a custom L.Layer with no bringToFront method. */
+  if(map.hasLayer(layer)) layer.bringToFront();
 }
 
 function setBasemap(kind){
@@ -1093,20 +975,15 @@ function setBasemap(kind){
       map.removeLayer(plateImg); plateImg = null;
     }
     plateBlend();
-    setPainted(kind==='atlas');
   }else{
     if(map.hasLayer(imagery)) map.removeLayer(imagery);
     if(map.hasLayer(places)) map.removeLayer(places);
     if(plateImg){ map.off('zoomend', plateBlend);
       map.removeLayer(plateImg); plateImg = null; }
-    setPainted(false);
     mapEl.classList.remove('atlas');
     if(!map.hasLayer(outlineBase)) outlineBase.addTo(map);
   }
-  /* The page picks its basemap on load, before the points are on the map, and
-     draw() reads the map from the layer. Unguarded, that threw and stopped the
-     script before a single facility was added. */
-  if(map.hasLayer(layer)) layer.draw();
+  layer.draw();
 }
 
 /* ---- coarse layer: the facilities that cannot be placed --------------- */
@@ -1182,7 +1059,11 @@ const Layer = L.Layer.extend({
     L.DomUtil.setTransform(this._c,o,s);
   },
   draw(){
-    const m=this._map, size=m.getSize(), dpr=window.devicePixelRatio||1;
+    /* A draw before the layer joins the map is a no-op, not a crash. This
+       script is one async function, so any throw in it stops everything after
+       the throw -- one early call left the whole map blank. */
+    const m=this._map; if(!m) return;
+    const size=m.getSize(), dpr=window.devicePixelRatio||1;
     const tl=m.containerPointToLayerPoint([0,0]);
     L.DomUtil.setPosition(this._c,tl);
     this._c.width=size.x*dpr; this._c.height=size.y*dpr;
@@ -1416,9 +1297,8 @@ function group(title,items,set,swatches,lede){
   const opts=[];
   if(D.plate) opts.push({k:'atlas',label:'Painted atlas',
     note:'A drawn world chart at this scale, dissolving into satellite imagery '+
-         'as you zoom in. The imagery is recoloured -- a green and warm wash '+
-         'with Esri hillshade for relief -- but not redrawn: every coastline '+
-         'and shed is still Esri\'s photograph.'});
+         'as you zoom in. By the time one plant fills the screen the drawing '+
+         'is gone and you are looking at the sheds and the lagoons.'});
   opts.push(
     {k:'satellite',label:'Satellite imagery',
      note:'Esri World Imagery with coastlines and place names over it, and no '+
@@ -1585,6 +1465,9 @@ if(CAFO){
     const h=document.createElement('span'); h.className='hint';
     h.innerHTML=(CAFO.periods.length===1
         ? 'One month of data, '+esc(CAFO.periods[0])+'. '
+        : CAFO.periods.length>1
+        ? esc(CAFO.periods.length)+' months folded to one point per facility, '+
+          esc(CAFO.periods[0])+' to '+esc(CAFO.periods[CAFO.periods.length-1])+'. '
         : '')+
       '<span class="share">'+(CAFO.n-hollow).toLocaleString()+'</span> of these '+
       'are drawn hollow because the source gave an administrative area rather '+
@@ -1728,9 +1611,10 @@ document.addEventListener('keydown',function(e){
    not the order it reads best in. Sorting once here, after every group exists,
    keeps the code grouped by subject and the panel grouped by use. */
 (function(){
-  const ORDER=['Basemap','What happens here','Confined animal facilities',
+  /* What the map is about first; how it is drawn last. */
+  const ORDER=['What happens here','Confined animal facilities',
     'Livestock density','Species','Slaughter activity','Unplaced facilities',
-    'Registry'];
+    'Registry','Basemap'];
   const groups=[...F.querySelectorAll('.grp')];
   groups.sort((a,b)=>{
     const ia=ORDER.indexOf(a.querySelector('h2').textContent);
@@ -1740,13 +1624,16 @@ document.addEventListener('keydown',function(e){
   for(const g of groups) F.appendChild(g);
 })();
 
-/* The painted atlas is the default when its plate shipped; outlines otherwise. */
-setBasemap(D.plate ? 'atlas' : 'outlines');
-
 rebuildVis();
 coarse.addTo(map);        /* under the points, over the basemap */
 if(cafoLayer) cafoLayer.addTo(map);
 layer.addTo(map);
+
+/* Last, not first. setBasemap ends by redrawing the point layer, and a layer
+   that has not joined the map yet has no map to draw against -- calling this
+   earlier threw before the points were ever added, leaving the panel up and
+   the map empty. */
+setBasemap(D.plate ? 'atlas' : 'outlines');
 
 })();
 </script>
