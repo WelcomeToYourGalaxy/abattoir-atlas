@@ -491,6 +491,28 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
     rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
   -webkit-mask-size:100% 100%;mask-size:100% 100%;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+#dock{position:absolute;left:0;right:0;bottom:0;height:50%;z-index:620;
+  background:var(--ink);border-top:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .22s ease}
+#dock.open{transform:none}
+@media (prefers-reduced-motion:reduce){#dock{transition:none}}
+.dock-bar{display:flex;align-items:center;gap:14px;padding:8px 12px 8px 16px;
+  border-bottom:1px solid var(--rule);flex:none}
+.dock-title{font-size:12.5px;color:var(--text);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dock-out{font-size:11.5px;color:var(--live);text-decoration:none;flex:none}
+.dock-out:hover{text-decoration:underline}
+.dock-close{flex:none;width:28px;height:28px;border-radius:50%;
+  background:none;border:1px solid var(--rule);color:var(--text);
+  font-size:16px;line-height:1;cursor:pointer;padding:0}
+.dock-close:hover{border-color:var(--live)}
+.dock-body{position:relative;flex:1;min-height:0}
+#dockFrame{position:absolute;inset:0;width:100%;height:100%;border:0}
+.dock-note{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:24px;margin:0;
+  color:var(--dim);font-size:12.5px;line-height:1.6}
+@media (max-width:760px){#dock{height:60%}}
 #boot{position:absolute;inset:0;z-index:1200;display:flex;align-items:center;
   justify-content:center;text-align:center;padding:40px;background:var(--ink);
   color:var(--dim);font-size:13px;line-height:1.6}
@@ -535,6 +557,24 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 
 <div id="hover"></div>
 <div id="boot">Loading&#8230;</div>
+
+<!-- Counterglow opens in the bottom half of the window rather than replacing
+     the page, so this map and theirs can be read against each other. Theirs is
+     a register of reported farm locations; this one is a register of licences.
+     Where they disagree is the interesting part. -->
+<section id="dock" aria-hidden="true">
+  <div class="dock-bar">
+    <span class="dock-title">Counterglow &mdash; reported animal farm locations</span>
+    <a class="dock-out" href="https://map.counterglow.org/" target="_blank"
+       rel="noopener">Open in a new tab &#8599;</a>
+    <button class="dock-close" id="dockClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="dock-body">
+    <p class="dock-note" id="dockNote">Loading Counterglow&#8230;</p>
+    <iframe id="dockFrame" title="Counterglow map" loading="lazy"
+            referrerpolicy="no-referrer"></iframe>
+  </div>
+</section>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script id="atlas-data" type="application/json"__DATA_SRC__>__DATA__</script>
@@ -1550,6 +1590,58 @@ if(CAFO){
   F.appendChild(g);
 })();
 
+/* ---- Counterglow, in the bottom half of the window --------------------- */
+/* Their map is a register of reported farm locations; this one is a register
+   of licences. Side by side is the only way to see where one has something the
+   other does not. Loaded on first open, not on page load, so nobody pays for
+   it who never asks. */
+(function(){
+  const dock=document.getElementById('dock');
+  const frame=document.getElementById('dockFrame');
+  const note=document.getElementById('dockNote');
+  let loaded=false, timer=null;
+
+  function open(){
+    dock.classList.add('open'); dock.setAttribute('aria-hidden','false');
+    if(loaded) return;
+    loaded = true;
+    frame.src = 'https://map.counterglow.org/';
+    /* A site can refuse to be framed, and when it does the browser tells the
+       page nothing at all -- no error, just an empty rectangle. So the notice
+       stays up until the frame actually loads, and after a few seconds says
+       what to do instead. */
+    frame.addEventListener('load', function(){
+      clearTimeout(timer); note.style.display='none';
+    });
+    timer = setTimeout(function(){
+      note.innerHTML = 'Counterglow will not open inside another page. '+
+        '<a class="dock-out" href="https://map.counterglow.org/" '+
+        'target="_blank" rel="noopener">Open it in a new tab &#8599;</a>';
+    }, 6000);
+  }
+  function close(){
+    dock.classList.remove('open'); dock.setAttribute('aria-hidden','true');
+  }
+  document.getElementById('dockClose').onclick = close;
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape') close();
+  });
+
+  const g=document.createElement('div'); g.className='grp';
+  g.innerHTML='<h2>Another map</h2>';
+  const p=document.createElement('p'); p.className='lede';
+  p.textContent='Counterglow maps animal farms reported by the public and by '+
+    'campaigners. It is built the other way round from this one: reports '+
+    'rather than licences, so it holds places no register lists.';
+  g.appendChild(p);
+  const l=document.createElement('label'); l.className='row';
+  const b=document.createElement('button'); b.className='link';
+  b.textContent='Open Counterglow below the map';
+  b.onclick=open;
+  l.appendChild(b); g.appendChild(l);
+  F.appendChild(g);
+})();
+
 /* ---- unplaced-facility layer toggle ----------------------------------- */
 (function(){
   const total=Object.values(UNLOC_BY_C).reduce((a,b)=>a+b,0);
@@ -1627,7 +1719,7 @@ document.addEventListener('keydown',function(e){
   /* What the map is about first; how it is drawn last. */
   const ORDER=['What happens here','Confined animal facilities',
     'Livestock density','Species','Slaughter activity','Unplaced facilities',
-    'Registry','Basemap'];
+    'Registry','Another map','Basemap'];
   const groups=[...F.querySelectorAll('.grp')];
   groups.sort((a,b)=>{
     const ia=ORDER.indexOf(a.querySelector('h2').textContent);
