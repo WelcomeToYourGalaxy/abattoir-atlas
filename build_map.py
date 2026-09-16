@@ -74,26 +74,26 @@ SPECIES_COLOUR = {
 # difference in brown, and each one is light enough to hold against dark
 # woodland and saturated enough to hold against a pale field.
 SPECIES_COLOUR_SATELLITE = {
-    "bovine": "#FF5C5C",      # red
-    "porcine": "#FF7BD3",     # pink
-    "poultry": "#FFD23F",     # yellow
-    "ovine": "#4DD0E1",       # cyan
-    "caprine": "#7CE38B",     # green
-    "equine": "#B98CFF",      # violet
-    "cervid": "#FF9F45",      # orange
-    "lagomorph": "#FF8FA3",   # rose
-    "farmed_game": "#C6E84F", # lime
-    "wild_game": "#5CC8FF",   # sky
-    "other": "#E0E0E0",       # grey
-    "fish": "#4DD0E1",
-    "crustacean": "#4DD0E1",
-    "camelid": "#FFC08A",
-    "canine": "#D9A066",
-    "mustelid": "#C9B6FF",
-    "reptile": "#7CE38B",
-    "insect": "#C6E84F",
-    "_mixed": "#FFFFFF",      # more than one species
-    "_unstated": "#9FB4C7",   # none named
+    "bovine": "#FF7A7A",       # red
+    "porcine": "#FF93DA",      # pink
+    "poultry": "#FFE85C",      # yellow
+    "ovine": "#5CE9FA",        # cyan
+    "caprine": "#86FBA6",      # green
+    "equine": "#FFB964",       # amber
+    "cervid": "#CBF75A",       # lime
+    "lagomorph": "#FFBCCF",    # rose
+    "farmed_game": "#79F0D6",  # aqua
+    "wild_game": "#7DC2FF",    # blue
+    "other": "#EDEDED",        # light grey
+    "fish": "#57DEFF",         # sky
+    "crustacean": "#69F2DE",   # turquoise
+    "camelid": "#FFDEA8",      # sand
+    "canine": "#FFCF5C",       # gold
+    "mustelid": "#C2F778",     # yellow-green
+    "reptile": "#97F8D3",      # mint
+    "insect": "#DFF76B",       # chartreuse
+    "_mixed": "#FFFFFF",       # more than one species
+    "_unstated": "#C3D3DF",    # none named
 }
 
 # Dark-field colour -> imagery colour, so a palette entry can be translated
@@ -870,6 +870,14 @@ if(PLATE){
   pp.style.pointerEvents = 'none';
 }
 
+/* Data rasters need their own pane above the painted plate. In the tile pane
+   they sit at 200, under the plate at 250, so at world view -- exactly where a
+   density grid is worth looking at -- the painting hid them, and they only
+   appeared once the plate had faded out around zoom 5. */
+map.createPane('datatiles');
+map.getPane('datatiles').style.zIndex = 260;
+map.getPane('datatiles').style.pointerEvents = 'none';
+
 function plateBlend(){
   if(!plateImg) return;
   const z = map.getZoom();
@@ -937,6 +945,7 @@ function setLivestock(on, variant){
 
   glwTried = glwOk = 0;
   glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
+    pane: 'datatiles',
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
@@ -1091,7 +1100,7 @@ const Layer = L.Layer.extend({
        lighter palette and get a dark outline at every zoom, not just close in:
        a light fill with a dark edge is the one combination that holds against
        both a pale ploughed field and dark woodland. */
-    if(SATELLITE){ alpha=Math.min(1,alpha+.2); r+=.5; ring=true; }
+    if(SATELLITE){ alpha=Math.min(1,alpha+.3); r+=.7; ring=true; }
 
     let count=0;
     const d=r*2, wrap = z<6 ? S : 0;   // second world copy near the dateline
@@ -1672,8 +1681,18 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
             plate_src = ("data:image/webp;base64,"
                          + base64.b64encode(PLATE_PATH.read_bytes()).decode())
         else:
-            plate_out = out.parent / "atlas-plate.webp"
-            plate_out.write_bytes(PLATE_PATH.read_bytes())
+            # The filename carries a hash of the image. Browsers and CDNs cache
+            # a plate hard, so republishing under the same name leaves readers
+            # looking at the old painting indefinitely; a new image is simply a
+            # new address.
+            import hashlib
+            raw = PLATE_PATH.read_bytes()
+            tag = hashlib.sha1(raw).hexdigest()[:8]
+            plate_out = out.parent / f"atlas-plate-{tag}.webp"
+            plate_out.write_bytes(raw)
+            for old_plate in out.parent.glob("atlas-plate-*.webp"):
+                if old_plate != plate_out:
+                    old_plate.unlink()
             plate_src = plate_out.name
     payload_plate = ({"src": plate_src, "s": PLATE_SOUTH, "n": PLATE_NORTH,
                       "fin": PLATE_FADE_IN, "fout": PLATE_FADE_OUT}
@@ -1713,7 +1732,7 @@ def build(facilities, out_path: str, *, title: str, subtitle: str,
         "by_country": dict(Counter(f.country_iso3 for f in facilities).most_common(25)),
     }
     if plate_src and not inline:
-        result["plate"] = str(out.parent / "atlas-plate.webp")
+        result["plate"] = str(out.parent / plate_src)
     if data_path is not None:
         result["data_path"] = str(data_path)
         result["data_mb"] = round(data_path.stat().st_size / 1e6, 2)

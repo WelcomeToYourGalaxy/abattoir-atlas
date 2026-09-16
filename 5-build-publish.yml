@@ -1,0 +1,95 @@
+name: 5 · Build and publish
+
+# Re-clusters with the geocode cache live (which is what turns on the proximity
+# match tier), builds the map, and publishes it to GitHub Pages.
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Map title'
+        default: 'Commercial Slaughter'
+  workflow_run:
+    workflows: ['4 · Geocode']
+    types: [completed]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: atlas-commit
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      # Prints exactly what the build will read. If a source is missing from
+      # the map, it is missing from this listing first.
+      - name: What is in raw/
+        continue-on-error: true
+        run: |
+          echo "--- raw/ ---"
+          find raw -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2 || ls -la raw/
+          for f in raw/*.jsonl raw/*.json raw/*.csv; do
+            if [ -f "$f" ]; then echo "$f: $(wc -l < "$f") lines"; fi
+          done
+          echo "--- subdirs ---"
+          for d in raw/*/; do
+            if [ -d "$d" ]; then echo "$d: $(ls -1 "$d" | wc -l) files"; fi
+          done
+          # A bare [ -d ] test as the last command returns non-zero when the
+          # glob does not expand, and under `bash -e` that fails the job. This
+          # step is diagnostics; it must never be what stops a build.
+          echo "--- end of listing ---"
+
+      - run: bash parse_all.sh
+
+      - name: Cluster with coordinates live
+        run: python run.py dedup
+
+      - name: Build the map
+        run: |
+          python run.py build \
+            --out atlas.html \
+            --title "${{ inputs.title || 'Commercial Slaughter' }}"
+          mkdir -p docs
+          cp out/atlas.html docs/index.html
+          # The page fetches its data from a sibling file, so the data has to
+          # travel with it. Without these two lines the map loads to an empty
+          # frame and a "data file did not load" message.
+          cp out/atlas.data.json docs/atlas.data.json
+          cp out/atlas.data.json.gz docs/atlas.data.json.gz
+          # The painted basemap is a sibling asset like the data is. Its name
+          # carries a hash of the image, so the old one is cleared out first.
+          rm -f docs/atlas-plate-*.webp
+          cp out/atlas-plate-*.webp docs/
+          cp out/dedup_report.md docs/dedup_report.md
+          ls -lh docs/
+
+      - run: python run.py status
+
+      - name: Commit outputs
+        run: |
+          bash .github/commit_outputs.sh "atlas: build $(date -u +%Y-%m-%d)" \
+            docs out/facilities.json.gz out/review_queue.csv out/dedup_report.md
+
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: docs}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
