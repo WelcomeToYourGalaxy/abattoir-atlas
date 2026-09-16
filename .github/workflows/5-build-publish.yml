@@ -67,8 +67,10 @@ jobs:
           # frame and a "data file did not load" message.
           cp out/atlas.data.json docs/atlas.data.json
           cp out/atlas.data.json.gz docs/atlas.data.json.gz
-          # The painted basemap is a sibling asset like the data is.
-          cp out/atlas-plate.webp docs/atlas-plate.webp
+          # The painted basemap is a sibling asset like the data is. Its name
+          # carries a hash of the image, so the old one is cleared out first.
+          rm -f docs/atlas-plate-*.webp
+          cp out/atlas-plate-*.webp docs/
           cp out/dedup_report.md docs/dedup_report.md
           ls -lh docs/
 
