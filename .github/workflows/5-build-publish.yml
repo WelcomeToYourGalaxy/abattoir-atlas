@@ -69,7 +69,10 @@ jobs:
           cp out/atlas.data.json.gz docs/atlas.data.json.gz
           # The painted basemap is a sibling asset like the data is. Its name
           # carries a hash of the image, so the old one is cleared out first.
-          rm -f docs/atlas-plate-*.webp
+          # Older builds left a plate called atlas-plate.webp, with no hash, and
+          # the pattern below does not match it. Removed by name so it cannot
+          # sit there for ever being served to nobody.
+          rm -f docs/atlas-plate-*.webp docs/atlas-plate.webp
           cp out/atlas-plate-*.webp docs/
           cp out/dedup_report.md docs/dedup_report.md
           ls -lh docs/
@@ -80,6 +83,64 @@ jobs:
         run: |
           bash .github/commit_outputs.sh "atlas: build $(date -u +%Y-%m-%d)" \
             docs out/facilities.json.gz out/review_queue.csv out/dedup_report.md
+
+      # ------------------------------------------------------------------
+      # Copy the published page into the maps repository, where the Weebly
+      # embed points. Four files have to move together -- the page names its
+      # data file, and the data file names the painting -- so copying one
+      # without the others is what leaves the map blank or unpainted. Doing it
+      # by hand went wrong twice; this is why it is a step.
+      #
+      # Needs a secret called MAPS_TOKEN: a fine-grained personal access token
+      # with Contents: read and write on WelcomeToYourGalaxy/maps. Without it
+      # this step is skipped and nothing else changes.
+      # ------------------------------------------------------------------
+      - name: Is the maps token set
+        id: maps_token
+        run: echo "present=${{ secrets.MAPS_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the maps repository
+        if: steps.maps_token.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: WelcomeToYourGalaxy/maps
+          token: ${{ secrets.MAPS_TOKEN }}
+          path: _maps
+
+      - name: Copy the map into maps/slaughter
+        if: steps.maps_token.outputs.present == 'true'
+        run: |
+          set -e
+          dest=_maps/slaughter
+          mkdir -p "$dest"
+          # Clear every old plate first: its name changes with the image, so a
+          # stale one is not overwritten, it just accumulates and confuses.
+          rm -f "$dest"/atlas-plate-*.webp "$dest"/atlas-plate.webp
+          cp docs/index.html          "$dest"/index.html
+          cp docs/atlas.data.json     "$dest"/atlas.data.json
+          cp docs/atlas.data.json.gz  "$dest"/atlas.data.json.gz
+          cp docs/atlas-plate-*.webp  "$dest"/
+          ls -lh "$dest"
+
+      - name: Push to the maps repository
+        if: steps.maps_token.outputs.present == 'true'
+        working-directory: _maps
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add slaughter
+          if git diff --cached --quiet; then
+            echo "maps/slaughter already matches this build"
+          else
+            git commit -m "slaughter map: build $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Note if the token is missing
+        if: steps.maps_token.outputs.present != 'true'
+        run: |
+          echo "MAPS_TOKEN is not set, so maps/slaughter was not updated."
+          echo "The four files in docs/ have to be copied there by hand."
 
       - uses: actions/upload-pages-artifact@v3
         with: {path: docs}
