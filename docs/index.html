@@ -94,29 +94,12 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 .pick:hover{border-left-color:var(--live)}
 
 /* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
-   rather than fighting it, and only while the atlas basemap is on. */
-#map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
-/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
-   stopped in a hard line across the southern ocean. Masked rather than
-   stretched: stretching would distort the border art, cropping would lose it. */
-.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  -webkit-mask-size:100% 100%;mask-size:100% 100%;
-  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-/* Esri's imagery is lit for a white page. Pulled back so the dots sit on it
    rather than fighting it, and only while an imagery basemap is on. */
 #map.atlas .leaflet-tile-pane{filter:brightness(.70) saturate(.74) contrast(1.08)}
-/* The plate ends at 80.55S and the imagery runs to 85.05S, so the painting
-   stopped in a hard line across the southern ocean. Masked rather than
-   stretched: stretching would distort the border art, cropping would lose it. */
-.plate-img{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 86%,
-    rgba(0,0,0,.75) 93%,rgba(0,0,0,0) 100%);
-  -webkit-mask-size:100% 100%;mask-size:100% 100%;
-  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* No mask on the plate. The southern edge used to be hidden behind a straight
+   CSS gradient, which read as a ruled line across the ocean; the dissolve now
+   lives in the image itself, ragged like the northern edge. A second fade on
+   top of it would only cut the cartouche off. */
 #dock{position:absolute;left:0;right:0;bottom:0;height:50%;z-index:620;
   background:var(--ink);border-top:1px solid var(--rule);
   display:flex;flex-direction:column;
