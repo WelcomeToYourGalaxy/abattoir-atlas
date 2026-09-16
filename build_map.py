@@ -946,6 +946,10 @@ function setLivestock(on, variant){
   glwTried = glwOk = 0;
   glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
     pane: 'datatiles',
+    /* One world, not three. Without this the grid repeats east and west of the
+       map, the same as the basemap tiles would -- the imagery layers are
+       already held to a single copy this way. */
+    noWrap: true, bounds: [[-85.05,-180],[85.05,180]],
     opacity: 0.65, maxNativeZoom: 10, maxZoom: 22,
     attribution: GLW_ATTRIB,
     /* Leaflet loads tiles as <img>, so no CORS header is needed to draw them.
