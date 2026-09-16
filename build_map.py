@@ -1057,7 +1057,16 @@ function setBasemap(kind){
     mapEl.classList.add('atlas');
     if(kind==='atlas' && PLATE && !plateImg){
       plateImg = L.imageOverlay(PLATE.src, [[PLATE.s,-180],[PLATE.n,180]],
-        {pane:'plate', interactive:false, className:'plate-img'}).addTo(map);
+        {pane:'plate', interactive:false, className:'plate-img'});
+      /* The painting is a file beside this page, and a missing file is silent:
+         the layer simply never draws and the map looks like plain imagery. So
+         say which file is missing, by name, rather than leaving it a mystery. */
+      plateImg.on('error', function(){
+        const n=document.getElementById('plateNote');
+        if(n) n.innerHTML='<b>The painting did not load.</b> '+esc(PLATE.src)+
+          ' has to sit in the same folder as this page.';
+      });
+      plateImg.addTo(map);
       map.on('zoomend', plateBlend);
     }else if(kind!=='atlas' && plateImg){
       map.off('zoomend', plateBlend);
@@ -1413,6 +1422,8 @@ function group(title,items,set,swatches,lede,allSwitch){
 (function(){
   const g=document.createElement('div'); g.className='grp';
   g.innerHTML='<h2>Basemap</h2>';
+  const note=document.createElement('p'); note.className='lede';
+  note.id='plateNote';
   const opts=[];
   if(D.plate) opts.push({k:'atlas',label:'Painted atlas',
     note:'A drawn world chart at this scale, dissolving into satellite imagery '+
@@ -1424,6 +1435,7 @@ function group(title,items,set,swatches,lede,allSwitch){
           'painted layer at any zoom.'},
     {k:'outlines',label:'Country outlines',
      note:'Embedded in this file. No tile server, nothing to expire, works offline.'});
+  if(D.plate) g.appendChild(note);
   const firstKind = opts[0].k;
   for(const o of opts){
     const l=document.createElement('label'); l.className='row';
