@@ -129,7 +129,9 @@ def _dot_key(species: list[str]) -> str:
 # estimate that a facility exists at a location. Merging them would put modelled
 # points into the dedup matcher and into the facility count, where a reader
 # could not tell the two apart.
-CAFO_PATH = Path("raw/climate_trace_cafo.geojsonl")
+CAFO_PATHS = [Path("raw/climate_trace_cafo.geojsonl.gz"),
+              Path("raw/climate_trace_cafo.geojsonl"),
+              Path("raw/climate_trace_cafo_geojsonl.gz")]
 
 # A painted world chart, reprojected to Web Mercator so it registers against
 # the map's own CRS. It is the basemap at world view and dissolves into the
@@ -147,12 +149,22 @@ def load_cafo(path: Path | None = None) -> dict | None:
     Returns None when the file is absent, which is the normal case -- the layer
     then does not appear at all rather than appearing empty.
     """
-    f = Path(path) if path else CAFO_PATH
-    if not f.exists():
+    if path:
+        f = Path(path)
+    else:
+        f = next((c for c in CAFO_PATHS if c.exists()), None)
+    if f is None or not f.exists():
         return None
 
     feats = []
-    text = f.read_text(encoding="utf-8")
+    # The extract arrives gzipped and is about six times smaller that way, so
+    # it is read as-is rather than asking anyone to unpack it first.
+    if f.suffix == ".gz":
+        import gzip
+        with gzip.open(f, "rt", encoding="utf-8") as fh:
+            text = fh.read()
+    else:
+        text = f.read_text(encoding="utf-8")
     if f.suffix == ".geojson" or text.lstrip().startswith('{"type": "FeatureCollection"'):
         try:
             feats = json.loads(text).get("features", [])
@@ -188,7 +200,13 @@ def load_cafo(path: Path | None = None) -> dict | None:
         pr = ft.get("properties") or {}
         if pr.get("x_asset_definition") not in (None, "confined-animal-facility"):
             continue          # an unfiltered extract would otherwise slip through
-        nm = (pr.get("name") or "").strip()
+        # The name field holds a generated identifier -- "ESP_MatureDairyCattle_1"
+        # -- not a name anyone would recognise, and at this row count the strings
+        # outweigh the coordinates in the published file. The part before the
+        # last underscore is the only informative piece, and it repeats, so it
+        # is kept once in a lookup rather than 285,000 times.
+        raw_name = (pr.get("name") or "").strip()
+        nm = raw_name.rsplit("_", 1)[0] if "_" in raw_name else raw_name
         period = str(pr.get("x_period") or "")
         if period:
             periods.add(period)
@@ -202,8 +220,10 @@ def load_cafo(path: Path | None = None) -> dict | None:
             # x_precision records whether a point is a located facility or an
             # administrative centroid. Anything not explicitly precise is drawn
             # hollow: a solid dot asserts a position the source did not give.
+            # "asset" is Climate TRACE's own word for a located facility; the
+            # rest of their vocabulary describes areas and grid cells.
             "precise": 1 if str(pr.get("x_precision", "")).lower()
-                       in ("facility", "high", "exact", "point") else 0,
+                       in ("asset", "facility", "high", "exact", "point") else 0,
             "owner": (pr.get("x_owner") or "").strip(),
             "capacity": f"{cap} {units}".strip() if cap not in (None, "") else "",
         })
@@ -211,11 +231,20 @@ def load_cafo(path: Path | None = None) -> dict | None:
     rows = [v for _, v in best.values()]
     if not rows:
         return None
-    return {"lat": [r["lat"] for r in rows], "lon": [r["lon"] for r in rows],
-            "name": [r["name"] for r in rows],
+    # Dictionary-encode the repeated strings: 285,000 rows share a few hundred
+    # distinct kind-labels and capacity values between them.
+    kinds: dict = {}
+    def idx(v):
+        if v not in kinds:
+            kinds[v] = len(kinds)
+        return kinds[v]
+    # Four decimal places is about eleven metres, which is finer than a modelled
+    # facility position can honestly claim and a fifth off the file size.
+    return {"lat": [round(r["lat"], 4) for r in rows],
+            "lon": [round(r["lon"], 4) for r in rows],
+            "kind": [idx(r["name"]) for r in rows],
+            "kinds": [k for k, _ in sorted(kinds.items(), key=lambda kv: kv[1])],
             "precise": [r["precise"] for r in rows],
-            "owner": [r["owner"] for r in rows],
-            "capacity": [r["capacity"] for r in rows],
             "periods": sorted(periods), "n": len(rows),
             "rows_read": len(feats)}
 
@@ -512,6 +541,11 @@ button.link{background:none;border:0;color:var(--live);font:inherit;font-size:12
 .dock-note{position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;text-align:center;padding:24px;margin:0;
   color:var(--dim);font-size:12.5px;line-height:1.6}
+.dock-note b{color:var(--text);font-weight:600}
+.dock-open{margin-top:2px;background:var(--live);border:0;border-radius:6px;
+  color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;
+  padding:8px 14px;cursor:pointer}
+.dock-open:hover{filter:brightness(1.1)}
 @media (max-width:760px){#dock{height:60%}}
 #boot{position:absolute;inset:0;z-index:1200;display:flex;align-items:center;
   justify-content:center;text-align:center;padding:40px;background:var(--ink);
@@ -1514,7 +1548,8 @@ if(CAFO){
     const n=document.createElement('span'); n.className='tally';
     n.textContent=CAFO.n.toLocaleString()+' points';
     top.appendChild(t); top.appendChild(n); body.appendChild(top);
-    const hollow=CAFO.precise.reduce((a,b)=>a+b,0);
+    const solid=CAFO.precise.reduce((a,b)=>a+b,0);
+    const hollow=CAFO.n-solid;
     const h=document.createElement('span'); h.className='hint';
     h.innerHTML=(CAFO.periods.length===1
         ? 'One month of data, '+esc(CAFO.periods[0])+'. '
@@ -1522,9 +1557,10 @@ if(CAFO){
         ? esc(CAFO.periods.length)+' months folded to one point per facility, '+
           esc(CAFO.periods[0])+' to '+esc(CAFO.periods[CAFO.periods.length-1])+'. '
         : '')+
-      '<span class="share">'+(CAFO.n-hollow).toLocaleString()+'</span> of these '+
-      'are drawn hollow because the source gave an administrative area rather '+
-      'than a position.';
+      (hollow
+        ? '<span class="share">'+hollow.toLocaleString()+'</span> are drawn '+
+          'hollow because the source gave an area rather than a position.'
+        : 'Every one carries a modelled position rather than an area.');
     body.appendChild(h);
     const f=document.createElement('span'); f.className='fate';
     f.textContent='modelled, not licensed'; f.style.color='#8b8474';
@@ -1606,18 +1642,30 @@ if(CAFO){
     if(loaded) return;
     loaded = true;
     frame.src = 'https://map.counterglow.org/';
-    /* A site can refuse to be framed, and when it does the browser tells the
-       page nothing at all -- no error, just an empty rectangle. So the notice
-       stays up until the frame actually loads, and after a few seconds says
-       what to do instead. */
+    /* Counterglow refuses to be shown inside another page, and a browser
+       reports that to the page as nothing at all -- no error, just an empty
+       rectangle. Tried once anyway in case that changes; if the frame has not
+       loaded shortly, the panel says so and offers the window instead. A popup
+       is used rather than a tab so the two maps can sit side by side. */
     frame.addEventListener('load', function(){
       clearTimeout(timer); note.style.display='none';
     });
     timer = setTimeout(function(){
-      note.innerHTML = 'Counterglow will not open inside another page. '+
-        '<a class="dock-out" href="https://map.counterglow.org/" '+
-        'target="_blank" rel="noopener">Open it in a new tab &#8599;</a>';
-    }, 6000);
+      frame.removeAttribute('src');
+      note.innerHTML =
+        '<span><b>Counterglow does not allow itself to be shown inside '+
+        'another page.</b><br>It has to open in its own window, which can sit '+
+        'beside this one.<br><br>'+
+        '<button class="dock-open" id="dockPop">Open Counterglow in a '+
+        'window</button></span>';
+      const pop=document.getElementById('dockPop');
+      if(pop) pop.onclick=function(){
+        const w=Math.min(1100, screen.availWidth-40);
+        const h=Math.min(760, screen.availHeight-80);
+        window.open('https://map.counterglow.org/','counterglow',
+          'width='+w+',height='+h+',left=20,top=40,noopener');
+      };
+    }, 3500);
   }
   function close(){
     dock.classList.remove('open'); dock.setAttribute('aria-hidden','true');
@@ -1631,12 +1679,13 @@ if(CAFO){
   g.innerHTML='<h2>Another map</h2>';
   const p=document.createElement('p'); p.className='lede';
   p.textContent='Counterglow maps animal farms reported by the public and by '+
-    'campaigners. It is built the other way round from this one: reports '+
-    'rather than licences, so it holds places no register lists.';
+    'campaigners \u2014 reports rather than licences, so it holds places no '+
+    'register lists. Their site will not display inside another page, so it '+
+    'opens in a window of its own.';
   g.appendChild(p);
   const l=document.createElement('label'); l.className='row';
   const b=document.createElement('button'); b.className='link';
-  b.textContent='Open Counterglow below the map';
+  b.textContent='Open Counterglow';
   b.onclick=open;
   l.appendChild(b); g.appendChild(l);
   F.appendChild(g);
