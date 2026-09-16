@@ -1,0 +1,51 @@
+{
+  "title": "Restrictions on cultivated meat",
+  "checked": "2026-09-16",
+  "note": "Laws against meat grown from animal cells rather than from an animal. Every entry below was read from reporting or legal compilations dated 2024-2026 and is listed with what the law actually does; nothing here is inferred from a proposal being discussed. Statuses: ban (in force, no end date), temporary (in force, with a stated expiry), partial (a restriction short of a general ban), proposed (a bill introduced and not passed).",
+  "statuses": {
+    "ban":       {"label": "Ban in force",        "colour": "#C2504A"},
+    "temporary": {"label": "Ban with an expiry",  "colour": "#C98A3C"},
+    "partial":   {"label": "Partial restriction", "colour": "#8A7E4E"},
+    "proposed":  {"label": "Bill proposed",       "colour": "#5E7A86"}
+  },
+  "countries": [
+    {"code": "ITA", "status": "ban",
+     "what": "Law 172/2023, in force 16 December 2023. Prohibits production and marketing of cell-cultured food, and bars meat words on plant-based products. The first national ban anywhere.",
+     "caveat": "Adopted before the EU scrutiny standstill period ended, which the European Commission has said makes its legal effect doubtful."},
+    {"code": "HUN", "status": "ban",
+     "what": "Parliament voted to prohibit the production and marketing of cultivated meat, the second clear national ban in Europe.",
+     "caveat": "The European Commission published a detailed opinion opposing it as unnecessary, since no cultivated product is authorised in the EU in any case."},
+    {"code": "FRA", "status": "partial",
+     "what": "A 2021 law bars cultivated meat from the canteens of schools, universities, hospitals and prisons. A wider ban was later introduced in Parliament.",
+     "caveat": "The wider bill has not passed."},
+    {"code": "ROU", "status": "proposed",
+     "what": "A prohibition modelled on Italy's was introduced in Parliament.",
+     "caveat": "Not passed as of this compilation."}
+  ],
+  "us_states": [
+    {"code": "FL", "status": "ban",
+     "what": "SB 1084, signed May 2024. Unlawful to manufacture for sale, sell, hold or offer for sale, or distribute cultivated meat. First US state to act. A federal appeals court upheld it in March 2026."},
+    {"code": "AL", "status": "ban",
+     "what": "Enacted 2024. Prohibits manufacture and sale of cell-cultured meat products, with a carve-out in the statute."},
+    {"code": "MS", "status": "ban",
+     "what": "HB 1006, March 2025. Bans manufacturing, selling or distributing cultivated food products derived from animal cells. Passed unanimously."},
+    {"code": "MT", "status": "ban",
+     "what": "Enacted 2025. Bans sale and manufacture of cell-cultured meat."},
+    {"code": "NE", "status": "ban",
+     "what": "LB 246, 2025. First Midwestern state to prohibit sale or manufacture, paired with an executive order barring state agencies from buying it."},
+    {"code": "SD", "status": "temporary",
+     "what": "SB 124, 2026. A five-year prohibition on sale, manufacture and distribution, following 2025 measures on labelling and state research funding."},
+    {"code": "IN", "status": "temporary",
+     "what": "A two-year moratorium running to 30 June 2027, after which cultivated products sold in the state must be labelled an imitation meat product."},
+    {"code": "TX", "status": "temporary",
+     "what": "Enacted 2025, seventh state to ban. Sunsets 1 September 2027 unless extended. Under legal challenge."}
+  ],
+  "sources": [
+    "National Agricultural Law Center, Alternative Protein Laws State Compilation, updated 7 April 2026",
+    "Food Safety Magazine, 'Texas Becomes Seventh State to Ban Cultivated Meat', June 2025",
+    "US News, 'States Try to Snuff Out Lab-Grown Meat Before It Really Starts', December 2025",
+    "Osborne Clarke, 'Italy bans lab-grown meat, violating EU procedure', 2024",
+    "Green Queen, 'EU Commission, Member States Oppose Hungary's Cultivated Meat Ban', October 2024",
+    "Quality Assurance & Food Safety, 'The Anti-Cultivated Meat Coalition in the EU', July 2024"
+  ]
+}
