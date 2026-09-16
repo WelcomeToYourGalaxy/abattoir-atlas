@@ -51,6 +51,9 @@ label.row input{accent-color:var(--live);margin:3px 0 0;flex:none}
 .tally{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap;
   font-variant-numeric:tabular-nums}
 .grp .lede{color:var(--dim);font-size:11px;line-height:1.5;margin:-4px 0 8px}
+label.row.allrow{border-bottom:1px solid var(--rule);padding-bottom:8px;
+  margin-bottom:4px}
+label.row.allrow .lbl{color:var(--text);font-weight:600}
 /* Leaflet's attribution strip is pinned to the bottom of the map and sits over
    whatever the rail ends with, which was cutting this note off mid-sentence. */
 .note{padding:12px 20px 34px;color:var(--dim);font-size:11.5px;line-height:1.55;
@@ -591,28 +594,21 @@ const GLW_BASE = 'https://data.apps.fao.org/map/wmts/wmts'+
 
    So the alternatives are back, narrowed to the four ways the two axes can be
    read. Pick the one that puts cattle on land. */
-const GLW_VARIANTS = [
-  {label:'Rows from top', qs:'&TileMatrix={z}&TileCol={x}&TileRow={y}',
-   note:'WMTS convention'},
-  {label:'Rows from bottom', qs:'&TileMatrix={z}&TileCol={x}&TileRow={-y}',
-   note:'TMS convention, the row axis flipped'},
-  {label:'Axes swapped', qs:'&TileMatrix={z}&TileCol={y}&TileRow={x}',
-   note:'Column and row as FAO print them'},
-  {label:'Axes swapped, rows from bottom',
-   qs:'&TileMatrix={z}&TileCol={-y}&TileRow={x}',
-   note:'Both of the above together'},
-];
+/* Settled by testing: standard WMTS, rows counted from the top. FAO's
+   catalogue prints the column and row the other way round and omits style
+   entirely; both were wrong, and the alternatives are gone now that the right
+   one is known. */
+const GLW_TILES = '&TileMatrix={z}&TileCol={x}&TileRow={y}';
 
-let glwLayer = null, glwVariant = 0, glwTried = 0, glwOk = 0;
+let glwLayer = null, glwTried = 0, glwOk = 0;
 
-function setLivestock(on, variant){
-  if(variant !== undefined) glwVariant = variant;
+function setLivestock(on){
   if(glwLayer){ map.removeLayer(glwLayer); glwLayer = null; }
   const status = document.getElementById('glwStatus');
   if(!on){ if(status) status.textContent=''; return; }
 
   glwTried = glwOk = 0;
-  glwLayer = L.tileLayer(GLW_BASE + GLW_VARIANTS[glwVariant].qs, {
+  glwLayer = L.tileLayer(GLW_BASE + GLW_TILES, {
     pane: 'datatiles',
     /* One world, not three. Without this the grid repeats east and west of the
        map, the same as the basemap tiles would -- the imagery layers are
@@ -923,15 +919,45 @@ const SHARES=D.shares||{};
    whole dataset behind it, and a line saying what that kind of place actually
    is. A map of 72,000 dots is not a map of 72,000 kill floors, and the panel
    should not let anyone assume it is. */
-function group(title,items,set,swatches,lede){
+function group(title,items,set,swatches,lede,allSwitch){
   const g=document.createElement('div'); g.className='grp';
   g.innerHTML='<h2>'+title+'</h2>';
   if(lede){ const p=document.createElement('p'); p.className='lede';
     p.textContent=lede; g.appendChild(p); }
+
+  /* One switch for the whole group. With thirteen kinds of place in this list,
+     clearing them one at a time to look at a single one is thirteen clicks. */
+  let allBox=null;
+  if(allSwitch){
+    const al=document.createElement('label'); al.className='row allrow';
+    allBox=document.createElement('input'); allBox.type='checkbox';
+    allBox.checked=true;
+    al.appendChild(allBox);
+    const ab=document.createElement('div'); ab.className='rowbody';
+    const at=document.createElement('div'); at.className='rowtop';
+    const an=document.createElement('span'); an.className='lbl';
+    an.textContent='All of these';
+    at.appendChild(an); ab.appendChild(at); al.appendChild(ab);
+    g.appendChild(al);
+    allBox.onchange=function(){
+      const on=allBox.checked;
+      set.clear();
+      for(const it of items) if(on) set.add(it.key);
+      g.querySelectorAll('label.row:not(.allrow) input').forEach(cb=>{
+        cb.checked=on;
+      });
+      rebuildVis(); layer.draw();
+    };
+  }
   for(const it of items){
     const l=document.createElement('label'); l.className='row';
     const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=set.has(it.key);
     cb.onchange=function(){ if(cb.checked) set.add(it.key); else set.delete(it.key);
+      if(allBox){
+        const boxes=[...g.querySelectorAll('label.row:not(.allrow) input')];
+        allBox.checked = boxes.every(x=>x.checked);
+        allBox.indeterminate = !allBox.checked && boxes.some(x=>x.checked);
+      }
       rebuildVis(); layer.draw(); };
     l.appendChild(cb);
     if(swatches&&it.colour){const s=document.createElement('span');
@@ -1022,7 +1048,7 @@ if(actPresent.length){
     fate:ACTIVITY_FATE[a]})), active.activity,
     false, 'Each registry says what the place does, and whether the animals '+
     'there are killed. A facility can be listed under several of these, so the '+
-    'percentages overlap and do not sum to 100.');
+    'percentages overlap and do not sum to 100.', true);
 }
 
 const order=Object.keys(SPECIES_LABEL);
@@ -1061,6 +1087,81 @@ function updateTallies(){
     el.textContent = v ? v.toLocaleString()+' drawn' : 'none drawn';
   });
 }
+
+/* ---- where cultivated meat is banned ----------------------------------- */
+/* Filled outlines rather than points, because the subject is a jurisdiction
+   rather than a site. Drawn under everything else, since it is the ground a
+   reader is standing on rather than a thing on the map. */
+const LAWS = D.laws || null;
+let SHOW_LAWS = false;
+
+function lawShapes(){
+  /* {status: [rings]} for every country and state named in the file. */
+  const out = [];
+  if(!LAWS) return out;
+  const byIso = {};
+  for(const c of OUT) if(c.iso3) byIso[c.iso3] = c.rings;
+  for(const c of (LAWS.countries||[])){
+    if(byIso[c.code]) out.push({status:c.status, rings:byIso[c.code]});
+  }
+  const byPostal = {};
+  for(const s of (LAWS.us_shapes||[])){
+    byPostal[s.code] = s.r.map(ring=>{
+      const wx=new Float64Array(ring.length), wy=new Float64Array(ring.length);
+      for(let i=0;i<ring.length;i++){
+        wx[i]=(ring[i][0]+180)/360;
+        const sn=Math.sin(ring[i][1]*Math.PI/180);
+        wy[i]=0.5 - Math.log((1+sn)/(1-sn))/(4*Math.PI);
+      }
+      return {wx,wy};
+    });
+  }
+  for(const s of (LAWS.us_states||[])){
+    if(byPostal[s.code]) out.push({status:s.status, rings:byPostal[s.code]});
+  }
+  return out;
+}
+const LAW_SHAPES = LAWS ? lawShapes() : [];
+
+const LawLayer = L.Layer.extend({
+  onAdd(m){
+    this._c = L.DomUtil.create('canvas','leaflet-zoom-animated');
+    this._ctx = this._c.getContext('2d');
+    m.getPanes().overlayPane.appendChild(this._c);
+    m.on('moveend zoomend resize',this.draw,this);
+    if(m.options.zoomAnimation) m.on('zoomanim',this._anim,this);
+    this.draw();
+  },
+  _anim(e){
+    const s=this._map.getZoomScale(e.zoom), o=this._map._latLngToNewLayerPoint(
+      this._map.getBounds().getNorthWest(), e.zoom, e.center);
+    L.DomUtil.setTransform(this._c,o,s);
+  },
+  draw(){
+    const m=this._map; if(!m) return;
+    const size=m.getSize(), dpr=window.devicePixelRatio||1;
+    const tl=m.containerPointToLayerPoint([0,0]);
+    L.DomUtil.setPosition(this._c,tl);
+    this._c.width=size.x*dpr; this._c.height=size.y*dpr;
+    this._c.style.width=size.x+'px'; this._c.style.height=size.y+'px';
+    const ctx=this._ctx; ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,size.x,size.y);
+    if(!SHOW_LAWS || !LAW_SHAPES.length) return;
+    const z=m.getZoom(), S=256*Math.pow(2,z), o=m.getPixelOrigin();
+    const offX=o.x+tl.x, offY=o.y+tl.y, w=size.x, h=size.y;
+    for(const sh of LAW_SHAPES){
+      const st=(LAWS.statuses||{})[sh.status];
+      if(!st) continue;
+      ctx.globalAlpha=.42; ctx.fillStyle=st.colour;
+      ctx.beginPath(); tracePath(ctx, sh.rings, S, offX, offY, w, h);
+      ctx.fill('evenodd');
+      ctx.globalAlpha=.85; ctx.lineWidth=1; ctx.strokeStyle=st.colour;
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+});
+const lawLayer = LAWS ? new LawLayer() : null;
 
 /* ---- Climate TRACE confined animal facilities -------------------------- */
 /* Drawn on their own canvas, under the registry points and over the basemap,
@@ -1133,6 +1234,8 @@ if(CAFO){
     g.appendChild(p);
     const l=document.createElement('label'); l.className='row';
     const cb=document.createElement('input'); cb.type='checkbox';
+    cb.checked = true;                 /* on by default */
+    SHOW_CAFO = true;
     cb.onchange=function(){ SHOW_CAFO=cb.checked; cafoLayer.draw(); };
     l.appendChild(cb);
     const body=document.createElement('div'); body.className='rowbody';
@@ -1193,32 +1296,83 @@ if(CAFO){
   body.appendChild(f);
   l.appendChild(body); g.appendChild(l);
 
-  const box=document.createElement('div');
-  box.style.display='none'; box.style.padding='2px 0 0 18px';
-  const sel=document.createElement('select');
-  sel.style.cssText='width:100%;background:transparent;color:var(--text);'+
-    'border:1px solid var(--rule);border-radius:4px;padding:4px 6px;'+
-    'font:inherit;font-size:12px';
-  GLW_VARIANTS.forEach((v,i)=>{
-    const o=document.createElement('option'); o.value=String(i);
-    o.textContent=v.label; sel.appendChild(o);
-  });
-  box.appendChild(sel);
-  const vh=document.createElement('span'); vh.className='hint';
-  vh.textContent='If the grid sits offshore rather than on land, the tile row '+
-    'axis is being counted from the wrong end. Try the next option.';
-  box.appendChild(vh);
   const stat=document.createElement('span'); stat.className='hint';
-  stat.id='glwStatus'; box.appendChild(stat);
+  stat.id='glwStatus'; body.appendChild(stat);
 
-  cb.onchange=function(){
-    box.style.display = cb.checked ? '' : 'none';
-    setLivestock(cb.checked, Number(sel.value));
-  };
-  sel.onchange=function(){ if(cb.checked) setLivestock(true, Number(sel.value)); };
-  g.appendChild(box);
+  cb.onchange=function(){ setLivestock(cb.checked); };
+  cb.checked = true;                 /* on by default */
   F.appendChild(g);
+  setLivestock(true);
 })();
+
+/* ---- the cultivated meat toggle ---------------------------------------- */
+if(LAWS){
+  (function(){
+    const g=document.createElement('div'); g.className='grp';
+    g.innerHTML='<h2>Cultivated meat bans</h2>';
+    const p=document.createElement('p'); p.className='lede';
+    p.textContent=LAWS.note||'';
+    g.appendChild(p);
+
+    const l=document.createElement('label'); l.className='row';
+    const cb=document.createElement('input'); cb.type='checkbox';
+    cb.onchange=function(){ SHOW_LAWS=cb.checked; lawLayer.draw(); };
+    l.appendChild(cb);
+    const body=document.createElement('div'); body.className='rowbody';
+    const top=document.createElement('div'); top.className='rowtop';
+    const t=document.createElement('span'); t.className='lbl';
+    t.textContent='Shade the jurisdictions';
+    const n=document.createElement('span'); n.className='tally';
+    n.textContent=((LAWS.countries||[]).length+(LAWS.us_states||[]).length)+' laws';
+    top.appendChild(t); top.appendChild(n); body.appendChild(top);
+    const h=document.createElement('span'); h.className='hint';
+    h.innerHTML='<button class="link" id="showLaws">What each one says</button>';
+    body.appendChild(h); l.appendChild(body); g.appendChild(l);
+
+    for(const [key,st] of Object.entries(LAWS.statuses||{})){
+      const r=document.createElement('label'); r.className='row';
+      r.style.cursor='default';
+      const sp=document.createElement('span'); sp.style.cssText=
+        'width:9px;height:9px;border-radius:2px;flex:none;margin-top:4px;'+
+        'background:'+st.colour;
+      r.appendChild(sp);
+      const rb=document.createElement('div'); rb.className='rowbody';
+      const rt=document.createElement('div'); rt.className='rowtop';
+      const rl=document.createElement('span'); rl.className='lbl';
+      rl.textContent=st.label; rt.appendChild(rl); rb.appendChild(rt);
+      r.appendChild(rb); g.appendChild(r);
+    }
+    F.appendChild(g);
+
+    document.getElementById('showLaws').onclick=function(){
+      let h='<h3>Restrictions on cultivated meat</h3>';
+      h+='<p class="where">'+esc(LAWS.note||'')+'</p><div class="prov kinds">';
+      const block=(title,rows,nameOf)=>{
+        if(!rows||!rows.length) return '';
+        let s='<h4>'+esc(title)+'</h4><ul>';
+        for(const r of rows){
+          const st=(LAWS.statuses||{})[r.status]||{label:r.status};
+          s+='<li><b>'+esc(nameOf(r))+'</b> &middot; '+esc(st.label)+'<br>'+
+             esc(r.what||'');
+          if(r.caveat) s+='<br><i>'+esc(r.caveat)+'</i>';
+          s+='</li>';
+        }
+        return s+'</ul>';
+      };
+      h+=block('Countries', LAWS.countries, r=>r.code);
+      h+=block('United States', LAWS.us_states, r=>r.code);
+      if(LAWS.sources&&LAWS.sources.length){
+        h+='<h4>Read from</h4><ul>';
+        for(const s of LAWS.sources) h+='<li>'+esc(s)+'</li>';
+        h+='</ul>';
+      }
+      h+='<p class="lede">Checked '+esc(LAWS.checked||'')+'.</p></div>';
+      /* the drawer's panel, not this row's own div of the same name */
+      document.getElementById('drawerBody').innerHTML=h;
+      drawer.classList.add('open');
+    };
+  })();
+}
 
 /* ---- Counterglow, in the bottom half of the window --------------------- */
 /* Their map is a register of reported farm locations; this one is a register
@@ -1361,8 +1515,8 @@ document.addEventListener('keydown',function(e){
 (function(){
   /* What the map is about first; how it is drawn last. */
   const ORDER=['What happens here','Confined animal facilities',
-    'Livestock density','Species','Slaughter activity','Unplaced facilities',
-    'Registry','Another map','Basemap'];
+    'Livestock density','Cultivated meat bans','Species','Slaughter activity',
+    'Unplaced facilities','Registry','Another map','Basemap'];
   const groups=[...F.querySelectorAll('.grp')];
   groups.sort((a,b)=>{
     const ia=ORDER.indexOf(a.querySelector('h2').textContent);
@@ -1373,6 +1527,7 @@ document.addEventListener('keydown',function(e){
 })();
 
 rebuildVis();
+if(lawLayer) lawLayer.addTo(map);   /* under everything: it is ground, not a thing */
 coarse.addTo(map);        /* under the points, over the basemap */
 if(cafoLayer) cafoLayer.addTo(map);
 layer.addTo(map);
