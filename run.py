@@ -62,6 +62,9 @@ SOURCE_LABELS = {
     "br_sif": {"name": "Serviço de Inspeção Federal (federal inspection only; "
                        "state and municipal plants are separate registers)",
                "short": "Brazil SIF"},
+    "br_trase": {"name": "Trase's Brazilian logistics map: federal (SIF), state (SIE), "
+                         "municipal and consortium inspected sites, with positions (CC BY 4.0)",
+                 "short": "Trase"},
     "au_daff": {"name": "Australian export-registered establishments", "short": "Australia DAFF"},
     "nz_mpi": {"name": "NZ registered risk management programmes", "short": "NZ MPI"},
     "osm_overpass": {"name": "OpenStreetMap", "short": "OpenStreetMap"},
@@ -116,6 +119,8 @@ def cmd_parse(args):
         new = parsers.parse_nz_mpi(RAW / (args.file or "nz_mpi.csv"), args.snapshot)
     elif sid == "br_sif":
         new = parsers.parse_br_sif(RAW / (args.file or "br_sif.csv"), args.snapshot)
+    elif sid == "br_trase":
+        new = parsers.parse_br_trase(RAW / (args.file or "br_trase.geo.json"), args.snapshot)
     elif sid == "eu_traces_animal_health":
         new = []
         for f in sorted((RAW / sid).glob("*.csv")):

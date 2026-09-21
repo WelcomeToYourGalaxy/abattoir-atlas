@@ -39,7 +39,7 @@ import math
 from collections import defaultdict
 from itertools import combinations
 
-from normalize import addr_key, norm_name, norm_id, token_set_ratio
+from normalize import addr_key, norm_name, norm_id, norm_text, token_set_ratio
 from schema import (DRAWABLE_PRECISION, Facility, MAPPABLE_PRECISION,
                     SourceRecord, make_uid)
 
@@ -49,6 +49,25 @@ NAME_STRICT = 0.60
 NAME_LOOSE = 0.40
 GEO_METRES = 250.0
 GEO_METRES_LOOSE = 1500.0
+
+# Sources whose records join another only as the exact same facility: on a
+# shared establishment number, or on the very same name (capitals, accents and
+# punctuation aside - nothing else) within GEO_METRES. A similar name nearby is
+# not enough for these; it goes to the review queue like any other doubt. Asked
+# for by the owner for Trase on 20 September 2026: two plants side by side, or
+# one company's two plants in a town, must stay two pins.
+EXACT_NAME_SOURCES = {"br_trase"}
+
+# Sources whose every published field is carried into out/facilities.json.gz, on
+# each member, under "published". Only Trase so far; the other registers' extra
+# columns still stop at the parser (see "fields lost in copying" in the Culprits
+# handoff) and can be added here one by one once their size has been looked at.
+PUBLISH_RAW = {"br_trase"}
+
+
+def _same_name(a: SourceRecord, b: SourceRecord) -> bool:
+    na, nb = norm_text(a.name), norm_text(b.name)
+    return bool(na) and na == nb
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +183,8 @@ def cluster(records: list[SourceRecord], geocache: dict | None = None):
                 if uf.find(a) == uf.find(b):
                     continue
                 score = token_set_ratio(by_key[a].name, by_key[b].name)
-                if score >= NAME_STRICT:
+                exact = {by_key[a].source_id, by_key[b].source_id} & EXACT_NAME_SOURCES
+                if score >= NAME_STRICT and (not exact or _same_name(by_key[a], by_key[b])):
                     uf.union(a, b, "addr")
                 elif score >= NAME_LOOSE:
                     review_pairs.append(_pair(by_key[a], by_key[b], score,
@@ -200,7 +220,8 @@ def cluster(records: list[SourceRecord], geocache: dict | None = None):
                 if d > GEO_METRES_LOOSE:
                     continue
                 score = token_set_ratio(by_key[a].name, by_key[b].name)
-                if d <= GEO_METRES and score >= NAME_STRICT:
+                exact = {by_key[a].source_id, by_key[b].source_id} & EXACT_NAME_SOURCES
+                if d <= GEO_METRES and (_same_name(by_key[a], by_key[b]) if exact else score >= NAME_STRICT):
                     uf.union(a, b, "geo")
                 elif score >= NAME_LOOSE:
                     review_pairs.append(_pair(by_key[a], by_key[b], score,
@@ -327,6 +348,11 @@ def _build_facility(members: list[SourceRecord], tiers: list[str], geocache: dic
             "species": m.species,
             "activities": m.activities,
             "slaughter": m.slaughter,
+            # What the source published beyond the fields above, for the sources
+            # named in PUBLISH_RAW. Without it Trase's capacity, status, export
+            # approvals, inspection level and tax number stopped here and never
+            # reached the published file, whatever the parser kept.
+            **({"published": m.raw} if m.source_id in PUBLISH_RAW and m.raw else {}),
         } for m in sorted(members, key=lambda x: x.source_id)],
         match_tiers=tiers,
     )

@@ -44,6 +44,11 @@ if [ -f raw/br_sif.csv ]; then
   python run.py parse --source br_sif --file br_sif.csv --snapshot "$snap"
 fi
 
+if [ -f raw/br_trase.geo.json ]; then
+  echo "== Brazil, Trase"
+  python run.py parse --source br_trase --file br_trase.geo.json --snapshot "$snap"
+fi
+
 if [ -f raw/cifer.jsonl ]; then
   echo "== CIFER"
   python run.py parse --source cifer_china --file cifer.jsonl --snapshot "$snap"

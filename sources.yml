@@ -118,6 +118,28 @@ sources:
       Federal inspection only. State (SIE) and municipal (SIM) inspected plants
       are separate registries and are the majority by count in Brazil.
 
+  br_trase:
+    name: Trase, Brazilian beef logistics map (slaughterhouses and animal-product facilities)
+    authority: Trase (Stockholm Environment Institute and Global Canopy)
+    url: https://resources.trase.earth/data/facilities-data/
+    url_status: verified
+    licence: CC BY 4.0
+    format: GeoJSON, one row per site and commodity; the file name is dated and changes
+    id_scheme: BR-SIF for federally inspected sites, otherwise BR-TRASE (Trase's own facility_id)
+    parser: br_trase
+    note: >
+      Compiles the federal register (SIF), state registers (SIE) and the
+      municipal and consortium services reporting through SISBI. 18,090 rows on
+      2026-09-20. Every row is read, dairies and stores as well as abattoirs.
+      Joins another register only as the exact same facility: on the federal SIF
+      number, or the identical name within 250 m (dedup.EXACT_NAME_SOURCES).
+      The cnpj column is kept as published, including personal tax numbers for
+      sites registered to individuals, at the owner's request.
+    coverage_bias: >
+      Trase does not say how each position was found. They are drawn as
+      published; the parse log says how many sites share an exact position with
+      another, which is where a town-centre placement would show up.
+
   au_daff:
     name: Export-registered establishments
     authority: Australian Dept of Agriculture, Fisheries and Forestry

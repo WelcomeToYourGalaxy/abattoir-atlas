@@ -235,6 +235,45 @@ def fetch_br_sif() -> None:
 
 # ---------------------------------------------------------------------------
 
+# Trase dates its file names, so the current one is looked up rather than fixed.
+# culprits-tiles-more finds it in Trase's page code every week and records it;
+# the name below is the one that was current on 20 September 2026, tried if
+# that record cannot be read.
+TRASE_INDEX = ("https://raw.githubusercontent.com/WelcomeToYourGalaxy/"
+               "culprits-tiles-more/main/trase/facilities.json")
+TRASE_BASE = "https://resources.trase.earth/data/facilities-data/"
+TRASE_KNOWN = "2026-05-07-br_beef_logistics_map_v6.geo.json"
+
+
+def fetch_br_trase() -> None:
+    """Trase's Brazilian logistics map (CC BY 4.0): slaughterhouses and every
+    other animal-product site it lists, federal, state and municipal."""
+    import json as _json
+    RAW.mkdir(exist_ok=True)
+    name, base = TRASE_KNOWN, TRASE_BASE
+    try:
+        index = _json.loads(_get(TRASE_INDEX, timeout=60))
+        hit = next(t for t in index["types"] if t["id"] == "brazil-facilities")
+        name, base = hit["file"], index.get("base") or TRASE_BASE
+    except Exception as exc:  # noqa: BLE001
+        print(f"  could not read which file is current ({exc}); trying {TRASE_KNOWN}")
+    print(f"downloading Trase's Brazilian facilities: {name}")
+    out = _get(base + name, timeout=600)
+    try:
+        feats = _json.loads(out)["features"]
+        first = feats[0]["properties"]
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"that download was not Trase's GeoJSON ({exc}). "
+                           f"First bytes: {out[:160]!r}")
+    if "facility_id" not in first or "inspection_level" not in first:
+        raise RuntimeError(f"Trase's file no longer has the fields this reads; it carries {sorted(first)}")
+    (RAW / "br_trase.geo.json").write_bytes(out)
+    print(f"  raw/br_trase.geo.json  {len(out)/1e6:.1f} MB, {len(feats):,} rows "
+          f"(one per site and commodity)")
+
+
+# ---------------------------------------------------------------------------
+
 MANUAL = {
     "eu_traces_third_country": (
         "EU authorised establishments in non-EU countries",
@@ -270,7 +309,7 @@ MANUAL = {
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["fsis", "osm", "br_sif", "all", "list"])
+    p.add_argument("what", choices=["fsis", "osm", "br_sif", "br_trase", "all", "list"])
     a = p.parse_args()
 
     if a.what == "list":
@@ -285,6 +324,8 @@ def main():
         jobs.append(("OpenStreetMap", fetch_osm))
     if a.what in ("br_sif", "all"):
         jobs.append(("Brazil SIF", fetch_br_sif))
+    if a.what in ("br_trase", "all"):
+        jobs.append(("Brazil, Trase", fetch_br_trase))
 
     ok, failed = [], []
     for label, fn in jobs:

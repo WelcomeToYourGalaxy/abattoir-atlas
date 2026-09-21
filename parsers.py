@@ -900,6 +900,175 @@ def parse_br_sif(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
 
 
 # ---------------------------------------------------------------------------
+# Brazil, Trase's logistics map
+# ---------------------------------------------------------------------------
+#
+# Trase (trase.earth, CC BY 4.0) compiles Brazil's federal register (SIF), the
+# state registers (SIE), and the municipal and consortium inspection services
+# that report through SISBI, and gives every site a position. It is the only
+# source here for the state and municipal plants, which are most of Brazil's
+# abattoirs by count and which the federal register above leaves out entirely.
+# 18,090 rows on 20 September 2026: dairies, meat and fish processors, egg and
+# honey units and stores as well as slaughterhouses. All of them are read.
+#
+# One row per facility AND commodity: a plant that handles beef and pork is two
+# rows with the same facility_id. Rows are folded on facility_id, and the
+# commodities, species and activities of every row for a site are unioned.
+#
+# WHAT A SITE DOES is read from Trase's own words for it (type_english and
+# type_portuguese - the English column is only partly translated, so both
+# languages are matched). A type none of the rules recognises is "unknown",
+# with Trase's wording kept in raw; nothing is guessed from the company's name.
+#
+# WHICH ANIMALS comes from Trase's commodity column and from any species its
+# type names ("Abatedouro frigorifico bovino e suino"). "Meat" and "Dairy" name
+# no animal, and none is assigned.
+#
+# The cnpj column is kept as published. For a site registered to a person
+# rather than a company it is that person's own tax number (11 digits rather
+# than 14); the owner asked for it to be kept (20 September 2026).
+
+_TRASE_ACTIVITY = [
+    (r"slaughter|abatedouro|matadouro|\babate\b", "slaughter"),
+    (r"meat processing|meat products factory|benef\w*\.? de carne|beneficiamento de carnes?"
+     r"|produtos carneos|fabrica de produtos carneos|fabrica de conservas|canned"
+     r"|charque|agro-?industrial processing|agroindustria", "processing"),
+    (r"fish and seafood processing|fish slaughter and processing|benef\w*\.? de pescado"
+     r"|beneficiamento de pescados?", "processing"),
+    (r"milk and dairy processing|dairy factory|fabrica de laticinios|\blaticinios\b"
+     r"|benef\w*\.? de leite|beneficiamento de leite|queijaria", "processing"),
+    (r"dairy farm|estabulo leiteiro|granja leiteira", "farm_dairy"),
+    (r"egg processing|benef\w*\.? de ovos|beneficiamento de ovos", "egg_products"),
+    (r"bee products|prod\w*\.? de abelhas?|produtos (de|das) abelhas?", "farm_honey"),
+    (r"refrigeration facility|storage and distribution|warehouse|entreposto", "cold_store"),
+    (r"non-edible|nao comestiveis", "rendering"),
+]
+_TRASE_COMMODITY_SPECIES = {
+    "beef": "bovine", "pork": "porcine", "chicken": "poultry", "egg": "poultry",
+    "lamb": "ovine", "goat": "caprine", "rabbit": "lagomorph", "equine": "equine",
+    "fish": "fish", "honey": "insect",
+}
+_TRASE_TYPE_SPECIES = [
+    (r"\bbovin|\bbubalin|\bbovideos|\bcattle\b|\bbeef\b", "bovine"),
+    (r"\bsuin|\bsuideos|\bswine\b|\bpork\b", "porcine"),
+    (r"\baves?\b|\bpoultry\b|\bgalinha|\bfrango", "poultry"),
+    (r"\bovin", "ovine"), (r"\bcaprin", "caprine"), (r"\bequin|\bequid", "equine"),
+    (r"\bcoelh|\brabbit", "lagomorph"), (r"\bcrustace", "crustacean"),
+    (r"\bpescado|\bfish\b|\bpeixe", "fish"), (r"\babelha|\bbee\b", "insect"),
+]
+
+
+def _trase_activities(type_words: str, commodity: str) -> set:
+    from normalize import norm_text
+    words = norm_text(type_words).replace(" - ", " ")
+    raw = (type_words or "").lower()
+    acts = {a for pat, a in _TRASE_ACTIVITY if re.search(pat, words) or re.search(pat, raw)}
+    # Trase's "Poultry farm" is a laying farm where its commodity says eggs, and
+    # otherwise does not say what the birds are kept for.
+    if re.search(r"poultry farm|granja avicola", words):
+        acts.add("farm_eggs" if commodity == "egg" else "farm_poultry")
+    return acts
+
+
+def parse_br_trase(path: Path, snapshot: str | None = None) -> list[SourceRecord]:
+    """Trase's Brazilian logistics map: every row, folded to one record per site."""
+    from normalize import norm_text
+    snapshot = snapshot or date.today().isoformat()
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    feats = data.get("features")
+    if not isinstance(feats, list) or not feats:
+        raise HeaderError(f"{path} holds no features; is it Trase's .geo.json?")
+    need = {"facility_id", "company", "commodity", "inspection_level", "lat", "long"}
+    have = set((feats[0].get("properties") or {}).keys())
+    if not need <= have:
+        raise HeaderError(f"Trase's file has lost {sorted(need - have)}; it now carries {sorted(have)}")
+
+    sites: dict = {}
+    for i, ft in enumerate(feats):
+        p = ft.get("properties") or {}
+        fid = str(p.get("facility_id") or p.get("unique_id") or f"row{i}")
+        e = sites.get(fid)
+        if e is None:
+            sites[fid] = e = {"first": p, "geom": ft.get("geometry"), "rows": [], "acts": set(),
+                              "species": set(), "commodities": [], "types": []}
+        e["rows"].append(p)
+        commodity = str(p.get("commodity") or "").strip()
+        type_words = " ".join(str(p.get(k) or "") for k in ("type_english", "type_portuguese"))
+        e["acts"] |= _trase_activities(type_words, commodity.lower())
+        if commodity and commodity not in e["commodities"]:
+            e["commodities"].append(commodity)
+        for k in ("type_english", "type_portuguese"):
+            if p.get(k) and p[k] not in e["types"]:
+                e["types"].append(p[k])
+        sp = _TRASE_COMMODITY_SPECIES.get(commodity.lower())
+        if sp:
+            e["species"].add(sp)
+        folded = norm_text(type_words)
+        e["species"] |= {v for pat, v in _TRASE_TYPE_SPECIES if re.search(pat, folded)}
+
+    out = []
+    for fid, e in sites.items():
+        p = e["first"]
+        name = str(p.get("company") or "").strip()
+        if not name:
+            # Nothing to call it. Kept all the same, under Trase's own id for it.
+            name = fid
+        lat, lon = p.get("lat"), p.get("long")
+        if (lat is None or lon is None) and e["geom"] and e["geom"].get("coordinates"):
+            lon, lat = e["geom"]["coordinates"][:2]
+        level = str(p.get("inspection_level") or "").strip().upper()
+        num = p.get("inspection_num")
+        try:
+            num = str(int(float(num))) if num is not None else None
+        except (TypeError, ValueError):
+            num = str(num).strip() or None
+        # Only the federal number is shared with another register here (br_sif),
+        # so only it is offered to the matcher as that register's number. State
+        # and municipal numbers restart in every state and town, so a bare
+        # "SIE 12" would join plants a thousand kilometres apart; those sites
+        # carry Trase's own id instead, which is unique to the site.
+        is_sif = level == "SIF" and num
+        raw = {k: v for k, v in p.items() if v not in (None, "")}
+        raw["commodities"] = " | ".join(e["commodities"])
+        raw["types"] = " | ".join(e["types"])
+        if len(e["rows"]) > 1:
+            # What differs between this site's rows (its capacity per commodity, say), so nothing Trase publishes is lost in the fold.
+            keys = sorted({k for r in e["rows"] for k in r if any(r.get(k) != e["rows"][0].get(k) for r in e["rows"])})
+            raw["rows"] = [{k: r.get(k) for k in keys if r.get(k) not in (None, "")} for r in e["rows"]]
+        out.append(SourceRecord(
+            source_id="br_trase",
+            source_snapshot=snapshot,
+            source_row_id=fid,
+            name=name,
+            country_iso3="BRA",
+            national_id=num if is_sif else fid,
+            id_scheme="BR-SIF" if is_sif else "BR-TRASE",
+            foreign_id=fid if is_sif else None,
+            foreign_id_scheme="BR-TRASE" if is_sif else None,
+            locality=str(p.get("municipality") or "").strip() or None,
+            admin1=str(p.get("state") or "").strip() or None,
+            species=sorted(s for s in e["species"] if s in SPECIES),
+            activities=sorted(e["acts"]) or ["unknown"],
+            # Trase calling a site a slaughterhouse is Trase saying animals are
+            # killed there. Any other type is left unstated rather than denied.
+            slaughter=True if "slaughter" in e["acts"] else None,
+            src_lat=float(lat) if lat is not None else None,
+            src_lon=float(lon) if lon is not None else None,
+            raw=raw,
+        ))
+    shared = {}
+    for r in out:
+        if r.src_lat is not None:
+            shared.setdefault((round(r.src_lat, 5), round(r.src_lon, 5)), []).append(r)
+    crowded = sum(len(v) for v in shared.values() if len(v) > 1)
+    print(f"  Trase: {len(feats):,} rows folded to {len(out):,} sites; "
+          f"{sum(1 for r in out if r.id_scheme == 'BR-SIF'):,} carry a federal (SIF) number; "
+          f"{sum(1 for r in out if r.activities == ['unknown']):,} have a type no rule recognises; "
+          f"{crowded:,} share their exact position with another site")
+    return out
+
+
+# ---------------------------------------------------------------------------
 # China GACC / CIFER
 # ---------------------------------------------------------------------------
 
