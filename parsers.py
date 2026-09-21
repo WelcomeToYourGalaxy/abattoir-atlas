@@ -1056,15 +1056,44 @@ def parse_br_trase(path: Path, snapshot: str | None = None) -> list[SourceRecord
             src_lon=float(lon) if lon is not None else None,
             raw=raw,
         ))
+    # Trase does not say how each position was found, but its file shows it for
+    # some. 47 sites in 37 different municipalities sit on one point, the middle
+    # of Brazil (-14.235, -51.92528): that is "Brazil", not a building. Several
+    # hundred more points hold three or more different sites of one town: that
+    # is the town. Drawing those as exact pins would be false, and matching on
+    # them would join every plant in the town that shares a name.
+    #   - a point whose sites span more than one municipality is no position at
+    #     all: it is dropped, and the geocoder places the site by its own
+    #     municipality and state instead;
+    #   - a point holding three or more sites of one municipality is kept and
+    #     marked "locality" - drawn as a town-level position, never matched on;
+    #   - a point holding two sites is left as published: two businesses can
+    #     share a building, and nothing in the file says otherwise.
     shared = {}
     for r in out:
         if r.src_lat is not None:
             shared.setdefault((round(r.src_lat, 5), round(r.src_lon, 5)), []).append(r)
     crowded = sum(len(v) for v in shared.values() if len(v) > 1)
+    dropped = town = 0
+    for group in shared.values():
+        if len(group) < 2:
+            continue
+        for r in group:
+            r.raw["position_shared_with"] = len(group) - 1
+        if len({r.locality for r in group}) > 1:
+            for r in group:
+                r.raw["position_as_published"] = f"{r.src_lat},{r.src_lon} (shared by sites in {len({x.locality for x in group})} municipalities; not used)"
+                r.src_lat = r.src_lon = None
+                dropped += 1
+        elif len(group) >= 3:
+            for r in group:
+                r.src_precision = "locality"
+                town += 1
     print(f"  Trase: {len(feats):,} rows folded to {len(out):,} sites; "
           f"{sum(1 for r in out if r.id_scheme == 'BR-SIF'):,} carry a federal (SIF) number; "
           f"{sum(1 for r in out if r.activities == ['unknown']):,} have a type no rule recognises; "
-          f"{crowded:,} share their exact position with another site")
+          f"{crowded:,} share their exact position with another site "
+          f"({town:,} of them marked town-level, {dropped:,} on a point shared across municipalities and placed by their own municipality instead)")
     return out
 
 

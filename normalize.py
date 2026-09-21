@@ -97,7 +97,12 @@ def norm_id(scheme: str | None, value: str | None) -> str | None:
         return None
     v = strip_accents(str(value)).upper()
     v = re.sub(r"\b(EST|ESTAB|ESTABLISHMENT|NO|N|NUM|NUMERO|APPROVAL)\b\.?", "", v)
-    v = re.sub(r"[^A-Z0-9]", "", v)
+    # A slash between two parts is part of the number, not decoration: Belgium's
+    # "1/31" and "13/1" are two plants, and with every mark stripped both read
+    # "131" and were joined. Spaces, dots and hyphens are still dropped, since
+    # "M-1234", "M 1234" and "M1234" are one number printed three ways.
+    v = re.sub(r"\s*/\s*", "/", v)
+    v = re.sub(r"[^A-Z0-9/]", "", v).strip("/")
     if not v:
         return None
     if scheme:

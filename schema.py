@@ -149,6 +149,10 @@ class SourceRecord:
     # coordinates so the two never get confused downstream.
     src_lat: float | None = None
     src_lon: float | None = None
+    # How exact the source's own position is, where the source's file shows it is
+    # not the building: "locality" for a town-centre placement. None means the
+    # position is taken as published, as it always was.
+    src_precision: str | None = None
 
     raw: dict[str, Any] = field(default_factory=dict)
 

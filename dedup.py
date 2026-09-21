@@ -122,7 +122,9 @@ def _coords(rec: SourceRecord, geocache: dict, *,
     coordinates would merge every abattoir in Parma into one.
     """
     if rec.src_lat is not None and rec.src_lon is not None:
-        return (rec.src_lat, rec.src_lon, "rooftop")
+        prec = getattr(rec, "src_precision", None) or "rooftop"
+        allowed = MAPPABLE_PRECISION if precise_only else DRAWABLE_PRECISION
+        return (rec.src_lat, rec.src_lon, prec) if prec in allowed else None
     hit = geocache.get(rec.key())
     if not hit or hit.get("lat") is None:
         return None
@@ -154,7 +156,15 @@ def cluster(records: list[SourceRecord], geocache: dict | None = None):
                               (r.foreign_id_scheme, r.foreign_id)):
             nid = norm_id(scheme, value)
             if nid:
-                id_index[nid].append(k)
+                # A number is only a number within its own country. The EU gives
+                # Dutch plant 322 and the EU's list for the United States gives a
+                # Nebraska packer 322, under the same scheme name; keyed on the
+                # number alone the two became one facility, and so did 1,297 of
+                # the 4,356 facilities joined on a number in the 21 September
+                # 2026 build. A record quoting another country's register (CIFER
+                # quoting a home authority's number) carries that plant's own
+                # country, so it still meets its match.
+                id_index[f"{r.country_iso3 or 'ZZZ'}|{nid}"].append(k)
 
     for nid, keys in id_index.items():
         if len(keys) > 1:
