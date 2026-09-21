@@ -2,7 +2,7 @@
   "version": 0.6,
   "generator": "Overpass API 0.7.62.11 87bfad18",
   "osm3s": {
-    "timestamp_osm_base": "2026-06-01T08:52:28Z",
+    "timestamp_osm_base": "2026-07-15T15:22:01Z",
     "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
   },
   "elements": [
@@ -226,8 +226,8 @@
     "addr:postcode": "2491BT",
     "addr:street": "Elbe",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Van der Burg & Bol",
+    "office": "company",
     "source": "BAG",
     "source:date": "2013-11-26",
     "website": "https://www.vanderburgbol.nl/"
@@ -244,8 +244,8 @@
     "addr:postcode": "2491BT",
     "addr:street": "Elbe",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Vee- en vleeshandel A.G. Scholtes",
+    "office": "company",
     "source": "BAG",
     "source:date": "2013-11-26",
     "website": "https://www.agscholtes.nl/"
@@ -262,8 +262,8 @@
     "addr:postcode": "2491BS",
     "addr:street": "Elbe",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Dopa Meat Processing",
+    "office": "company",
     "source": "BAG",
     "source:date": "2013-11-26",
     "website": "https://www.dopameat.nl/"
@@ -302,6 +302,103 @@
 },
 {
   "type": "node",
+  "id": 2685598895,
+  "lat": 52.1852470,
+  "lon": 5.9866287,
+  "tags": {
+    "addr:city": "Apeldoorn",
+    "addr:housenumber": "9",
+    "addr:postcode": "7332BH",
+    "addr:street": "Saba",
+    "animal": "calf",
+    "description": "Slachthuis voor kalfjes onder permanent toezicht van de NVWA.",
+    "email": "info@esafoods.com",
+    "industrial": "slaughterhouse",
+    "name": "ESA",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "VanDrie Group",
+    "phone": "+31 55 549 8222",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://www.esafoods.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2690402796,
+  "lat": 51.9889568,
+  "lon": 6.5782618,
+  "tags": {
+    "addr:city": "Lichtenvoorde",
+    "addr:housenumber": "15",
+    "addr:postcode": "7131PA",
+    "addr:street": "Nijverheidsstraat",
+    "animal": "pig",
+    "description": "Slachthuis voor varkens",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Lichtenvoorde",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "Pigarné B.V",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://pigarne.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2693235367,
+  "lat": 52.0505553,
+  "lon": 6.6240893,
+  "tags": {
+    "addr:city": "Groenlo",
+    "addr:housenumber": "8",
+    "addr:postcode": "7141JH",
+    "addr:street": "Den Sliem",
+    "animal": "pig",
+    "branch": "Groenlo",
+    "description": "slachthuis voor varkens, rond de 1,3 miljoen per jaar",
+    "industrial": "slaughterhouse",
+    "name": "Vion",
+    "note": "Slachtvolume per jaar is gebaseerd op de 25.000 varkens per week gepubliceerd op Vions website.",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Vion Groenlo B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
+    "phone": "+31 88 9954400",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-groenlo-b-v"
+  }
+},
+{
+  "type": "node",
+  "id": 2717375699,
+  "lat": 52.2040406,
+  "lon": 5.4651741,
+  "tags": {
+    "addr:city": "Nijkerkerveen",
+    "addr:housenumber": "118a",
+    "addr:postcode": "3864NG",
+    "addr:street": "Amersfoortseweg",
+    "animal": "chicken",
+    "description": "slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Van den Bor",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "v.d. Bor Pluimveeslachterij B.V.",
+    "phone": "+31 33 2580188",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://vandenborpluimvee.nl"
+  }
+},
+{
+  "type": "node",
   "id": 2717697503,
   "lat": 52.2334997,
   "lon": 5.4695734,
@@ -312,10 +409,396 @@
     "addr:street": "Galvanistraat",
     "industrial": "slaughterhouse",
     "man_made": "works",
-    "name": "Storteboom Nijkerk B.V.",
+    "name": "Storteboom",
+    "office": "company",
+    "official_name": "Storteboom Nijkerk B.V.",
     "source": "BAG",
     "source:date": "2014-02-11",
-    "website": "https://www.2sistersstorteboom.nl/"
+    "website": "https://www.2sistersstorteboom.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2719454203,
+  "lat": 52.1997582,
+  "lon": 5.5277857,
+  "tags": {
+    "addr:city": "Nijkerk",
+    "addr:housenumber": "2",
+    "addr:postcode": "3862PK",
+    "addr:street": "Bulderweg",
+    "animal": "sheep;cow;horse;",
+    "description": "Slachthuis voor koeien, schapen en paarden.",
+    "industrial": "slaughterhouse",
+    "name": "Slachterij Henk Worst",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "Slachterij Henk Worst B.V.",
+    "source": "BAG",
+    "source:date": "2014-02-11"
+  }
+},
+{
+  "type": "node",
+  "id": 2731354512,
+  "lat": 52.0850186,
+  "lon": 5.4704080,
+  "tags": {
+    "addr:city": "Scherpenzeel",
+    "addr:housenumber": "13",
+    "addr:postcode": "3925CK",
+    "addr:street": "'t Zwarte Land",
+    "animal": "pig",
+    "branch": "Scherpenzeel",
+    "industrial": "slaughterhouse",
+    "name": "Vion",
+    "office": "company",
+    "official_name": "Vion Scherpenzeel B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
+    "phone": "+31 88 9954800",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-scherpenzeel-b-v"
+  }
+},
+{
+  "type": "node",
+  "id": 2731678448,
+  "lat": 52.1769492,
+  "lon": 5.6960674,
+  "tags": {
+    "addr:city": "Stroe",
+    "addr:housenumber": "2",
+    "addr:postcode": "3776LP",
+    "addr:street": "Wolweg",
+    "animal": "chicken",
+    "description": "slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Pluimveeverwerking Jan van Ee",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Pluimveeverwerking Jan van Ee B.V.",
+    "phone": "+31 342 441305",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://janvanee.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2736690875,
+  "lat": 52.8802780,
+  "lon": 5.9951515,
+  "tags": {
+    "addr:city": "Wolvega",
+    "addr:housenumber": "62",
+    "addr:postcode": "8471AM",
+    "addr:street": "Haulerweg",
+    "animal": "cow",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Wolvega",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "VDS Wolvega B.V.",
+    "source": "BAG",
+    "source:date": "2014-02-11"
+  }
+},
+{
+  "type": "node",
+  "id": 2737707131,
+  "lat": 52.1615807,
+  "lon": 5.9906962,
+  "tags": {
+    "addr:city": "Lieren",
+    "addr:housenumber": "10",
+    "addr:postcode": "7364BR",
+    "addr:street": "Molenvaart",
+    "animal": "boar;cow;deer;game;goat;lamb;pig;sheep",
+    "description": "Slachthuis voor koeien, varkens, schapen, lammetjes, geiten, wild, herten en zwijnen.",
+    "industrial": "slaughterhouse",
+    "name": "Slagerij ter Weele",
+    "source": "BAG",
+    "source:date": "2014-02-11",
+    "website": "https://slagerijterweele.nl/"
+  }
+},
+{
+  "type": "node",
+  "id": 2741051564,
+  "lat": 51.7036400,
+  "lon": 5.2831233,
+  "tags": {
+    "addr:city": "'s-Hertogenbosch",
+    "addr:housenumber": "21",
+    "addr:postcode": "5222AE",
+    "addr:street": "Veemarktkade",
+    "animal": "calf",
+    "description": "Slachthuis voor kalfjes, zo'n 390.000 kalfjes per jaar.",
+    "industrial": "slaughterhouse",
+    "name": "Vitelco",
+    "note": "Het aantal kalfjes per jaar is gebaseerd op de 7500 kalfjes per week uit het document https://www.ruysgroep.nl/media/ruys-groep-pali-group-voedingindustrie-mei-2024.pdf",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Vitelco B.V.",
+    "operator": "PALI Group",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.vitelco.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2742692539,
+  "lat": 53.2094745,
+  "lon": 6.6056716,
+  "tags": {
+    "addr:city": "Groningen",
+    "addr:housenumber": "30",
+    "addr:postcode": "9723TM",
+    "addr:street": "Gotenburgweg",
+    "animal": "cow;calf;pig;lamb;sheep",
+    "description": "Slachthuis voor koeien, kalfjes, lammetjes en varkens.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Kroon Vlees",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.kroonvlees.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2743340055,
+  "lat": 52.2343124,
+  "lon": 6.0844350,
+  "tags": {
+    "addr:city": "Twello",
+    "addr:housenumber": "42",
+    "addr:postcode": "7391ZV",
+    "addr:street": "Nijverheidsstraat",
+    "animal": "goat;lamb;sheep",
+    "description": "Slachthuis voor schapen, lammetjes en geiten.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Slachthuis Twello",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Slachthuis Vee En Vleeshandel Mulder B.V.",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.muldervlees.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2751084357,
+  "lat": 52.8231875,
+  "lon": 5.9621470,
+  "tags": {
+    "addr:city": "Oldemarkt",
+    "addr:housenumber": "6",
+    "addr:postcode": "8375HJ",
+    "addr:street": "de Boterberg",
+    "animal": "cow",
+    "description": "slachthuis voor koeien",
+    "industrial": "slaughterhouse",
+    "name": "Slagerij ATS OIdemarkt",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.slagerijatsoldemarkt.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2756014208,
+  "lat": 52.2228018,
+  "lon": 6.8425349,
+  "tags": {
+    "addr:city": "Enschede",
+    "addr:housenumber": "74",
+    "addr:postcode": "7547SP",
+    "addr:street": "Het Lentfert",
+    "animal": "cow",
+    "branch": "Enschede",
+    "industrial": "slaughterhouse",
+    "name": "Vion",
+    "office": "company",
+    "official_name": "Vion Enschede B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
+    "phone": "+31 53 4864444",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-enschede-b-v"
+  }
+},
+{
+  "type": "node",
+  "id": 2757198210,
+  "lat": 52.0016026,
+  "lon": 6.5210516,
+  "tags": {
+    "addr:city": "Zieuwent",
+    "addr:housenumber": "17",
+    "addr:postcode": "7136LE",
+    "addr:street": "Dorpsstraat",
+    "animal": "calf;cow;goat;pig;sheep",
+    "description": "Slachthuis voor varken, speenbiggen, koeien, kalfjes, schapen en geiten.",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Zieuwent",
+    "notes": "Bron voor diersoorten: https://www.smaakacademieachterhoek.nl/kennisbank/rund/slachterij-beerten-in-zieuwent",
+    "office": "company",
+    "operator": "Firma H. Beerten en Zoon",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2758818213,
+  "lat": 51.8685767,
+  "lon": 6.3554650,
+  "tags": {
+    "addr:city": "Gendringen",
+    "addr:housenumber": "8",
+    "addr:postcode": "7081HR",
+    "addr:street": "Ringweg",
+    "animal": "cow;lamb;sheep",
+    "industrial": "slaughterhouse",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2758966805,
+  "lat": 51.3100840,
+  "lon": 3.3772155,
+  "tags": {
+    "addr:city": "Sluis",
+    "addr:country": "NL",
+    "addr:housenumber": "83",
+    "addr:postcode": "4524JC",
+    "addr:street": "St. Annastraat",
+    "alt_name": "Slachthuis Sluis",
+    "animal": "cow;sheep",
+    "description": "slachthuis voor runderen en schapen",
+    "industrial": "slaughterhouse",
+    "name": "Firma Gebroeders Gijzels",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "Firma Gebr. Gijzels",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.gijzels.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2765407000,
+  "lat": 51.9980646,
+  "lon": 4.6043162,
+  "tags": {
+    "addr:city": "Zevenhuizen",
+    "addr:housenumber": "15a",
+    "addr:postcode": "2761JH",
+    "addr:street": "Bierhoogtweg",
+    "animal": "chicken",
+    "diet:halal": "yes",
+    "industrial": "slaughterhouse",
+    "name": "Clazing",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Exportslachterij Clazing",
+    "phone": "+31 180 632247",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.clazing.nl/"
+  }
+},
+{
+  "type": "node",
+  "id": 2767896818,
+  "lat": 52.0889245,
+  "lon": 5.6063884,
+  "tags": {
+    "addr:city": "Lunteren",
+    "addr:housenumber": "4",
+    "addr:postcode": "6741LW",
+    "addr:street": "Vaarkampseweg",
+    "animal": "cow;pig;sheep",
+    "industrial": "slaughterhouse",
+    "name": "Huisslachter Tiemen Visser B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2773150551,
+  "lat": 53.0463483,
+  "lon": 6.7060427,
+  "tags": {
+    "addr:city": "Anloo",
+    "addr:housenumber": "35",
+    "addr:postcode": "9467PB",
+    "addr:street": "Annerweg",
+    "animal": "cow;pig;sheep",
+    "industrial": "slaughterhouse",
+    "name": "ABZ Anloo B.V.",
+    "nvwa_toezicht": "klein_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2773490682,
+  "lat": 52.1558971,
+  "lon": 6.7314318,
+  "tags": {
+    "addr:city": "Haaksbergen",
+    "addr:housenumber": "53",
+    "addr:postcode": "7481KE",
+    "addr:street": "Spoelsterstraat",
+    "animal": "cow;goat;lamb;pig;sheep;water buffalo",
+    "email": "info@slachthuishaaksbergen.nl",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Haaksbergen",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "phone": "+31 53 5721806",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.slachthuishaaksbergen.nl/"
+  }
+},
+{
+  "type": "node",
+  "id": 2773516320,
+  "lat": 51.7776749,
+  "lon": 5.3174030,
+  "tags": {
+    "addr:city": "Kerkdriel",
+    "addr:housenumber": "2",
+    "addr:postcode": "5331PN",
+    "addr:street": "Luttel Inghweg",
+    "animal": "cow;goat;sheep",
+    "industrial": "slaughterhouse",
+    "name": "Willem Hooijmans Slachterij Vee-Vleeshandel",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
   }
 },
 {
@@ -328,15 +811,77 @@
     "addr:housenumber": "48",
     "addr:postcode": "6902PK",
     "addr:street": "Edisonstraat",
-    "contact:email": "info@compaxovlees.nl",
-    "contact:fax": "+31 316 584 445",
-    "contact:phone": "+31 316 584 444",
-    "contact:website": "https://compaxovlees.nl",
+    "animal": "pig",
+    "description": "Slachthuis voor varkens",
+    "email": "info@compaxovlees.nl",
+    "fax": "+31 316 584 445",
     "industrial": "slaughterhouse",
     "man_made": "works",
-    "name": "Compaxo Vlees Zevenaar BV",
+    "name": "Compaxo Vlees",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Compaxo Vlees Zevenaar BV",
+    "phone": "+31 316 584 444",
     "source": "BAG",
-    "source:date": "2014-03-24"
+    "source:date": "2014-03-24",
+    "website": "https://compaxovlees.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2776156766,
+  "lat": 52.6602110,
+  "lon": 5.1057541,
+  "tags": {
+    "addr:city": "Blokker",
+    "addr:housenumber": "7",
+    "addr:postcode": "1695GD",
+    "addr:street": "Gildenweg",
+    "animal": "chicken",
+    "branch": "Blokker",
+    "description": "slachthuis voor kippen",
+    "email": "blokker@plukon.nl",
+    "industrial": "slaughterhouse",
+    "name": "Plukon",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Plukon Blokker BV",
+    "operator": "Plukon",
+    "operator:website": "https://www.plukon.nl",
+    "operator:wikidata": "Q2221624",
+    "phone": "+31 229 262720",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.plukon.nl/contact/plukon-blokker/"
+  }
+},
+{
+  "type": "node",
+  "id": 2780936998,
+  "lat": 52.2452591,
+  "lon": 6.5894065,
+  "tags": {
+    "addr:city": "Goor",
+    "addr:housenumber": "10",
+    "addr:postcode": "7471ST",
+    "addr:street": "Breukersweg",
+    "animal": "chicken",
+    "branch": "Goor",
+    "description": "slachthuis voor kippen",
+    "email": "goor@plukon.nl",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Plukon",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Plukon Goor B.V.",
+    "operator": "Plukon",
+    "operator:website": "https://www.plukon.nl",
+    "operator:wikidata": "Q2221624",
+    "phone": "+31 547 284868",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.plukon.nl/contact/plukon-goor/"
   }
 },
 {
@@ -351,6 +896,27 @@
     "addr:street": "Diepersestraat",
     "industrial": "slaughterhouse",
     "name": "Islamitische Slachtplaats Kurban",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2789402028,
+  "lat": 51.5350640,
+  "lon": 4.5842517,
+  "tags": {
+    "addr:city": "Sprundel",
+    "addr:housenumber": "16",
+    "addr:postcode": "4714RE",
+    "addr:street": "Lange Hei",
+    "animal": "cow;pig",
+    "industrial": "slaughterhouse",
+    "name": "De Heerens Vleeshandel",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "De Heerens Vleeshandel B.V.",
     "source": "BAG",
     "source:date": "2014-03-24"
   }
@@ -365,11 +931,144 @@
     "addr:housenumber": "8",
     "addr:postcode": "7554TX",
     "addr:street": "Toermalijnstraat",
-    "contact:website": "http://www.slachthuis-twente.eu/content/2013/04/home",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Slachthuis Twente",
+    "office": "company",
     "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "http://www.slachthuis-twente.eu"
+  }
+},
+{
+  "type": "node",
+  "id": 2793532935,
+  "lat": 51.9563043,
+  "lon": 4.6180071,
+  "tags": {
+    "addr:city": "Nieuwerkerk aan den IJssel",
+    "addr:housenumber": "114",
+    "addr:postcode": "2911CJ",
+    "addr:street": "'s-Gravenweg",
+    "animal": "calf;cow",
+    "description": "Slachthuis voor koeien en kalfjes",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis T. Boer en Zonen",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "VanDrie Group",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.boer.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2795380926,
+  "lat": 51.8332081,
+  "lon": 4.9417749,
+  "tags": {
+    "addr:city": "Gorinchem",
+    "addr:housenumber": "25",
+    "addr:postcode": "4202MS",
+    "addr:street": "Avelingen-West",
+    "branch": "Gorinchem",
+    "description": "Voormalig slachthuis waar zo'n 13 miljoen varkens zijn geslacht. Het slachten vindt tegenwoordig plaats op de hoofdvestiging in IJsselstein.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Westfort",
+    "office": "company",
+    "phone": "+31 183 66 51 00",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://westfort.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2798157904,
+  "lat": 53.1823250,
+  "lon": 6.1820109,
+  "tags": {
+    "addr:city": "Surhuisterveen",
+    "addr:housenumber": "6",
+    "addr:postcode": "9231HV",
+    "addr:street": "Grensweg",
+    "animal": "cow",
+    "description": "slachthuis voor koeien",
+    "industrial": "slaughterhouse",
+    "name": "Kamminga Slachtbedrijf",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "http://www.kammingaslachtbedrijfbv.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2806843579,
+  "lat": 51.9351250,
+  "lon": 4.9964994,
+  "tags": {
+    "addr:city": "Meerkerk",
+    "addr:housenumber": "113",
+    "addr:postcode": "4231CC",
+    "addr:street": "Zouwendijk",
+    "animal": "cow;pig",
+    "industrial": "slaughterhouse",
+    "name": "Slacht- en Grossiersbedrijf Barten B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2806977101,
+  "lat": 52.6068895,
+  "lon": 6.4814251,
+  "tags": {
+    "addr:city": "Dedemsvaart",
+    "addr:housenumber": "135",
+    "addr:postcode": "7701AD",
+    "addr:street": "Langewijk",
+    "animal": "chicken",
+    "branch": "Dedemsvaart",
+    "description": "slachthuis voor kippen",
+    "email": "dedemsvaart@plukon.nl",
+    "industrial": "slaughterhouse",
+    "name": "Plukon",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Plukon Dedemsvaart B.V.",
+    "operator": "Plukon",
+    "operator:website": "https://www.plukon.nl",
+    "operator:wikidata": "Q2221624",
+    "phone": "+31 523 625100",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.plukon.nl/contact/plukon-dedemsvaart/"
+  }
+},
+{
+  "type": "node",
+  "id": 2815047997,
+  "lat": 51.5908245,
+  "lon": 5.6164006,
+  "tags": {
+    "addr:city": "Erp",
+    "addr:housenumber": "8",
+    "addr:postcode": "5469DZ",
+    "addr:street": "Franseweg",
+    "animal": "cow",
+    "description": "Slachthuis onder permanent toezicht van de NVWA in de categorie roodvlees.",
+    "industrial": "slaughterhouse",
+    "name": "Slachterij Erp",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "Slachterij Erp B.V.",
     "source": "BAG",
     "source:date": "2014-03-24"
   }
@@ -384,9 +1083,13 @@
     "addr:housenumber": "7",
     "addr:postcode": "6942GE",
     "addr:street": "Bierboomstraat",
-    "contact:phone": "+31 316 228 081",
+    "animal": "cow",
     "industrial": "slaughterhouse",
-    "name": "RKKB Vleeshandel B.V.",
+    "name": "RKKB Vleeshandel",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "RKKB Vleeshandel B.V.",
+    "phone": "+31 316 228 081",
     "source": "BAG",
     "source:date": "2014-03-24"
   }
@@ -414,8 +1117,9 @@
     "addr:street": "Elektronweg",
     "email": "info@helalfoodbv.nl",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Helal Food B.V.",
+    "name": "Helal Food",
+    "office": "company",
+    "official_name": "Helal Food B.V.",
     "opening_hours": "Mo-Fr 09:00-17:00; Sa 10:00-16:00",
     "operator": "Helal Food B.V.",
     "phone": "+31 30 241 0400",
@@ -436,6 +1140,175 @@
 },
 {
   "type": "node",
+  "id": 2825937391,
+  "lat": 52.2931986,
+  "lon": 6.9084782,
+  "tags": {
+    "addr:city": "Oldenzaal",
+    "addr:housenumber": "9",
+    "addr:postcode": "7575EJ",
+    "addr:street": "Zutphenstraat",
+    "animal": "cow",
+    "description": "Slachthuis voor koeien",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Oldenzaal",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Vleesvee Integratie Twente B.V.",
+    "source": "BAG",
+    "source:date": "2014-03-24",
+    "website": "https://www.vitwente.nl/dierenwelzijn/"
+  }
+},
+{
+  "type": "node",
+  "id": 2830046691,
+  "lat": 53.1513336,
+  "lon": 6.3633990,
+  "tags": {
+    "addr:city": "Leek",
+    "addr:housenumber": "23",
+    "addr:postcode": "9351NR",
+    "addr:street": "Mulderspark",
+    "animal": "chicken",
+    "description": "Slachthuis voor kippen.",
+    "industrial": "slaughterhouse",
+    "name": "Pluimveeslachterij Gebr. Heijs",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2840062020,
+  "lat": 50.9111238,
+  "lon": 5.9413455,
+  "tags": {
+    "addr:city": "Hoensbroek",
+    "addr:housenumber": "15",
+    "addr:postcode": "6433KG",
+    "addr:street": "De Koumen",
+    "animal": "lamb;sheep",
+    "diet:halal": "yes",
+    "industrial": "slaughterhouse",
+    "name": "Leclerq B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-03-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2842049272,
+  "lat": 52.7251328,
+  "lon": 6.4677562,
+  "tags": {
+    "addr:city": "Hoogeveen",
+    "addr:housenumber": "12",
+    "addr:postcode": "7901EA",
+    "addr:street": "Griendtsveenweg",
+    "animal": "cow;pig",
+    "industrial": "slaughterhouse",
+    "name": "Slagerij van Raalte",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "operator": "VOF Slagerij van Raalte",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2843737404,
+  "lat": 51.5664295,
+  "lon": 5.1033293,
+  "tags": {
+    "addr:city": "Tilburg",
+    "addr:housenumber": "28",
+    "addr:postcode": "5013BD",
+    "addr:street": "Enschotsestraat",
+    "animal": "cow",
+    "branch": "Tilburg",
+    "description": "slachthuis runderen",
+    "industrial": "slaughterhouse",
+    "name": "Vion",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Vion Tilburg B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
+    "phone": "+31 13 4620800",
+    "product": "meat",
+    "ref:bag": "0855100000825562",
+    "source": "BAG",
+    "source:date": "2014-05-07",
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-tilburg-b-v"
+  }
+},
+{
+  "type": "node",
+  "id": 2851086328,
+  "lat": 51.6681141,
+  "lon": 4.7743878,
+  "tags": {
+    "addr:city": "Wagenberg",
+    "addr:housenumber": "3A",
+    "addr:postcode": "4845PL",
+    "addr:street": "Scheerbiesstraat",
+    "animal": "cow",
+    "industrial": "slaughterhouse",
+    "name": "Slager Havermans",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "operator": "J.F.M. Havermans B.V.",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2852566891,
+  "lat": 51.3881186,
+  "lon": 5.7276256,
+  "tags": {
+    "addr:city": "Someren",
+    "addr:housenumber": "1",
+    "addr:postcode": "5711CW",
+    "addr:street": "Mortelweg",
+    "animal": "cow;pig",
+    "description": "Slachthuis voor koeien en varkens",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Tomassen Someren",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2852879516,
+  "lat": 51.3648735,
+  "lon": 5.8829188,
+  "tags": {
+    "addr:city": "Neerkant",
+    "addr:housenumber": "10a",
+    "addr:postcode": "5758RN",
+    "addr:street": "Vuurlinie",
+    "animal": "cow;pig;sheep",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Neerkant",
+    "nvwa_toezicht": "klein_slachthuis",
+    "office": "company",
+    "operator": "'t Zinkske",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
   "id": 2852969395,
   "lat": -20.5342406,
   "lon": -49.3116117,
@@ -449,6 +1322,313 @@
 },
 {
   "type": "node",
+  "id": 2853450381,
+  "lat": 52.3474968,
+  "lon": 5.9920702,
+  "tags": {
+    "addr:city": "Epe",
+    "addr:housenumber": "2",
+    "addr:postcode": "8161PM",
+    "addr:street": "Oenerweg",
+    "animal": "cow;pig",
+    "description": "Slachthuis voor koeien en varkens.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Slachthuis Gosschalk",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "Exportslachterij Family Beef B.V.",
+    "source": "BAG",
+    "source:date": "2014-05-07",
+    "website": "https://familybeef.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2853454007,
+  "lat": 52.3442118,
+  "lon": 5.9935988,
+  "tags": {
+    "addr:city": "Epe",
+    "addr:housenumber": "8",
+    "addr:postcode": "8161PG",
+    "addr:street": "Kweekweg",
+    "animal": "chicken",
+    "description": "slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Pluimveeslachterij G.P. Remkes",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2854624924,
+  "lat": 52.3606262,
+  "lon": 5.6384271,
+  "tags": {
+    "addr:city": "Harderwijk",
+    "addr:housenumber": "7",
+    "addr:postcode": "3846BG",
+    "addr:street": "Buys Ballotstraat",
+    "animal": "cow;goat;lamb;sheep",
+    "diet": "halal",
+    "industrial": "slaughterhouse",
+    "name": "Ipekçi Slachterij B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2864871724,
+  "lat": 52.2655204,
+  "lon": 5.1212445,
+  "tags": {
+    "addr:city": "'s-Graveland",
+    "addr:housenumber": "30",
+    "addr:postcode": "1243HV",
+    "addr:street": "De Boomgaard",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Slachterij 's-Graveland",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "source": "BAG",
+    "source:date": "2014-05-07"
+  }
+},
+{
+  "type": "node",
+  "id": 2869044591,
+  "lat": 52.1309132,
+  "lon": 5.0711583,
+  "tags": {
+    "addr:city": "Oud Zuilen",
+    "addr:housenumber": "6",
+    "addr:postcode": "3611AT",
+    "addr:street": "Groeneweg",
+    "animal": "chicken;duck;rabbit;turkey",
+    "description": "halal slachthuis voor kippen, eenden, kalkoenen en konijnen",
+    "diet:halal": "yes",
+    "industrial": "slaughterhouse",
+    "name": "De Frissche Roemer",
+    "office": "company",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-05-07",
+    "website": "https://www.halalgeslacht.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2872187361,
+  "lat": 51.4153272,
+  "lon": 5.7457400,
+  "tags": {
+    "addr:city": "Asten",
+    "addr:housenumber": "6",
+    "addr:postcode": "5721VV",
+    "addr:street": "Laagveld",
+    "animal": "pig",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Henk van Kemenade",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "Slachthuis Henk van Kemenade B.V.",
+    "source": "BAG",
+    "source:date": "2014-05-20"
+  }
+},
+{
+  "type": "node",
+  "id": 2877555001,
+  "lat": 52.2575332,
+  "lon": 4.9914524,
+  "tags": {
+    "addr:city": "Baambrugge",
+    "addr:housenumber": "11B",
+    "addr:postcode": "1396JC",
+    "addr:street": "Rijksstraatweg",
+    "animal": "cow",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Baambrugge",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Gebr. F.K. en G.F.H. Korver B.V",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-05-24"
+  }
+},
+{
+  "type": "node",
+  "id": 2879956622,
+  "lat": 52.5443007,
+  "lon": 4.8206990,
+  "tags": {
+    "addr:city": "Oost-Graftdijk",
+    "addr:housenumber": "109",
+    "addr:postcode": "1487MD",
+    "addr:street": "Oostgraftdijk",
+    "animal": "cow;horse;pig;sheep",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Abattoir Noord-Holland B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Abbatoir Noord-Holland B.V.",
+    "source": "BAG",
+    "source:date": "2014-05-25"
+  }
+},
+{
+  "type": "node",
+  "id": 2882266788,
+  "lat": 52.1501427,
+  "lon": 5.0221073,
+  "tags": {
+    "addr:city": "Maarssen",
+    "addr:housenumber": "36a",
+    "addr:postcode": "3603EB",
+    "addr:street": "Maarssenbroeksedijk Oost",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Van der Horst",
+    "office": "company",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-05-26"
+  }
+},
+{
+  "type": "node",
+  "id": 2889173722,
+  "lat": 52.1609684,
+  "lon": 4.9944743,
+  "tags": {
+    "addr:city": "Breukelen",
+    "addr:housenumber": "16",
+    "addr:postcode": "3621MX",
+    "addr:street": "Keulschevaart",
+    "animal": "chicken",
+    "description": "Slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Pluimveeslachterij C. van Miert",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Pluimveeslachterij C. van Miert B.V.",
+    "source": "BAG",
+    "source:date": "2014-05-30",
+    "website": "https://www.slachterijcvanmiert.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2889173731,
+  "lat": 52.1605146,
+  "lon": 4.9949111,
+  "tags": {
+    "addr:city": "Breukelen",
+    "addr:housenumber": "18",
+    "addr:postcode": "3621MX",
+    "addr:street": "Keulschevaart",
+    "animal": "goat;sheep",
+    "description": "slachthuis voor geiten en schapen",
+    "industrial": "slaughterhouse",
+    "name": "International Meat Processing Services",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "short_name": "IMPS",
+    "source": "BAG",
+    "source:date": "2014-05-30"
+  }
+},
+{
+  "type": "node",
+  "id": 2891565593,
+  "lat": 52.3177984,
+  "lon": 5.6076645,
+  "tags": {
+    "addr:city": "Ermelo",
+    "addr:housenumber": "116",
+    "addr:postcode": "3853KH",
+    "addr:street": "Fokko Kortlanglaan",
+    "animal": "duck",
+    "industrial": "slaughterhouse",
+    "name": "Tomassen Duck-To",
+    "nvwa_toezicht": "permanent",
+    "source": "BAG",
+    "source:date": "2014-05-31"
+  }
+},
+{
+  "type": "node",
+  "id": 2893996143,
+  "lat": 52.4297944,
+  "lon": 4.8168213,
+  "tags": {
+    "addr:city": "Zaandam",
+    "addr:housenumber": "32",
+    "addr:postcode": "1507BR",
+    "addr:street": "Gerrit Bolkade",
+    "industrial": "slaughterhouse",
+    "name": "Y markt en slachthuis B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Slachthuis en Slagerij Yakhlaf B.V.",
+    "source": "BAG",
+    "source:date": "2014-06-01"
+  }
+},
+{
+  "type": "node",
+  "id": 2894375457,
+  "lat": 52.1221500,
+  "lon": 4.8933549,
+  "tags": {
+    "addr:city": "Kamerik",
+    "addr:housenumber": "106A",
+    "addr:postcode": "3471GS",
+    "addr:street": "Mijzijde",
+    "animal": "calf;cow;goat;horse;pig;sheep",
+    "industrial": "slaughterhouse",
+    "name": "Firma Tuithof",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "phone": "+31 348 401465",
+    "source": "BAG",
+    "source:date": "2014-06-01",
+    "website": "https://www.firmatuithof.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2896646091,
+  "lat": 52.2472733,
+  "lon": 5.6079945,
+  "tags": {
+    "addr:city": "Putten",
+    "addr:housenumber": "148",
+    "addr:postcode": "3881SL",
+    "addr:street": "Voorthuizerstraat",
+    "animal": "chicken",
+    "ground_transport": "yes",
+    "industrial": "slaughterhouse",
+    "name": "Storteboom Food Group B.V",
+    "nvwa_toezicht": "permanent",
+    "phone": "+31 88 7530753",
+    "source": "BAG",
+    "source:date": "2014-06-02",
+    "website": "https://www.storteboom.com"
+  }
+},
+{
+  "type": "node",
   "id": 2902838850,
   "lat": 51.4479596,
   "lon": 5.6987735,
@@ -457,11 +1637,124 @@
     "addr:housenumber": "4",
     "addr:postcode": "5704RH",
     "addr:street": "Roggedijk",
+    "animal": "pig",
+    "description": "slachthuis",
     "industrial": "slaughterhouse",
     "name": "Van Rooi Meat",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "operator": "Van Rooi",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-06-06",
+    "website": "https://www.vanrooi.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2919320665,
+  "lat": 52.0118913,
+  "lon": 5.0640486,
+  "tags": {
+    "addr:city": "IJsselstein",
+    "addr:housenumber": "18",
+    "addr:postcode": "3401MZ",
+    "addr:street": "Kamerlingh Onneslaan",
+    "animal": "pig",
+    "branch": "IJsselstein",
+    "description": "Slachthuis voor varkens.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Westfort",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "old_name": "Egbert Kruiswijk",
+    "operator": "Westfort Vleesproducten",
+    "phone": "+31 30 760 78 00",
+    "source": "BAG",
+    "source:date": "2014-06-06",
+    "website": "https://westfort.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 2926529400,
+  "lat": 53.1399925,
+  "lon": 7.0525095,
+  "tags": {
+    "addr:city": "Winschoten",
+    "addr:housenumber": "12",
+    "addr:postcode": "9672AV",
+    "addr:street": "Oosterhavenkade",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Winschoten",
+    "office": "company",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-06-15"
+  }
+},
+{
+  "type": "node",
+  "id": 2929492345,
+  "lat": 51.1899260,
+  "lon": 5.8024946,
+  "tags": {
+    "addr:city": "Hunsel",
+    "addr:housenumber": "5",
+    "addr:postcode": "6013SH",
+    "addr:street": "Swillerweg",
+    "animal": "chicken",
+    "description": "slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Pluimveeslachterij Mieki Hunsel",
+    "nvwa_toezicht": "permanent",
     "office": "company",
     "source": "BAG",
-    "source:date": "2014-06-06"
+    "source:date": "2014-06-22",
+    "website": "https://www.miekihunselslachterij.com"
+  }
+},
+{
+  "type": "node",
+  "id": 2950827755,
+  "lat": 53.1126678,
+  "lon": 6.0620898,
+  "tags": {
+    "addr:city": "Drachten",
+    "addr:housenumber": "98a",
+    "addr:postcode": "9206AG",
+    "addr:street": "De Hemmen",
+    "animal": "pig",
+    "description": "Slachthuis voor varkens.",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Slachthuis Drachten",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "D. Feenstra en Zonen B.V.",
+    "source": "BAG",
+    "source:date": "2014-07-06",
+    "website": "https://feenstravlees.nl/"
+  }
+},
+{
+  "type": "node",
+  "id": 2974871244,
+  "lat": 51.8877026,
+  "lon": 5.5853734,
+  "tags": {
+    "addr:city": "Druten",
+    "addr:housenumber": "4",
+    "addr:postcode": "6651KR",
+    "addr:street": "Industrieweg",
+    "animal": "cow;lamb;pig",
+    "industrial": "slaughterhouse",
+    "name": "Vleeshandel Willems B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-07-21"
   }
 },
 {
@@ -480,6 +1773,112 @@
     "organic": "yes",
     "phone": "+49 3681 302817",
     "website": "http://www.landfleischerei-fuchs.de/"
+  }
+},
+{
+  "type": "node",
+  "id": 3001007050,
+  "lat": 51.3374388,
+  "lon": 5.9358450,
+  "tags": {
+    "addr:city": "Beringe",
+    "addr:housenumber": "13",
+    "addr:postcode": "5986NH",
+    "addr:street": "Meijelseweg",
+    "animal": "chicken",
+    "description": "Slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "Van der Linden Poultry Products",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Van der Linden Poultry Products B.V.",
+    "source": "BAG",
+    "source:date": "2014-08-06",
+    "website": "https://vanderlindenpp.com"
+  }
+},
+{
+  "type": "node",
+  "id": 3001137717,
+  "lat": 52.0426838,
+  "lon": 4.9455394,
+  "tags": {
+    "addr:city": "Montfoort",
+    "addr:housenumber": "1",
+    "addr:postcode": "3417GJ",
+    "addr:street": "Julianalaan",
+    "animal": "calf;cow;lamb",
+    "industrial": "slaughterhouse",
+    "name": "Slachterij van Kooten B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2014-08-06"
+  }
+},
+{
+  "type": "node",
+  "id": 3006350562,
+  "lat": 51.6543147,
+  "lon": 5.6472163,
+  "tags": {
+    "addr:city": "Uden",
+    "addr:housenumber": "5",
+    "addr:postcode": "5405AK",
+    "addr:street": "Frontstraat",
+    "animal": "chicken",
+    "description": "slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "name": "KemperKip",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "KemperKip B.V.",
+    "source": "BAG",
+    "source:date": "2014-08-09",
+    "website": "https://kemperkip.com"
+  }
+},
+{
+  "type": "node",
+  "id": 3017772110,
+  "lat": 51.9100358,
+  "lon": 5.7469009,
+  "tags": {
+    "addr:city": "Herveld",
+    "addr:housenumber": "2",
+    "addr:postcode": "6674AR",
+    "addr:street": "Romeplein",
+    "alt_name": "Slachthuis Herveld",
+    "animal": "cow;pig",
+    "industrial": "slaughterhouse",
+    "name": "Diepeveen Herveld",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "operator": "Diepeveen Herveld B.V.",
+    "phone": "+31 488 451460",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2014-08-15",
+    "website": "https://www.slagerijdiepeveen.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 3018043417,
+  "lat": 51.9157399,
+  "lon": 5.6503677,
+  "tags": {
+    "addr:city": "Dodewaard",
+    "addr:housenumber": "8",
+    "addr:postcode": "6669MX",
+    "addr:street": "Voorenswei",
+    "animal": "lamb",
+    "description": "Slachthuis voor lammetjes.",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Polderlam",
+    "office": "company",
+    "operator": "Polderlam Dodewaard B.V.",
+    "source": "BAG",
+    "source:date": "2014-08-15"
   }
 },
 {
@@ -761,6 +2160,28 @@
 },
 {
   "type": "node",
+  "id": 4663427905,
+  "lat": 52.3279516,
+  "lon": 6.2875310,
+  "tags": {
+    "addr:city": "Heeten",
+    "addr:housenumber": "1",
+    "addr:postcode": "8111CW",
+    "addr:street": "IJzerweg",
+    "animal": "cow",
+    "description": "Slachthuis voor koeien",
+    "industrial": "slaughterhouse",
+    "name": "Hutten beef",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "product": "meat",
+    "source": "BAG",
+    "source:date": "2017-02-04",
+    "website": "https://www.huttenbeef.com"
+  }
+},
+{
+  "type": "node",
   "id": 4706487436,
   "lat": 45.0549476,
   "lon": 25.2339949,
@@ -828,9 +2249,59 @@
   "lat": 51.9356404,
   "lon": 4.4165432,
   "tags": {
+    "addr:city": "Rotterdam",
+    "addr:housenumber": "201",
+    "addr:postcode": "3044HH",
+    "addr:street": "Groothandelsmarkt",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Goedegebuur"
+    "name": "Goedegebuur",
+    "office": "company",
+    "phone": "+31 10 2452600",
+    "source": "BAG",
+    "source:date": "2017-06-08",
+    "website": "https://goedegebuur.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 4886442791,
+  "lat": 52.1780805,
+  "lon": 5.9764329,
+  "tags": {
+    "addr:city": "Apeldoorn",
+    "addr:housenumber": "100",
+    "addr:postcode": "7333NP",
+    "addr:street": "Laan van Malkenschoten",
+    "animal": "calf",
+    "description": "slachthuis",
+    "industrial": "slaughterhouse",
+    "name": "Ekro",
+    "nvwa_toezicht": "permanent",
+    "office": "company",
+    "official_name": "Ekro B.V.",
+    "operator": "VanDrie Group",
+    "phone": "+31 55 549 2192",
+    "source": "BAG",
+    "source:date": "2017-05-08",
+    "website": "https://www.ekro.nl"
+  }
+},
+{
+  "type": "node",
+  "id": 4889180863,
+  "lat": 53.1666073,
+  "lon": 6.8680439,
+  "tags": {
+    "addr:city": "Zuidbroek",
+    "addr:housenumber": "12",
+    "addr:postcode": "9636HT",
+    "addr:street": "Europaweg",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis Zuidbroek",
+    "office": "company",
+    "phone": "+31 598 450 488",
+    "source": "BAG",
+    "source:date": "2017-06-01"
   }
 },
 {
@@ -871,8 +2342,8 @@
     "addr:postcode": "4214KA",
     "addr:street": "Gaanweg",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Kaldenberg",
+    "office": "company",
     "source": "BAG",
     "source:date": "2017-06-16"
   }
@@ -950,8 +2421,8 @@
     "addr:postcode": "2491BS",
     "addr:street": "Elbe",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Slobbe Meat Trading",
+    "office": "company",
     "source": "BAG",
     "source:date": "2017-11-08",
     "website": "https://slobbemeattrading.nl/"
@@ -1082,6 +2553,27 @@
 },
 {
   "type": "node",
+  "id": 5486476591,
+  "lat": 51.5740203,
+  "lon": 4.2902902,
+  "tags": {
+    "addr:city": "Steenbergen",
+    "addr:housenumber": "2a",
+    "addr:postcode": "4651PG",
+    "addr:street": "Drie Lindekensweg",
+    "animal": "chicken;duck;goat;lamb;pigeon;rabbit",
+    "diet:halal": "yes",
+    "industrial": "slaughterhouse",
+    "name": "Slachterij Vugts",
+    "office": "company",
+    "phone": "+31 167 530265",
+    "source": "BAG",
+    "source:date": "2018-03-08",
+    "website": "https://www.slachterijvugts.nl"
+  }
+},
+{
+  "type": "node",
   "id": 5522385389,
   "lat": -23.2050359,
   "lon": -50.7966129,
@@ -1150,6 +2642,24 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Frango Assado (Geleto)"
+  }
+},
+{
+  "type": "node",
+  "id": 5640337694,
+  "lat": 52.5509437,
+  "lon": 6.6492233,
+  "tags": {
+    "addr:city": "Hardenberg",
+    "addr:housenumber": "4",
+    "addr:postcode": "7772TC",
+    "addr:street": "Zwedenweg",
+    "animal": "cow;pig",
+    "industrial": "slaughterhouse",
+    "name": "Slagerij G.J. Hoff B.V.",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "source": "BAG",
+    "source:date": "2018-05-24"
   }
 },
 {
@@ -1342,6 +2852,28 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Villadam"
+  }
+},
+{
+  "type": "node",
+  "id": 5908322487,
+  "lat": 52.4280351,
+  "lon": 4.8793592,
+  "tags": {
+    "addr:city": "Oostzaan",
+    "addr:housenumber": "15",
+    "addr:postcode": "1511MA",
+    "addr:street": "Westeinde",
+    "animal": "chicken;game;wild",
+    "industrial": "slaughterhouse",
+    "name": "Cor Voet",
+    "nvwa_toezicht": "middelgroot_slachthuis",
+    "office": "company",
+    "official_name": "Cor Voet B.V.",
+    "phone": "+31 75 6841375",
+    "source": "BAG",
+    "source:date": "2018-09-15",
+    "website": "https://corvoet.nl"
   }
 },
 {
@@ -1559,6 +3091,28 @@
 },
 {
   "type": "node",
+  "id": 6218050713,
+  "lat": 51.7468948,
+  "lon": 5.3604904,
+  "tags": {
+    "addr:city": "'s-Hertogenbosch",
+    "addr:housenumber": "8",
+    "addr:postcode": "5236BC",
+    "addr:street": "Hustenweg",
+    "animal": "pig",
+    "description": "Slachthuis voor varkens.",
+    "email": "info@vvb-savelkouls.nl",
+    "industrial": "slaughterhouse",
+    "name": "Vers Vleesboerderij Savelkouls",
+    "opening_hours": "Th-Fr 11:00-18:00, Sa 09:00-13:30",
+    "opening_hours:url": "https://vvb-savelkouls.nl/contact/#openingstijden",
+    "phone": "+31 73 644 6161",
+    "shop": "butcher",
+    "website": "https://vvb-savelkouls.nl/"
+  }
+},
+{
+  "type": "node",
   "id": 6219768609,
   "lat": -28.3711245,
   "lon": -51.6444979,
@@ -1757,6 +3311,27 @@
 },
 {
   "type": "node",
+  "id": 6418527064,
+  "lat": 51.9333077,
+  "lon": 6.0918971,
+  "tags": {
+    "addr:city": "Zevenaar",
+    "addr:housenumber": "1",
+    "addr:postcode": "6902PV",
+    "addr:street": "Celsiusstraat",
+    "email": "info@schippervleeswaren.nl",
+    "fax": "+31 316 525 797",
+    "industrial": "slaughterhouse",
+    "name": "Schipper Vleeswaren",
+    "office": "company",
+    "phone": "+31 316 333 833",
+    "source": "BAG",
+    "source:date": "2019-04-20",
+    "website": "https://www.schippervleeswaren.nl"
+  }
+},
+{
+  "type": "node",
   "id": 6423979134,
   "lat": 40.9078231,
   "lon": 29.3034125,
@@ -1793,6 +3368,27 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Meat Store"
+  }
+},
+{
+  "type": "node",
+  "id": 6441304280,
+  "lat": 52.4537183,
+  "lon": 6.4147253,
+  "tags": {
+    "addr:city": "Lemele",
+    "addr:housenumber": "16",
+    "addr:postcode": "8148PW",
+    "addr:street": "Wethouder Imminkstraat",
+    "animal": "cow;lamb;pig;sheep",
+    "description": "Slachthuis voor koeien, varkens en lammetjes",
+    "industrial": "slaughterhouse",
+    "name": "Slagerij Kouwen",
+    "office": "company",
+    "product": "meat",
+    "shop": "butcher",
+    "source": "BAG",
+    "source:date": "2019-05-01"
   }
 },
 {
@@ -2566,14 +4162,15 @@
     "addr:housenumber": "29",
     "addr:postcode": "7325WC",
     "addr:street": "Ecofactorij",
-    "email": "info@ameco.eu",
+    "animal": "calf;cow",
+    "branch": "Apeldoorn",
     "industrial": "slaughterhouse",
     "name": "Ameco",
+    "nvwa_toezicht": "permanent",
     "office": "company",
-    "phone": "+31 20 686 7171",
     "source": "BAG",
     "source:date": "2020-01-21",
-    "website": "https://www.amsterdammeatcompany.nl/"
+    "website": "https://www.amecomeat.com"
   }
 },
 {
@@ -2911,8 +4508,8 @@
 {
   "type": "node",
   "id": 7467464924,
-  "lat": 8.5200895,
-  "lon": 76.9449469,
+  "lat": 8.5200984,
+  "lon": 76.9449309,
   "tags": {
     "industrial": "slaughterhouse",
     "landuse": "industrial",
@@ -4399,6 +5996,23 @@
 },
 {
   "type": "node",
+  "id": 9889816878,
+  "lat": 52.0867367,
+  "lon": 4.7976983,
+  "tags": {
+    "addr:city": "Nieuwerbrug aan den Rijn",
+    "addr:housenumber": "19a",
+    "addr:postcode": "2415BB",
+    "addr:street": "Weijland",
+    "industrial": "slaughterhouse",
+    "name": "Slachthuis A.J. de Wit",
+    "nvwa_toezicht": "klein_slachthuis",
+    "source": "BAG",
+    "source:date": "2022-07-15"
+  }
+},
+{
+  "type": "node",
   "id": 9895395242,
   "lat": 6.1005184,
   "lon": 0.1282722,
@@ -4810,7 +6424,7 @@
     "industrial": "slaughterhouse",
     "man_made": "works",
     "name": "Frigorífico Flach",
-    "phone": "+55-49-3632-1547",
+    "phone": "+55 49 3632 1547",
     "product": "beef"
   }
 },
@@ -4941,7 +6555,7 @@
   "tags": {
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "Abattoir Municipale de Pézenas"
+    "name": "Abattoir Municipal de Pézenas"
   }
 },
 {
@@ -5541,7 +7155,7 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Poca Frigorífico",
-    "phone": "(54) 3352-1526",
+    "phone": "+55 54 3352 1526",
     "website": "https://www.frigorificopoca.com.br/"
   }
 },
@@ -6202,6 +7816,50 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Entenverkauf (geschlachtet) nach Absprache"
+  }
+},
+{
+  "type": "node",
+  "id": 12465394448,
+  "lat": 44.5804368,
+  "lon": 2.0834330,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Greffeuille Aveyron"
+  }
+},
+{
+  "type": "node",
+  "id": 12465409070,
+  "lat": 44.5796229,
+  "lon": 2.0825608,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "NUTERGIA"
+  }
+},
+{
+  "type": "node",
+  "id": 12465412199,
+  "lat": 44.5808496,
+  "lon": 2.0831328,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Abattoir de Capdenac CAPS"
+  }
+},
+{
+  "type": "node",
+  "id": 12465419217,
+  "lat": 44.5802880,
+  "lon": 2.0829994,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Fipso"
   }
 },
 {
@@ -7382,6 +9040,124 @@
   }
 },
 {
+  "type": "node",
+  "id": 13917970037,
+  "lat": 19.5807311,
+  "lon": 75.6312066,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "node",
+  "id": 13922673721,
+  "lat": -6.8438703,
+  "lon": 39.2228100,
+  "tags": {
+    "addr:city": "Dar es Salaam",
+    "addr:place": "Butiama",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Vingunguti Abattoir",
+    "opening_hours": "24/7",
+    "operator": "Dar es Salaam City Council"
+  }
+},
+{
+  "type": "node",
+  "id": 13923253027,
+  "lat": 43.9780146,
+  "lon": 1.3223265,
+  "tags": {
+    "addr:city": "Montauban",
+    "addr:housenumber": "855",
+    "addr:postcode": "82000",
+    "addr:street": "Avenue d'Italie",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "AYMARD SAS"
+  }
+},
+{
+  "type": "node",
+  "id": 13923254977,
+  "lat": 39.6749944,
+  "lon": -31.1136314,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Casa de Matança da Ilha do Corvo"
+  }
+},
+{
+  "type": "node",
+  "id": 13936578907,
+  "lat": 48.3017329,
+  "lon": -4.1768183,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "name": "Abbatoir intercommunal du Faou",
+    "name:br": "Lazhti etrekumunel ar Faou"
+  }
+},
+{
+  "type": "node",
+  "id": 13953913449,
+  "lat": 46.5099121,
+  "lon": 39.0587801,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "node",
+  "id": 13964764353,
+  "lat": 1.9275411,
+  "lon": 30.0476423,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "name": "Abattoir"
+  }
+},
+{
+  "type": "node",
+  "id": 13974733705,
+  "lat": -16.4459286,
+  "lon": -41.0028220,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "node",
+  "id": 13975631469,
+  "lat": 13.7275784,
+  "lon": -89.3719450,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "EX RASTRO MPAL."
+  }
+},
+{
+  "type": "way",
+  "id": 6320608,
+  "center": {
+    "lat": 53.1829157,
+    "lon": 6.2484972
+  },
+  "tags": {
+    "animal": "chicken",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Storteboom Food Group",
+    "nvwa_toezicht": "permanent"
+  }
+},
+{
   "type": "way",
   "id": 23065720,
   "center": {
@@ -7516,20 +9292,6 @@
 },
 {
   "type": "way",
-  "id": 41319652,
-  "center": {
-    "lat": 31.2747221,
-    "lon": 34.2994704
-  },
-  "tags": {
-    "industrial": "slaughterhouse",
-    "name": "Saleem Afana Sons Co. for Meat",
-    "name:ar": "شركة ابناء سليم عفانة للحوم والابقار",
-    "shop": "butcher"
-  }
-},
-{
-  "type": "way",
   "id": 42014783,
   "center": {
     "lat": 47.8956127,
@@ -7545,29 +9307,6 @@
     "name": "Jean Floc'h - Abattoir Bernard",
     "phone": "+33 2 97 61 66 00",
     "website": "https://www.jean-floch.com/fr/notre-groupe/nos-usines"
-  }
-},
-{
-  "type": "way",
-  "id": 44921900,
-  "center": {
-    "lat": 51.9565374,
-    "lon": 4.6177529
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle",
-    "name": "Slachterij Boer",
-    "operator": "T. Boer en Zonen B.V.",
-    "product": "meat",
-    "ref:bag": "1892100000633087",
-    "source": "BAG",
-    "source:date": "2025-01-03",
-    "start_date": "1973",
-    "website": "https://www.boer.com/en/"
   }
 },
 {
@@ -7892,7 +9631,7 @@
     "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "ETABLISSEMENTS PUIGRENIER",
+    "name": "Etablissements Puigrenier",
     "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010"
   }
 },
@@ -7958,7 +9697,6 @@
     "addr:street": "Feldbauerschaft",
     "building": "yes",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Hidding"
   }
 },
@@ -8323,6 +10061,19 @@
 },
 {
   "type": "way",
+  "id": 108166250,
+  "center": {
+    "lat": 41.1071707,
+    "lon": -7.9690354
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Matadouro Municipal de Resende"
+  }
+},
+{
+  "type": "way",
   "id": 108852244,
   "center": {
     "lat": 54.0728336,
@@ -8398,10 +10149,24 @@
 },
 {
   "type": "way",
+  "id": 115572026,
+  "center": {
+    "lat": 51.8142259,
+    "lon": 6.5677324
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "source": "Bing"
+  }
+},
+{
+  "type": "way",
   "id": 115681047,
   "center": {
-    "lat": 49.6899258,
-    "lon": 8.5913549
+    "lat": 49.6899281,
+    "lon": 8.5913424
   },
   "tags": {
     "addr:city": "Bensheim",
@@ -9254,7 +11019,7 @@
     "operator": "BRF S/A",
     "operator:type": "private",
     "ownership": "private",
-    "phone": "+55-49-3311-4000",
+    "phone": "+55 49 3311 4000",
     "product": "meat",
     "website": "https://www.brf-br.com/"
   }
@@ -9293,7 +11058,7 @@
     "old_name": "Coopercentral;Frigorífico Marafon",
     "operator": "Cooperativa Central Oeste Catarinense Ltda.",
     "operator:type": "cooperative",
-    "phone": "+55-49-3321-3000",
+    "phone": "+55 49 3321 3000",
     "website": "https://www.auroraalimentos.com.br"
   }
 },
@@ -9344,8 +11109,8 @@
   "type": "way",
   "id": 174142545,
   "center": {
-    "lat": 52.3343211,
-    "lon": 1.1327911
+    "lat": 52.3342277,
+    "lon": 1.1328079
   },
   "tags": {
     "addr:city": "Eye",
@@ -9509,7 +11274,7 @@
     "landuse": "industrial",
     "operator": "Cooperativa Central Aurora Alimentos",
     "owner": "Chapecó Companhia Industrial de Alimentos",
-    "phone": "+55-49-3353-8650"
+    "phone": "+55 49 3353 8650"
   }
 },
 {
@@ -9642,7 +11407,7 @@
   "id": 193482534,
   "center": {
     "lat": 52.8327344,
-    "lon": 8.1108101
+    "lon": 8.1107851
   },
   "tags": {
     "addr:city": "Emstek",
@@ -9695,26 +11460,6 @@
     "landuse": "industrial",
     "name": "San Miguel Slaughterhouse",
     "operator": "Bayan ng San Miguel, Lalawigan ng Bulacan"
-  }
-},
-{
-  "type": "way",
-  "id": 195196999,
-  "center": {
-    "lat": 53.1400525,
-    "lon": 7.0524877
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Winschoten",
-    "product": "meat",
-    "ref:bag": "1895100000002945",
-    "source": "BAG",
-    "source:date": "2024-10-13",
-    "start_date": "1928"
   }
 },
 {
@@ -10056,7 +11801,7 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "GTFoods",
-    "phone": "+55-44-3218-3500",
+    "phone": "+55 44 3218 3500",
     "website": "https://www.gtfoods.com.br/"
   }
 },
@@ -10622,20 +12367,6 @@
 },
 {
   "type": "way",
-  "id": 238806450,
-  "center": {
-    "lat": 43.5408977,
-    "lon": -8.1320844
-  },
-  "tags": {
-    "addr:housenumber": "371",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Matadero Cantalarrana"
-  }
-},
-{
-  "type": "way",
   "id": 239496590,
   "center": {
     "lat": 53.5952335,
@@ -10744,6 +12475,20 @@
     "landuse": "industrial",
     "name": "Comercial Ganadera S.A",
     "phone": "+1 809 748 0947"
+  }
+},
+{
+  "type": "way",
+  "id": 245536201,
+  "center": {
+    "lat": 43.5410322,
+    "lon": -8.1321878
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Matadoiro de Cantalarrana",
+    "name:gl": "Matadoiro de Cantalarrana"
   }
 },
 {
@@ -11067,89 +12812,6 @@
 },
 {
   "type": "way",
-  "id": 262907118,
-  "center": {
-    "lat": 52.1777734,
-    "lon": 5.9761537
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle",
-    "name": "Slachthuis Ekro",
-    "operator": "Ekro B.V.",
-    "product": "meat",
-    "ref:bag": "0200100000963091",
-    "source": "BAG",
-    "source:date": "2014-02-11",
-    "start_date": "1992"
-  }
-},
-{
-  "type": "way",
-  "id": 262907119,
-  "center": {
-    "lat": 52.1799764,
-    "lon": 5.9748719
-  },
-  "tags": {
-    "building": "yes",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "product": "meat",
-    "ref:bag": "0200100000085903",
-    "source": "BAG",
-    "source:date": "2014-02-11",
-    "start_date": "1991"
-  }
-},
-{
-  "type": "way",
-  "id": 262914069,
-  "center": {
-    "lat": 52.1855103,
-    "lon": 5.9864126
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis ESA",
-    "product": "meat",
-    "ref:bag": "0200100000086385",
-    "source": "BAG",
-    "source:date": "2024-09-27",
-    "start_date": "1986"
-  }
-},
-{
-  "type": "way",
-  "id": 263429725,
-  "center": {
-    "lat": 51.9889755,
-    "lon": 6.5779864
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis varkens",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "pigs",
-    "name": "Slachthuis Lichtenvoorde",
-    "product": "meat",
-    "ref:bag": "1586100000010422",
-    "source": "BAG",
-    "source:date": "2025-08-17",
-    "start_date": "1996",
-    "website": "https://pigarne.nl/"
-  }
-},
-{
-  "type": "way",
   "id": 263640526,
   "center": {
     "lat": 53.9299769,
@@ -11170,25 +12832,6 @@
 },
 {
   "type": "way",
-  "id": 263690303,
-  "center": {
-    "lat": 52.0504376,
-    "lon": 6.6235621
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "product": "meat",
-    "ref:bag": "1586100000022442",
-    "source": "BAG",
-    "source:date": "2014-02-11",
-    "start_date": "1990"
-  }
-},
-{
-  "type": "way",
   "id": 263981303,
   "center": {
     "lat": 50.8422607,
@@ -11200,26 +12843,6 @@
     "building": "yes",
     "fixme": "Shape is approximate—to be updated once UrbisAdm is updated",
     "industrial": "slaughterhouse"
-  }
-},
-{
-  "type": "way",
-  "id": 266383800,
-  "center": {
-    "lat": 52.1997686,
-    "lon": 5.5277465
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachterij Henk Worst B.V.",
-    "product": "meat",
-    "ref:bag": "0267100000006184",
-    "source": "BAG",
-    "source:date": "2014-02-11",
-    "start_date": "1924"
   }
 },
 {
@@ -11284,92 +12907,6 @@
 },
 {
   "type": "way",
-  "id": 268726585,
-  "center": {
-    "lat": 52.4537792,
-    "lon": 6.4147163
-  },
-  "tags": {
-    "building": "yes",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slagerij Kouwen",
-    "product": "meat",
-    "ref:bag": "0175100000001390",
-    "source": "BAG",
-    "source:date": "2023-05-01",
-    "start_date": "1959"
-  }
-},
-{
-  "type": "way",
-  "id": 268779411,
-  "center": {
-    "lat": 51.7037735,
-    "lon": 5.2829649
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis kalf",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle",
-    "name": "Slachthuis Vitelco",
-    "operator": "Vitelco B.V.",
-    "product": "meat",
-    "ref:bag": "0796100000278585",
-    "source": "BAG",
-    "source:date": "2014-03-24",
-    "start_date": "1960",
-    "website": "https://www.vitelco.nl/nl"
-  }
-},
-{
-  "type": "way",
-  "id": 268978699,
-  "center": {
-    "lat": 53.2094834,
-    "lon": 6.6054762
-  },
-  "tags": {
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Kroon Vlees",
-    "product": "meat",
-    "ref:bag": "0014100010922283",
-    "source": "BAG",
-    "source:date": "2021-05-08",
-    "start_date": "1983",
-    "website": "https://www.kroonvlees.nl/"
-  }
-},
-{
-  "type": "way",
-  "id": 269058290,
-  "center": {
-    "lat": 52.2342816,
-    "lon": 6.0840790
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis runderen, kalveren, lammeren, kippen",
-    "industrial": "slaughterhouse",
-    "livestock": "cattle;sheep;chicken",
-    "man_made": "works",
-    "name": "Slachthuis Twello",
-    "operator": "Slachthuis Vee En Vleeshandel Mulder B.V.",
-    "product": "meat",
-    "ref:bag": "0285100000104483",
-    "source": "BAG",
-    "source:date": "2023-05-12",
-    "start_date": "1976",
-    "website": "https://www.muldervlees.nl/"
-  }
-},
-{
-  "type": "way",
   "id": 270368537,
   "center": {
     "lat": 49.9214700,
@@ -11385,50 +12922,6 @@
     "name": "SOCIETE D'ABATTAGE D'HIRSON",
     "operator": "SARL SABHIR",
     "source": "cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2014"
-  }
-},
-{
-  "type": "way",
-  "id": 270720493,
-  "center": {
-    "lat": 52.0015906,
-    "lon": 6.5210180
-  },
-  "tags": {
-    "building": "house",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Zieuwent",
-    "operator": "Firma H. Beerten en Zoon",
-    "product": "meat",
-    "ref:bag": "1586100000013140",
-    "source": "BAG",
-    "source:date": "2017-08-05",
-    "start_date": "1930"
-  }
-},
-{
-  "type": "way",
-  "id": 270942734,
-  "center": {
-    "lat": 51.3102505,
-    "lon": 3.3768832
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis runderen en schapen",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle;sheep",
-    "name": "Slachthuis Sluis",
-    "operator": "Fa. Gebrs. Gijzels",
-    "product": "meat",
-    "ref:bag": "1714100000737908",
-    "source": "BAG",
-    "source:date": "2020-08-22",
-    "start_date": "1940",
-    "website": "https://www.gijzels.nl/"
   }
 },
 {
@@ -11449,49 +12942,6 @@
 },
 {
   "type": "way",
-  "id": 272460306,
-  "center": {
-    "lat": 51.9333372,
-    "lon": 6.0918787
-  },
-  "tags": {
-    "building": "industrial",
-    "contact:email": "info@schippervleeswaren.nl",
-    "contact:fax": "+31 316 525 797",
-    "contact:phone": "+31 316 333 833",
-    "contact:website": "https://www.schippervleeswaren.nl/",
-    "industrial": "slaughterhouse",
-    "name": "Schipper Vleeswaren",
-    "ref:bag": "0299100000405589",
-    "source": "BAG",
-    "source:date": "2014-03-24",
-    "start_date": "1978"
-  }
-},
-{
-  "type": "way",
-  "id": 272604667,
-  "center": {
-    "lat": 53.1665042,
-    "lon": 6.8678654
-  },
-  "tags": {
-    "addr:city": "Zuidbroek",
-    "addr:housenumber": "12",
-    "addr:postcode": "9636HT",
-    "addr:street": "Europaweg",
-    "building": "industrial",
-    "industrial": "slaughterhouse",
-    "name": "Slachthuis Zuidbroek",
-    "phone": "+31 598 450 488",
-    "ref:bag": "1987100000002637",
-    "source": "BAG",
-    "source:date": "2025-01-18",
-    "start_date": "2003"
-  }
-},
-{
-  "type": "way",
   "id": 274007530,
   "center": {
     "lat": 61.7965504,
@@ -11508,69 +12958,6 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Delsbo Charkuteri AB"
-  }
-},
-{
-  "type": "way",
-  "id": 274403185,
-  "center": {
-    "lat": 51.5795006,
-    "lon": 5.3237464
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis varkens en runderen",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle;pigs",
-    "man_made": "works",
-    "name": "Slachthuis VION",
-    "operator": "VION Boxtel B.V.",
-    "product": "meat",
-    "ref:bag": "0757100001430106",
-    "source": "BAG",
-    "source:date": "2023-10-10",
-    "start_date": "1926",
-    "website": "https://www.vionfoodgroup.com/en"
-  }
-},
-{
-  "type": "way",
-  "id": 274870268,
-  "center": {
-    "lat": 51.8332058,
-    "lon": 4.9420165
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Westvoort",
-    "product": "meat",
-    "ref:bag": "0512100000047322",
-    "source": "BAG",
-    "source:date": "2023-09-23",
-    "start_date": "2003"
-  }
-},
-{
-  "type": "way",
-  "id": 275168157,
-  "center": {
-    "lat": 53.1822811,
-    "lon": 6.1819528
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "product": "meat",
-    "ref:bag": "0059100000826724",
-    "source": "BAG",
-    "source:date": "2014-03-24",
-    "start_date": "1978"
   }
 },
 {
@@ -11622,42 +13009,6 @@
 },
 {
   "type": "way",
-  "id": 276962849,
-  "center": {
-    "lat": 51.5909171,
-    "lon": 5.6163412
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachterij Erp",
-    "product": "meat",
-    "ref:bag": "0860100001401130",
-    "source": "BAG",
-    "source:date": "2014-03-24",
-    "start_date": "1979"
-  }
-},
-{
-  "type": "way",
-  "id": 277143502,
-  "center": {
-    "lat": 51.9322633,
-    "lon": 6.1407340
-  },
-  "tags": {
-    "building": "industrial",
-    "industrial": "slaughterhouse",
-    "ref:bag": "1955100000002802",
-    "source": "BAG",
-    "source:date": "2014-03-24",
-    "start_date": "1992"
-  }
-},
-{
-  "type": "way",
   "id": 278029614,
   "center": {
     "lat": 8.1825714,
@@ -11668,47 +13019,6 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Bislig City Abattoir"
-  }
-},
-{
-  "type": "way",
-  "id": 278172547,
-  "center": {
-    "lat": 52.2951569,
-    "lon": 6.9204031
-  },
-  "tags": {
-    "building": "office",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Beernink",
-    "product": "meat",
-    "ref:bag": "0173100000133239",
-    "source": "BAG",
-    "source:date": "2025-05-05",
-    "start_date": "2002"
-  }
-},
-{
-  "type": "way",
-  "id": 278173139,
-  "center": {
-    "lat": 52.2933070,
-    "lon": 6.9085962
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Oldenzaal",
-    "operator": "Vleesvee Integratie Twente B.V.",
-    "product": "meat",
-    "ref:bag": "0173100000144576",
-    "source": "BAG",
-    "source:date": "2025-05-05",
-    "start_date": "2002"
   }
 },
 {
@@ -11725,48 +13035,6 @@
     "description": "Свинарник",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
-  }
-},
-{
-  "type": "way",
-  "id": 281291528,
-  "center": {
-    "lat": 51.3878282,
-    "lon": 5.7276029
-  },
-  "tags": {
-    "Beef": "Processing",
-    "Van": "Rooi",
-    "building": "yes",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Someren",
-    "product": "meat",
-    "ref:bag": "0847100000005393",
-    "source": "BAG",
-    "source:date": "2020-11-09",
-    "start_date": "1993"
-  }
-},
-{
-  "type": "way",
-  "id": 281323203,
-  "center": {
-    "lat": 51.3651137,
-    "lon": 5.8830143
-  },
-  "tags": {
-    "building": "house",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Neerkant",
-    "product": "meat",
-    "ref:bag": "0762100000017501",
-    "source": "BAG",
-    "source:date": "2020-07-22",
-    "start_date": "1952"
   }
 },
 {
@@ -11810,22 +13078,6 @@
 },
 {
   "type": "way",
-  "id": 283345090,
-  "center": {
-    "lat": 51.4154834,
-    "lon": 5.7458493
-  },
-  "tags": {
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Henk van Kemenade",
-    "operator": "Slachthuis Henk van Kemenade B.V.",
-    "product": "meat"
-  }
-},
-{
-  "type": "way",
   "id": 283723723,
   "center": {
     "lat": -6.4867313,
@@ -11839,27 +13091,6 @@
 },
 {
   "type": "way",
-  "id": 283952507,
-  "center": {
-    "lat": 52.2574123,
-    "lon": 4.9910621
-  },
-  "tags": {
-    "building": "apartments",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Baambrugge",
-    "operator": "Gebr. F.K. en G.F.H. Korver B.V",
-    "product": "meat",
-    "ref:bag": "0305100000000450",
-    "source": "BAG",
-    "source:date": "2014-05-24",
-    "start_date": "1920"
-  }
-},
-{
-  "type": "way",
   "id": 284163743,
   "center": {
     "lat": 14.3641362,
@@ -11869,46 +13100,6 @@
     "building": "industrial",
     "industrial": "slaughterhouse",
     "name": "Paete Slaughterhouse"
-  }
-},
-{
-  "type": "way",
-  "id": 284249890,
-  "center": {
-    "lat": 52.5442927,
-    "lon": 4.8206867
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Oost-Graftdijk",
-    "operator": "Abbatoir Noord-Holland B.V.",
-    "product": "meat",
-    "ref:bag": "0365100000000007",
-    "source": "BAG",
-    "source:date": "2014-05-25",
-    "start_date": "1996"
-  }
-},
-{
-  "type": "way",
-  "id": 284487373,
-  "center": {
-    "lat": 52.1501795,
-    "lon": 5.0222111
-  },
-  "tags": {
-    "description": "Slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Van der Horst",
-    "product": "meat",
-    "ref:bag": "0333100000012981",
-    "source": "BAG",
-    "source:date": "2014-05-26",
-    "start_date": "1978"
   }
 },
 {
@@ -11935,47 +13126,6 @@
 },
 {
   "type": "way",
-  "id": 285233853,
-  "center": {
-    "lat": 52.1605081,
-    "lon": 4.9949193
-  },
-  "tags": {
-    "building": "industrial",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "man_made": "works",
-    "name": "Slachthuis IMPS",
-    "product": "meat",
-    "ref:bag": "0311100000000107",
-    "source": "BAG",
-    "source:date": "2014-05-30",
-    "start_date": "1992"
-  }
-},
-{
-  "type": "way",
-  "id": 285769906,
-  "center": {
-    "lat": 52.4297670,
-    "lon": 4.8165454
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Zaandam",
-    "operator": "Slachthuis en Slagerij Yakhlaf B.V.",
-    "product": "meat",
-    "ref:bag": "0479100000082325",
-    "source": "BAG",
-    "source:date": "2014-06-01",
-    "start_date": "1995"
-  }
-},
-{
-  "type": "way",
   "id": 286086187,
   "center": {
     "lat": 51.8758237,
@@ -11985,29 +13135,6 @@
     "building": "industrial",
     "industrial": "slaughterhouse",
     "name": "Hülshorst Feinkost GmbH"
-  }
-},
-{
-  "type": "way",
-  "id": 286605999,
-  "center": {
-    "lat": 51.4479963,
-    "lon": 5.6994777
-  },
-  "tags": {
-    "building": "yes",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle;pigs",
-    "name": "Van Rooi",
-    "operator": "Van Rooi",
-    "product": "meat",
-    "ref:bag": "0794100000347331",
-    "source": "BAG",
-    "source:date": "2021-08-02",
-    "start_date": "2008",
-    "website": "https://www.vanrooi.com/nl/"
   }
 },
 {
@@ -12044,27 +13171,6 @@
     "product": "meat",
     "source": "Bing",
     "website": "http://www.lesabattoirsdusud.fr/"
-  }
-},
-{
-  "type": "way",
-  "id": 291611914,
-  "center": {
-    "lat": 53.1126356,
-    "lon": 6.0621293
-  },
-  "tags": {
-    "building": "retail",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Drachten",
-    "operator": "D. Feenstra en Zonen B.V.",
-    "product": "meat",
-    "ref:bag": "0090100000591521",
-    "source": "BAG",
-    "source:date": "2014-07-06",
-    "start_date": "1969"
   }
 },
 {
@@ -12993,7 +14099,6 @@
     "addr:suburb": "Henderson",
     "building": "yes",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Tegel"
   }
 },
@@ -13059,7 +14164,7 @@
     "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "TRADIVAL",
+    "name": "Tradival",
     "source": "cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2015"
   }
 },
@@ -13136,25 +14241,6 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Faccia Fratelli"
-  }
-},
-{
-  "type": "way",
-  "id": 358350547,
-  "center": {
-    "lat": 52.0117277,
-    "lon": 5.0643211
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "product": "meat",
-    "ref:bag": "0353100000018394",
-    "source": "BAG",
-    "source:date": "2015-07-03",
-    "start_date": "2006"
   }
 },
 {
@@ -13303,27 +14389,6 @@
 },
 {
   "type": "way",
-  "id": 369905873,
-  "center": {
-    "lat": 53.0404027,
-    "lon": 16.7701485
-  },
-  "tags": {
-    "addr:housenumber": "43",
-    "addr:place": "Chrustowo",
-    "addr:postcode": "64-850",
-    "email": "jbajons@vp.pl",
-    "fax": "+48672840113",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Ubojnia Drobiu w Chrustowie",
-    "phone": "+48501644860",
-    "source:addr": "ujscie.e-mapa.net",
-    "website": "http://www.ubojniadrobiu.com/"
-  }
-},
-{
-  "type": "way",
   "id": 370275626,
   "center": {
     "lat": -23.5528988,
@@ -13370,6 +14435,24 @@
     "landuse": "industrial",
     "name": "کشتارگاه صنعتی سهند بناب",
     "opening_hours": "24/7"
+  }
+},
+{
+  "type": "way",
+  "id": 376320081,
+  "center": {
+    "lat": 7.9188944,
+    "lon": 125.3301770
+  },
+  "tags": {
+    "addr:barangay": "Halapitan",
+    "addr:city": "San Fernando",
+    "addr:postcode": "8711",
+    "addr:province": "Bukidnon",
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "man_made": "works",
+    "name": "Slaughter House"
   }
 },
 {
@@ -14187,7 +15270,7 @@
     "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "SOCOPA VIANDES",
+    "name": "SOCOPA Viandes",
     "source": "cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2016"
   }
 },
@@ -14270,12 +15353,20 @@
     "lon": 5.3230048
   },
   "tags": {
-    "building": "yes",
-    "description": "Slachthuis voor varkens",
+    "alt_name": "VION Food Group",
+    "animal": "pig",
+    "description": "grootste slachthuis voor varkens in Nederland. Hier worden zo'n 90.000 varkens per week geslacht; in totaal 4,7 miljoen varkens per jaar.",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "VION Food Group",
-    "wikipedia": "nl:Vion N.V."
+    "man_made": "works",
+    "name": "Vion",
+    "nvwa_toezicht": "permanent",
+    "official_name": "Vion Boxtel B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
+    "phone": "+31 88 9953555",
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-boxtel-b-v"
   }
 },
 {
@@ -14693,8 +15784,8 @@
   "type": "way",
   "id": 468926756,
   "center": {
-    "lat": -27.8736281,
-    "lon": -50.4007309
+    "lat": -27.8733172,
+    "lon": -50.3999678
   },
   "tags": {
     "industrial": "slaughterhouse",
@@ -14756,27 +15847,6 @@
     "landuse": "industrial",
     "name": "Pilgrim's Pride",
     "operator": "Pilgrim's Pride"
-  }
-},
-{
-  "type": "way",
-  "id": 472110225,
-  "center": {
-    "lat": 52.3280661,
-    "lon": 6.2876195
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis runderen",
-    "industrial": "slaughterhouse",
-    "livestock": "cattle",
-    "name": "Hutten beef",
-    "product": "meat",
-    "ref:bag": "0177100000245419",
-    "source": "BAG",
-    "source:date": "2025-02-12",
-    "start_date": "2016",
-    "website": "https://www.huttenbeef.com/"
   }
 },
 {
@@ -15292,6 +16362,20 @@
 },
 {
   "type": "way",
+  "id": 507918689,
+  "center": {
+    "lat": 42.0783854,
+    "lon": -7.7229729
+  },
+  "tags": {
+    "building": "industrial",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Moncho e Hijos"
+  }
+},
+{
+  "type": "way",
   "id": 510354029,
   "center": {
     "lat": 34.8331504,
@@ -15361,7 +16445,7 @@
     "name": "Eurofrig",
     "official_name": "Embutidos Finos Europa",
     "operator": "Frigorífico Europa Ltda",
-    "phone": "+55-49-3196-1152",
+    "phone": "+55 49 3196 1152",
     "product": "meat",
     "website": "https://eurofrig.com.br/"
   }
@@ -17821,7 +18905,7 @@
     "operator": "Cooperativa Central Aurora Alimentos",
     "operator:short": "Aurora Coop",
     "operator:type": "cooperative",
-    "phone": "+55-49-3631-0800",
+    "phone": "+55 49 3631 0800",
     "product": "meat",
     "website": "https://www.auroraalimentos.com.br"
   }
@@ -19582,6 +20666,25 @@
 },
 {
   "type": "way",
+  "id": 682787070,
+  "center": {
+    "lat": 34.9050264,
+    "lon": -94.1014865
+  },
+  "tags": {
+    "addr:city": "Waldron",
+    "addr:housenumber": "442",
+    "addr:postcode": "72958",
+    "addr:state": "AR",
+    "addr:street": "Plant St.",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "livestock": "poultry",
+    "name": "Tyson Foods"
+  }
+},
+{
+  "type": "way",
   "id": 683028027,
   "center": {
     "lat": 35.2580792,
@@ -19794,20 +20897,6 @@
     "man_made": "works",
     "name": "Pilgrim's Pride",
     "operator": "Pilgrim's Pride"
-  }
-},
-{
-  "type": "way",
-  "id": 685013104,
-  "center": {
-    "lat": 51.9359412,
-    "lon": 6.0898733
-  },
-  "tags": {
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "product": "meat"
   }
 },
 {
@@ -22784,6 +23873,19 @@
 },
 {
   "type": "way",
+  "id": 786006945,
+  "center": {
+    "lat": 4.8502900,
+    "lon": -74.9126998
+  },
+  "tags": {
+    "building": "house",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
   "id": 786373617,
   "center": {
     "lat": 23.7273602,
@@ -23824,6 +24926,20 @@
 },
 {
   "type": "way",
+  "id": 819990724,
+  "center": {
+    "lat": 35.4529096,
+    "lon": -86.8658173
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "man_made": "works",
+    "name": "Old Hickory Smokehouse"
+  }
+},
+{
+  "type": "way",
   "id": 820464432,
   "center": {
     "lat": -13.9274558,
@@ -24108,24 +25224,6 @@
     "name": "жывёламагільнік",
     "name:be": "жывёламагільнік",
     "name:ru": "скотомогильник"
-  }
-},
-{
-  "type": "way",
-  "id": 828613515,
-  "center": {
-    "lat": -17.4036427,
-    "lon": -66.3148742
-  },
-  "tags": {
-    "addr:city": "Vinto",
-    "addr:street": "Avenida Simón Iturri Patiño",
-    "barrier": "wall",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Matadero Central de Vinto",
-    "operator": "Gobierno Autónomo Municipal de Vinto",
-    "operator:type": "government"
   }
 },
 {
@@ -25204,7 +26302,7 @@
   "id": 882923563,
   "center": {
     "lat": -23.3530411,
-    "lon": -51.3934145
+    "lon": -51.3933689
   },
   "tags": {
     "industrial": "slaughterhouse",
@@ -26068,6 +27166,23 @@
 },
 {
   "type": "way",
+  "id": 922923565,
+  "center": {
+    "lat": 51.5677253,
+    "lon": 31.1249318
+  },
+  "tags": {
+    "addr:housenumber": "2а",
+    "addr:postcode": "15514",
+    "addr:street": "вулиця Перемоги",
+    "building": "industrial",
+    "description": "Для реконструкції та експлуатації забійного цеху",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
   "id": 922931198,
   "center": {
     "lat": -11.9388818,
@@ -26420,11 +27535,7 @@
   },
   "tags": {
     "building": "industrial",
-    "description": "slachthuis",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis Herveld",
-    "product": "meat",
     "ref:bag": "1734103000006119",
     "source": "BAG",
     "source:date": "2023-01-06",
@@ -26476,20 +27587,6 @@
     "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
-  }
-},
-{
-  "type": "way",
-  "id": 940780144,
-  "center": {
-    "lat": 4.9230587,
-    "lon": -74.0310746
-  },
-  "tags": {
-    "building": "yes",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Tierra para ganaderia"
   }
 },
 {
@@ -26744,10 +27841,9 @@
     "addr:housename": "The Old Abattoir",
     "addr:postcode": "DH6 3NQ",
     "addr:street": "Stephens Terrace",
-    "addr:village": "Wheatley Hill",
-    "building": "yes",
+    "addr:suburb": "Wheatley Hill",
+    "building": "industrial",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Woolley Bros (North East) Ltd"
   }
 },
@@ -27650,18 +28746,6 @@
 },
 {
   "type": "way",
-  "id": 997184948,
-  "center": {
-    "lat": -6.4541399,
-    "lon": -76.4535299
-  },
-  "tags": {
-    "building": "industrial",
-    "industrial": "slaughterhouse"
-  }
-},
-{
-  "type": "way",
   "id": 997431368,
   "center": {
     "lat": -7.0132131,
@@ -27971,8 +29055,8 @@
   "type": "way",
   "id": 1009117150,
   "center": {
-    "lat": -30.5527581,
-    "lon": -65.9628406
+    "lat": -30.5527586,
+    "lon": -65.9628344
   },
   "tags": {
     "building": "yes",
@@ -30895,7 +31979,8 @@
   "tags": {
     "area": "yes",
     "industrial": "slaughterhouse",
-    "landuse": "industrial"
+    "landuse": "industrial",
+    "name": "Fletcher International WA"
   }
 },
 {
@@ -31176,12 +32261,24 @@
     "lon": 5.9753711
   },
   "tags": {
+    "addr:city": "Apeldoorn",
+    "addr:housenumber": "77",
+    "addr:postcode": "7333NP",
+    "addr:street": "Laan van Malkenschoten",
+    "animal": "pig",
     "barrier": "fence",
+    "branch": "Apeldoorn",
+    "description": "slachthuis voor varkens",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
-    "name": "Vion Food Group",
+    "name": "Vion",
+    "nvwa_toezicht": "permanent",
+    "official_name": "Vion Apeldoorn B.V.",
+    "operator": "Vion Food Group",
+    "operator:website": "https://www.vionfoodgroup.com",
+    "operator:wikidata": "Q495334",
     "phone": "+31 88 995 4200",
-    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-apeldoorn-b-v/"
+    "website": "https://www.vionfoodgroup.com/nl/locaties/vion-apeldoorn-b-v"
   }
 },
 {
@@ -31661,6 +32758,22 @@
 },
 {
   "type": "way",
+  "id": 1182053076,
+  "center": {
+    "lat": 53.1909330,
+    "lon": 5.6384652
+  },
+  "tags": {
+    "animal": "chicken",
+    "description": "Slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Pluimveeslachterij van der Meer",
+    "website": "https://wvandermeer.nl/"
+  }
+},
+{
+  "type": "way",
   "id": 1184230044,
   "center": {
     "lat": 44.7666110,
@@ -32121,8 +33234,8 @@
   "type": "way",
   "id": 1198784130,
   "center": {
-    "lat": -34.2688291,
-    "lon": -62.7097777
+    "lat": -34.2688249,
+    "lon": -62.7097778
   },
   "tags": {
     "addr:city": "Rufino",
@@ -32131,10 +33244,9 @@
     "addr:province": "Santa Fe",
     "addr:street": "Moreno",
     "description": "Frigorifico de Liebres",
+    "disused:landuse": "industrial",
     "industrial": "slaughterhouse",
-    "landuse": "industrial",
     "name": "Rigon SRL",
-    "phone": "+54 3382 427207",
     "product": "Hare meat"
   }
 },
@@ -32756,6 +33868,31 @@
     "landuse": "industrial",
     "name": "Camal Municipal de Yantzaza",
     "operator": "GAD Yantzaza"
+  }
+},
+{
+  "type": "way",
+  "id": 1227896581,
+  "center": {
+    "lat": 45.8849082,
+    "lon": 19.4580045
+  },
+  "tags": {
+    "addr:housenumber": "75",
+    "addr:street": "Пачирски пут",
+    "building": "yes",
+    "contact:facebook": "https://www.facebook.com/mohacimesara",
+    "email": "info@mohaci.com",
+    "industrial": "slaughterhouse",
+    "int_name": "Mohaci",
+    "landuse": "industrial",
+    "name": "Mohači",
+    "name:sr": "Мохачи",
+    "name:sr-Latn": "Mohači",
+    "opening_hours": "Mo-Fr 06:00-14:00",
+    "phone": "+381 24 741237",
+    "ref:RS:kucni_broj": "4345211",
+    "website": "https://mohaci.com/"
   }
 },
 {
@@ -33405,13 +34542,12 @@
 },
 {
   "type": "way",
-  "id": 1269320658,
+  "id": 1269861959,
   "center": {
-    "lat": 43.5481351,
-    "lon": -7.0559009
+    "lat": 43.5480716,
+    "lon": -7.0559622
   },
   "tags": {
-    "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Matadoiro de Ribadeo"
@@ -33808,6 +34944,25 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Manokan"
+  }
+},
+{
+  "type": "way",
+  "id": 1296064026,
+  "center": {
+    "lat": 47.0857966,
+    "lon": 28.7651160
+  },
+  "tags": {
+    "addr:city": "Ghidighici",
+    "addr:country": "MD",
+    "addr:housenumber": "3e",
+    "addr:postcode": "MD-2088",
+    "addr:street": "Strada Sfatul Țării",
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "ex-Abator"
   }
 },
 {
@@ -35403,28 +36558,8 @@
     "landuse": "industrial",
     "name": "Corella Frigorífico",
     "opening_hours": "Mo-Fr 08:00-18:00",
-    "phone": "2730900202",
+    "phone": "+55 27 3090 0202",
     "website": "https://corella.com.br/"
-  }
-},
-{
-  "type": "way",
-  "id": 1361430810,
-  "center": {
-    "lat": 52.2655953,
-    "lon": 5.1212554
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachterij 's-Graveland",
-    "product": "meat",
-    "ref:bag": "1696100000004243",
-    "source": "BAG",
-    "source:date": "2014-05-07",
-    "start_date": "1960"
   }
 },
 {
@@ -35899,6 +37034,18 @@
 },
 {
   "type": "way",
+  "id": 1382573339,
+  "center": {
+    "lat": 54.6423141,
+    "lon": -6.7301984
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
   "id": 1382660793,
   "center": {
     "lat": 35.3180621,
@@ -36139,7 +37286,7 @@
   "id": 1392340248,
   "center": {
     "lat": 39.8392115,
-    "lon": -0.4696088
+    "lon": -0.4696104
   },
   "tags": {
     "industrial": "slaughterhouse",
@@ -36655,6 +37802,29 @@
 },
 {
   "type": "way",
+  "id": 1431641581,
+  "center": {
+    "lat": 51.9486058,
+    "lon": 6.2248767
+  },
+  "tags": {
+    "addr:city": "Wehl",
+    "addr:housenumber": "2",
+    "addr:postcode": "7031HZ",
+    "addr:street": "Argonstraat",
+    "animal": "chicken",
+    "description": "Slachthuis voor kippen",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Slachthuis Esbro",
+    "nvwa_toezicht": "permanent",
+    "operator": "B.V. Esbro",
+    "phone": "+31 314 332 741",
+    "website": "https://www.esbro.nl"
+  }
+},
+{
+  "type": "way",
   "id": 1432654161,
   "center": {
     "lat": -13.8516545,
@@ -36981,29 +38151,6 @@
     "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
-  }
-},
-{
-  "type": "way",
-  "id": 1455758673,
-  "center": {
-    "lat": 51.5665754,
-    "lon": 5.1025596
-  },
-  "tags": {
-    "building": "yes",
-    "description": "slachthuis runderen",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "runderen",
-    "name": "Slachthuis VION",
-    "operator": "VION Food Group",
-    "product": "meat",
-    "ref:bag": "0855100000825562",
-    "source": "BAG",
-    "source:date": "2025-12-03",
-    "start_date": "2025",
-    "website": "https://www.vionfoodgroup.com/nl"
   }
 },
 {
@@ -37418,30 +38565,6 @@
 },
 {
   "type": "way",
-  "id": 1465664901,
-  "center": {
-    "lat": 52.3469730,
-    "lon": 5.9919041
-  },
-  "tags": {
-    "building": "industrial",
-    "description": "slachthuis",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "livestock": "cattle",
-    "man_made": "works",
-    "name": "Slachthuis Gosschalk",
-    "operator": "Exportslachterij Family Beef B.V.",
-    "product": "meat",
-    "ref:bag": "0232100000010895",
-    "source": "BAG",
-    "source:date": "2014-05-07",
-    "start_date": "1950",
-    "website": "https://familybeef.nl/"
-  }
-},
-{
-  "type": "way",
   "id": 1466436279,
   "center": {
     "lat": 45.8992259,
@@ -37508,11 +38631,10 @@
   "type": "way",
   "id": 1469907570,
   "center": {
-    "lat": 6.2994895,
+    "lat": 6.2994950,
     "lon": -75.5621737
   },
   "tags": {
-    "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
   }
@@ -37521,11 +38643,10 @@
   "type": "way",
   "id": 1469907571,
   "center": {
-    "lat": 6.2998993,
+    "lat": 6.2999043,
     "lon": -75.5627233
   },
   "tags": {
-    "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
   }
@@ -37538,7 +38659,6 @@
     "lon": -75.5616462
   },
   "tags": {
-    "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
   }
@@ -37548,10 +38668,9 @@
   "id": 1469907573,
   "center": {
     "lat": 6.3016268,
-    "lon": -75.5621711
+    "lon": -75.5621757
   },
   "tags": {
-    "building": "yes",
     "industrial": "slaughterhouse",
     "landuse": "industrial"
   }
@@ -38151,23 +39270,6 @@
 },
 {
   "type": "way",
-  "id": 1499806138,
-  "center": {
-    "lat": 52.1314473,
-    "lon": 5.0715641
-  },
-  "tags": {
-    "description": "Halal slachthuis voor kippen, eenden, kalkoenen en konijnen.",
-    "diet:halal": "yes",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Slachthuis de Frissche Roemer",
-    "product": "meat",
-    "website": "https://www.halalgeslacht.nl/"
-  }
-},
-{
-  "type": "way",
   "id": 1500237868,
   "center": {
     "lat": 15.7554703,
@@ -38314,7 +39416,7 @@
   "type": "way",
   "id": 1518527101,
   "center": {
-    "lat": 8.1184465,
+    "lat": 8.1184438,
     "lon": -63.5087664
   },
   "tags": {
@@ -38361,6 +39463,307 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Lusiaves - Quinta de São Tomé"
+  }
+},
+{
+  "type": "way",
+  "id": 1525186843,
+  "center": {
+    "lat": 41.6066741,
+    "lon": 14.2685882
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 1526422285,
+  "center": {
+    "lat": 42.1874830,
+    "lon": -7.9439544
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Matadoiro Municipal de Celanova",
+    "name:gl": "Matadoiro Municipal de Celanova"
+  }
+},
+{
+  "type": "way",
+  "id": 1526880580,
+  "center": {
+    "lat": 24.9479130,
+    "lon": 55.5114219
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Al Lisaili Abattoir",
+    "name:ar": "مقصب الليسيلي",
+    "name:en": "Al Lisaili Abattoir"
+  }
+},
+{
+  "type": "way",
+  "id": 1527286813,
+  "center": {
+    "lat": 19.5807327,
+    "lon": 75.6312058
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 1527305583,
+  "center": {
+    "lat": 40.9510777,
+    "lon": 29.3464757
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 1527662048,
+  "center": {
+    "lat": 51.3379855,
+    "lon": 6.0146438
+  },
+  "tags": {
+    "addr:city": "Helden",
+    "addr:housenumber": "11",
+    "addr:postcode": "5988NX",
+    "addr:street": "Dekeshorst",
+    "animal": "turkey",
+    "description": "slachthuis voor kalkoenen",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "De Sjroete Farm",
+    "website": "https://www.desjroetefarm.nl"
+  }
+},
+{
+  "type": "way",
+  "id": 1527697512,
+  "center": {
+    "lat": -26.8866230,
+    "lon": -65.2495977
+  },
+  "tags": {
+    "access": "private",
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "slaughterhouse",
+    "name": "Matadero privado"
+  }
+},
+{
+  "type": "way",
+  "id": 1528213464,
+  "center": {
+    "lat": -27.4531013,
+    "lon": 31.6188826
+  },
+  "tags": {
+    "building": "farm_auxiliary",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Meijershoek Crocodile Abattoir"
+  }
+},
+{
+  "type": "way",
+  "id": 1528838420,
+  "center": {
+    "lat": -17.4294313,
+    "lon": -66.1816101
+  },
+  "tags": {
+    "addr:city": "Cochabamba",
+    "addr:neighbourhood": "Villa Eduardo López - Champarancho",
+    "addr:street": "Avenida Champa Rancho",
+    "barrier": "wall",
+    "disused:landuse": "industrial",
+    "end_date": "~1999",
+    "industrial": "slaughterhouse",
+    "name": "Matadero San Jorge"
+  }
+},
+{
+  "type": "way",
+  "id": 1530169776,
+  "center": {
+    "lat": 42.4589067,
+    "lon": 76.2099016
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "ОсОО «Балыкчы эт комбинаты»",
+    "operator": "ОсОО «Балыкчы эт комбинаты»"
+  }
+},
+{
+  "type": "way",
+  "id": 1530380752,
+  "center": {
+    "lat": 46.1842805,
+    "lon": 26.7381408
+  },
+  "tags": {
+    "addr:city": "Cașin",
+    "addr:postcode": "607090",
+    "addr:street": "Strada Abatorului",
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Abator ROGER SRL"
+  }
+},
+{
+  "type": "way",
+  "id": 1530704530,
+  "center": {
+    "lat": 49.7420218,
+    "lon": 8.7655366
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 1530708975,
+  "center": {
+    "lat": 49.7419860,
+    "lon": 8.7655550
+  },
+  "tags": {
+    "building": "industrial",
+    "industrial": "slaughterhouse"
+  }
+},
+{
+  "type": "way",
+  "id": 1531419666,
+  "center": {
+    "lat": 42.4492697,
+    "lon": -8.0329871
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Matadoiro do Carballiño",
+    "name:gl": "Matadoiro do Carballiño"
+  }
+},
+{
+  "type": "way",
+  "id": 1532145300,
+  "center": {
+    "lat": 49.2501119,
+    "lon": 24.4881861
+  },
+  "tags": {
+    "contact:website": "https://www.tornadomiaso.com.ua",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Торнадо М'ясо",
+    "name:en": "Tornado Miaso"
+  }
+},
+{
+  "type": "way",
+  "id": 1532340494,
+  "center": {
+    "lat": 28.8300149,
+    "lon": 115.3777855
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "靖安县生猪定点屠宰厂"
+  }
+},
+{
+  "type": "way",
+  "id": 1534382078,
+  "center": {
+    "lat": 5.1960285,
+    "lon": -73.8839894
+  },
+  "tags": {
+    "building": "yes",
+    "industrial": "slaughterhouse",
+    "landuse": "grass",
+    "name": "Feria Ganadera"
+  }
+},
+{
+  "type": "way",
+  "id": 1534586265,
+  "center": {
+    "lat": 70.8844350,
+    "lon": 78.4677458
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Пункт забоя оленей"
+  }
+},
+{
+  "type": "way",
+  "id": 1534882284,
+  "center": {
+    "lat": 49.7037472,
+    "lon": 15.0281479
+  },
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Rabbit Trhový Štěpánov"
+  }
+},
+{
+  "type": "way",
+  "id": 1536561495,
+  "center": {
+    "lat": -30.6915454,
+    "lon": 26.6985544
+  },
+  "tags": {
+    "addr:city": "Maletswai",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 1536946548,
+  "center": {
+    "lat": -25.7056304,
+    "lon": 30.0546140
+  },
+  "tags": {
+    "addr:city": "eMakhazeni",
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "eMakhazeni Abattoir"
   }
 },
 {
@@ -38560,7 +39963,7 @@
     "name": "Frigorífico Aurora Chapecó 2",
     "old_name": "Frigorífico Chapecó",
     "operator": "Cooperativa Central Oeste Catarinense Ltda.",
-    "phone": "+55-49-3361-5500",
+    "phone": "+55 49 3361 5500",
     "product": "pork",
     "type": "multipolygon"
   }
@@ -38684,8 +40087,8 @@
   "type": "relation",
   "id": 10349122,
   "center": {
-    "lat": 5.0097666,
-    "lon": -74.0038612
+    "lat": 5.0097855,
+    "lon": -74.0037973
   },
   "tags": {
     "building": "yes",
@@ -38699,8 +40102,8 @@
   "type": "relation",
   "id": 10349123,
   "center": {
-    "lat": 5.0097666,
-    "lon": -74.0038612
+    "lat": 5.0097855,
+    "lon": -74.0037973
   },
   "tags": {
     "building": "yes",
@@ -38763,7 +40166,7 @@
     "operator": "Cooperativa Central Oeste Catarinense",
     "operator:type": "cooperative",
     "ownership": "private",
-    "phone": "+55-49-3321-3700",
+    "phone": "+55 49 3321 3700",
     "ref": "FACH",
     "type": "multipolygon",
     "website": "https://www.auroraalimentos.com.br/"
