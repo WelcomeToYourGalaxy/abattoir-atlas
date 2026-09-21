@@ -5,7 +5,7 @@ Generated 2026-09-21
 - Input rows: **205,042**
 - Facilities after clustering: **186,547**
 - Rows absorbed into a multi-source facility: **18,495**
-- Flagged for review, not merged: **49,588 pairs**
+- Flagged for review, not merged: **49,589 pairs**
 
 ## Rows per source
 
