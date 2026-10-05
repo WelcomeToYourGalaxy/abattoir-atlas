@@ -2,7 +2,7 @@
   "version": 0.6,
   "generator": "Overpass API 0.7.62.11 87bfad18",
   "osm3s": {
-    "timestamp_osm_base": "2026-07-24T11:04:51Z",
+    "timestamp_osm_base": "2026-07-15T15:22:01Z",
     "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
   },
   "elements": [
@@ -151,7 +151,7 @@
   "tags": {
     "addr:city": "San Ignacio de Velasco",
     "alt_name": "Frigorifico Chiquitano",
-    "contact:phone": "+591 3 3888140",
+    "contact:phone": "+591-3-3888140",
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Frigorifico BFC S.A."
@@ -1907,6 +1907,17 @@
 },
 {
   "type": "node",
+  "id": 3155446121,
+  "lat": 13.2889260,
+  "lon": -16.6580529,
+  "tags": {
+    "industrial": "slaughterhouse",
+    "landuse": "industrial",
+    "name": "Abattoir"
+  }
+},
+{
+  "type": "node",
   "id": 3172380813,
   "lat": 47.6058724,
   "lon": 7.6570140,
@@ -2537,7 +2548,7 @@
     "name": "Corral Filadelfia",
     "opening_hours": "Mo-Fr 07:00-17:00, Sa 07:11:30",
     "operator": "Cooperativa Fernheim Ltda.",
-    "phone": "+595 491 418 800"
+    "phone": "+491418800"
   }
 },
 {
@@ -6887,7 +6898,7 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "Frigorifico del Sur",
-    "phone": "+591 3 3231075"
+    "phone": "+591-3-3231075"
   }
 },
 {
@@ -9129,59 +9140,6 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "EX RASTRO MPAL."
-  }
-},
-{
-  "type": "node",
-  "id": 14019536804,
-  "lat": 40.1640089,
-  "lon": -3.6676254,
-  "tags": {
-    "addr:city": "VALDEMORO",
-    "addr:housenumber": "NAVE 8",
-    "addr:postcode": "28341",
-    "addr:street": "C. Juan de la Cierva, 1, Nave 8, 28341 Valdemoro, Madrid",
-    "contact:whatsapp": "+34660886392",
-    "email": "pedidosbravo@outlook.com",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "DISTRIBUIDOR BRAVO AVICOLA S.L",
-    "opening_hours": "24/7",
-    "operator": "AVICOLA",
-    "phone": "+34660886392",
-    "website": "https://distribuidor-bravo-avicola-s-l.sumupstore.com/"
-  }
-},
-{
-  "type": "node",
-  "id": 14019536805,
-  "lat": 40.1922319,
-  "lon": -3.6738958,
-  "tags": {
-    "addr:city": "VALDEMORO",
-    "addr:housenumber": "1",
-    "addr:postcode": "28341",
-    "addr:street": "C. Matadero, 1, 28341 Valdemoro, Madrid",
-    "email": "bravocarne@outook.com",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "mobile": "+34 640 96 92 99",
-    "name": "BRAVOCARNE ALIMENTACION S.L",
-    "opening_hours": "24/7",
-    "operator": "CARNICERIA",
-    "website": "https://bravocarne-alimentacion-s-l.sumupstore.com/"
-  }
-},
-{
-  "type": "node",
-  "id": 14026298043,
-  "lat": -7.7790621,
-  "lon": 35.6802541,
-  "tags": {
-    "addr:city": "Iringa",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Machinjioni Mwangata"
   }
 },
 {
@@ -28049,7 +28007,7 @@
     "landuse": "industrial",
     "layer": "1",
     "name": "Procesadora de Aves Galipán",
-    "phone": "+58 212 2441579"
+    "phone": "+58-212-2441579"
   }
 },
 {
@@ -29883,21 +29841,7 @@
     "building": "industrial",
     "contact:website": "https://www.himmerlandskoed.dk/",
     "industrial": "slaughterhouse",
-    "name": "Himmerlandskød",
-    "roof:shape": "flat"
-  }
-},
-{
-  "type": "way",
-  "id": 1054137810,
-  "center": {
-    "lat": -5.3274698,
-    "lon": 120.1329943
-  },
-  "tags": {
-    "building": "house",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial"
+    "name": "Himmerlandskød"
   }
 },
 {
@@ -37290,7 +37234,7 @@
   "type": "way",
   "id": 1389305476,
   "center": {
-    "lat": 51.8929157,
+    "lat": 51.8929261,
     "lon": 20.0327283
   },
   "tags": {
@@ -39820,103 +39764,6 @@
     "industrial": "slaughterhouse",
     "landuse": "industrial",
     "name": "eMakhazeni Abattoir"
-  }
-},
-{
-  "type": "way",
-  "id": 1539671964,
-  "center": {
-    "lat": -29.5212593,
-    "lon": -52.1875954
-  },
-  "tags": {
-    "industrial": "slaughterhouse",
-    "landuse": "industrial"
-  }
-},
-{
-  "type": "way",
-  "id": 1540990294,
-  "center": {
-    "lat": 0.2412537,
-    "lon": 32.9262960
-  },
-  "tags": {
-    "building": "yes",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial"
-  }
-},
-{
-  "type": "way",
-  "id": 1541267773,
-  "center": {
-    "lat": -6.7057526,
-    "lon": -36.6627194
-  },
-  "tags": {
-    "industrial": "slaughterhouse",
-    "name": "Matadouro Público de Parelhas"
-  }
-},
-{
-  "type": "way",
-  "id": 1541367258,
-  "center": {
-    "lat": -17.5897647,
-    "lon": -65.8456166
-  },
-  "tags": {
-    "addr:city": "Punata",
-    "barrier": "yes",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Matadero Municipal Punata",
-    "operator": "Gobierno Autónomo Municipal de Punata",
-    "operator:short": "GAMP",
-    "operator:type": "government",
-    "start_date": "2023"
-  }
-},
-{
-  "type": "way",
-  "id": 1541421928,
-  "center": {
-    "lat": 13.2889067,
-    "lon": -16.6580723
-  },
-  "tags": {
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Abattoir"
-  }
-},
-{
-  "type": "way",
-  "id": 1543303576,
-  "center": {
-    "lat": 42.0219675,
-    "lon": 14.4902413
-  },
-  "tags": {
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Tornese",
-    "operator": "Torbay Councilnese Srl"
-  }
-},
-{
-  "type": "way",
-  "id": 1543934206,
-  "center": {
-    "lat": 4.0904051,
-    "lon": -74.4758288
-  },
-  "tags": {
-    "building": "yes",
-    "industrial": "slaughterhouse",
-    "landuse": "industrial",
-    "name": "Recinto ganadero"
   }
 },
 {
