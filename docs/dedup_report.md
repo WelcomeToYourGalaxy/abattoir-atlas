@@ -1,11 +1,11 @@
 # Deduplication report
 
-Generated 2026-10-12
+Generated 2026-10-13
 
-- Input rows: **205,116**
-- Facilities after clustering: **186,611**
-- Rows absorbed into a multi-source facility: **18,505**
-- Flagged for review, not merged: **49,628 pairs**
+- Input rows: **205,120**
+- Facilities after clustering: **186,612**
+- Rows absorbed into a multi-source facility: **18,508**
+- Flagged for review, not merged: **49,626 pairs**
 
 ## Rows per source
 
@@ -15,7 +15,7 @@ Generated 2026-10-12
 - EU / EFTA member states: 22,112
 - Non-EU (EU-approved): 15,390
 - Trase: 15,119
-- USDA FSIS: 7,242
+- USDA FSIS: 7,246
 - Brazil SIF: 3,143
 - OpenStreetMap: 2,794
 - NZ MPI: 1,641
@@ -24,15 +24,15 @@ Generated 2026-10-12
 
 ## What joined the merges
 
-- `addr`: 3,545 clusters
-- `geo`: 3,537 clusters
+- `addr`: 3,575 clusters
+- `geo`: 3,503 clusters
 - `id`: 3,141 clusters
 
 ## Cluster sizes
 
-- 1 source record: 176,678 facilities
-- 2 source records: 8,896 facilities
-- 3 source records: 703 facilities
+- 1 source record: 176,677 facilities
+- 2 source records: 8,897 facilities
+- 3 source records: 704 facilities
 - 4 source records: 180 facilities
 - 5 source records: 76 facilities
 - 6 source records: 19 facilities
