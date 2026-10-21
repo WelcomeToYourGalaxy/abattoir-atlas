@@ -1,6 +1,6 @@
 # Deduplication report
 
-Generated 2026-10-20
+Generated 2026-10-21
 
 - Input rows: **205,123**
 - Facilities after clustering: **186,617**
