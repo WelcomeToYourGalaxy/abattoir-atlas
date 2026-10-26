@@ -2,8 +2,8 @@
 
 Generated 2026-10-26
 
-- Input rows: **205,123**
-- Facilities after clustering: **186,617**
+- Input rows: **205,133**
+- Facilities after clustering: **186,627**
 - Rows absorbed into a multi-source facility: **18,506**
 - Flagged for review, not merged: **49,628 pairs**
 
@@ -17,7 +17,7 @@ Generated 2026-10-26
 - Trase: 15,119
 - USDA FSIS: 7,249
 - Brazil SIF: 3,143
-- OpenStreetMap: 2,794
+- OpenStreetMap: 2,804
 - NZ MPI: 1,641
 - Canada CFIA: 952
 - China CIFER: 71
@@ -30,7 +30,7 @@ Generated 2026-10-26
 
 ## Cluster sizes
 
-- 1 source record: 176,684 facilities
+- 1 source record: 176,694 facilities
 - 2 source records: 8,895 facilities
 - 3 source records: 704 facilities
 - 4 source records: 180 facilities
